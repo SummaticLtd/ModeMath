@@ -3,12 +3,12 @@ namespace ModeMath
 open System.Collections.Immutable
 
 module internal ImmArray =
-    let map (f: 'T -> 'U) (a: ImmutableArray<'T>) =
+    let map<'T, 'U> (f: 'T -> 'U) (a: ImmutableArray<'T>) =
         let b = ImmutableArray.CreateBuilder<'U> a.Length
         for x in a do b.Add(f x)
         b.MoveToImmutable()
 
-    let forall (f: 'T -> bool) (a: ImmutableArray<'T>) =
+    let forall<'T> (f: 'T -> bool) (a: ImmutableArray<'T>) =
         let mutable ok = true
         let mutable i = 0
         while ok && i < a.Length do
@@ -16,7 +16,7 @@ module internal ImmArray =
             i <- i + 1
         ok
 
-    let take (n: int) (a: ImmutableArray<'T>) =
+    let take<'T> (n: int) (a: ImmutableArray<'T>) =
         let b = ImmutableArray.CreateBuilder<'T> n
         for i in 0 .. n - 1 do b.Add a.[i]
         b.MoveToImmutable()
@@ -131,22 +131,22 @@ type MA =
         | Sqrt x -> Sqrt x.Flatten
 
     override t.ToString() =
-        let props name (xs: obj seq) =
+        let props(name: string, xs: obj seq) =
             name + "(" + (xs |> Seq.map string |> String.concat ", ") + ")"
         match t with
-        | Row l -> props "Row" (l |> Seq.map box)
+        | Row l -> props("Row", l |> Seq.map box)
         | Char c -> string c
-        | BoldVar c -> props "BoldVar" [ box c ]
+        | BoldVar c -> props("BoldVar", [ box c ])
         | Cdot -> "Cdot"
         | UprightD -> "UprightD"
-        | ScriptSuper(main, super, sub) -> props "ScriptSuper" [ main; super; sub ]
-        | ScriptSub(main, sub) -> props "ScriptSub" [ main; sub ]
-        | Frac(n, d) -> props "Frac" [ n; d ]
-        | Function f -> props "Fn" [ box f ]
-        | Operator o -> props "Op" [ box o ]
-        | Bracketed(b, ma, bc) -> props "Bracketed" [ box b; box ma; box bc ]
-        | RootN(n, x) -> props "RootN" [ n; x ]
-        | Sqrt x -> props "Sqrt" [ x ]
+        | ScriptSuper(main, super, sub) -> props("ScriptSuper", [ main; super; sub ])
+        | ScriptSub(main, sub) -> props("ScriptSub", [ main; sub ])
+        | Frac(n, d) -> props("Frac", [ n; d ])
+        | Function f -> props("Fn", [ box f ])
+        | Operator o -> props("Op", [ box o ])
+        | Bracketed(b, ma, bc) -> props("Bracketed", [ box b; box ma; box bc ])
+        | RootN(n, x) -> props("RootN", [ n; x ])
+        | Sqrt x -> props("Sqrt", [ x ])
 
 type Direction =
     | Up = 0
