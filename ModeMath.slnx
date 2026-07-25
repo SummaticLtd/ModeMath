@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="ModeMath.Tests/ModeMath.Tests.fsproj" />
+  <Project Path="ModeMath/ModeMath.fsproj" />
+</Solution>
