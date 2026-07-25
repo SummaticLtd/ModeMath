@@ -100,17 +100,15 @@ type MA =
         | Row l -> l |> ImmArray.forall (fun ma -> ma.IsEmpty)
         | _ -> false
 
-    /// The atom as a sequence of row elements. A non-Row is a single element.
     member t.Elements =
         match t with
         | Row l -> l
         | _ -> ImmutableArray.Create t
 
-    /// Inverse of Elements: a single element stays itself, anything else becomes a Row.
     static member OfElements(elements: ImmutableArray<MA>) =
         if elements.Length = 1 then elements.[0] else Row elements
 
-    /// Given atoms which may themselves be Rows, returns the equivalent flat sequence.
+    /// Given a list of MAs, which may contain Rows, returns a flattened list which does not contain rows at the top level.
     static member FlattenElements(atoms: ImmutableArray<MA>) =
         let b = ImmutableArray.CreateBuilder<MA>()
         for ma in atoms do
@@ -119,6 +117,7 @@ type MA =
             | flattened -> b.Add flattened
         b.ToImmutable()
 
+    /// Flattens rows
     member t.Flatten: MA =
         match t with
         | Row l -> MA.FlattenElements l |> MA.OfElements

@@ -3,7 +3,6 @@
     <TargetFramework>net10.0</TargetFramework>
     <Company>Summatic Ltd</Company>
     <Copyright>Copyright (c) Summatic Ltd</Copyright>
-    <!-- MA and MICurs must stay structurally in step; an unhandled case is an error, not a warning. -->
-    <WarningsAsErrors>FS0025</WarningsAsErrors>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
 </Project>
