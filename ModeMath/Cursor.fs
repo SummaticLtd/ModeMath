@@ -479,7 +479,7 @@ type MICurs =
         | Sqrt x -> Sqrt(x.AddMICurs addition)
 
     static member private RecogniseFunction(elements: ImmutableArray<MA>) =
-        let isLetter i =
+        let isLetter(i: int) =
             match elements.[i] with
             | MA.Char c -> Char.IsLetter c
             | _ -> false
@@ -516,19 +516,19 @@ type MICurs =
         | Sqrt x -> Sqrt(x.AddAlphanumeric c)
 
     override t.ToString() =
-        let props name (xs: obj seq) =
+        let props(name: string, xs: obj seq) =
             name + "(" + (xs |> Seq.map string |> String.concat ", ") + ")"
-        let row (l: ImmutableArray<MA>) = l |> Seq.map string |> String.concat " "
+        let row(l: ImmutableArray<MA>) = l |> Seq.map string |> String.concat " "
         match t with
         | CursorOrEmpty -> "|"
-        | Row(before, inner, after) -> props "Row" [ box (row before); box inner; box (row after) ]
-        | ScriptMainSuper(main, super, sub) -> props "ScriptMainSuper" [ box main; box super; box sub ]
-        | ScriptMainSub(main, sub) -> props "ScriptMainSub" [ box main; box sub ]
-        | ScriptSuper(main, super, sub) -> props "ScriptSuper" [ box main; box super; box sub ]
-        | ScriptSub(main, super, sub) -> props "ScriptSub" [ box main; box super; box sub ]
-        | FracNum(n, d) -> props "FracNum" [ box n; box d ]
-        | FracDen(n, d) -> props "FracDen" [ box n; box d ]
-        | Bracketed(b, inner, bc) -> props "Bracketed" [ box b; box inner; box bc ]
-        | RootNDegree(n, x) -> props "RootNDegree" [ box n; box x ]
-        | RootNMain(n, x) -> props "RootNMain" [ box n; box x ]
-        | Sqrt x -> props "Sqrt" [ box x ]
+        | Row(before, inner, after) -> props("Row", [ box (row before); box inner; box (row after) ])
+        | ScriptMainSuper(main, super, sub) -> props("ScriptMainSuper", [ box main; box super; box sub ])
+        | ScriptMainSub(main, sub) -> props("ScriptMainSub", [ box main; box sub ])
+        | ScriptSuper(main, super, sub) -> props("ScriptSuper", [ box main; box super; box sub ])
+        | ScriptSub(main, super, sub) -> props("ScriptSub", [ box main; box super; box sub ])
+        | FracNum(n, d) -> props("FracNum", [ box n; box d ])
+        | FracDen(n, d) -> props("FracDen", [ box n; box d ])
+        | Bracketed(b, inner, bc) -> props("Bracketed", [ box b; box inner; box bc ])
+        | RootNDegree(n, x) -> props("RootNDegree", [ box n; box x ])
+        | RootNMain(n, x) -> props("RootNMain", [ box n; box x ])
+        | Sqrt x -> props("Sqrt", [ box x ])

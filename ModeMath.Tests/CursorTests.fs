@@ -10,17 +10,17 @@ let private typed (s: string) =
 let private backspaced (m: MICurs) =
     match m.BackSpace with
     | Choice1Of2 m -> m
-    | Choice2Of2 ma -> failwithf "cursor fell off the left, leaving %O" ma
+    | Choice2Of2 ma -> failwith $"cursor fell off the left, leaving {ma}"
 
 let private deleted (m: MICurs) =
     match m.Delete with
     | Choice1Of2 m -> m
-    | Choice2Of2 ma -> failwithf "cursor fell off the right, leaving %O" ma
+    | Choice2Of2 ma -> failwith $"cursor fell off the right, leaving {ma}"
 
-let private moved (direction: Direction) (m: MICurs) =
+let private moved(direction: Direction, m: MICurs) =
     match m.Move direction with
     | ValueSome m -> m
-    | ValueNone -> failwithf "could not move %O from %O" direction m
+    | ValueNone -> failwith $"could not move {direction} from {m}"
 
 let private arr (xs: MA list) = xs.ToImmutableArray()
 
@@ -28,22 +28,21 @@ let private n = MA.Char 'n'
 let private d = MA.Char 'd'
 let private frac = MA.Frac(n, d)
 
-/// Every cursor position of a formula, walking right from the start.
-let private walkRight (ma: MA) =
-    let rec loop (acc: MICurs list) (m: MICurs) =
+let private walkRight(ma: MA) =
+    let rec loop(acc: MICurs list, m: MICurs) =
         match m.Right with
-        | ValueSome next -> loop (next :: acc) next
+        | ValueSome next -> loop(next :: acc, next)
         | ValueNone -> List.rev acc
     let start = MICurs.AtStart ma
-    start :: loop [] start
+    start :: loop([], start)
 
-let private walkLeft (ma: MA) =
-    let rec loop (acc: MICurs list) (m: MICurs) =
+let private walkLeft(ma: MA) =
+    let rec loop(acc: MICurs list, m: MICurs) =
         match m.Left with
-        | ValueSome next -> loop (next :: acc) next
+        | ValueSome next -> loop(next :: acc, next)
         | ValueNone -> List.rev acc
     let start = MICurs.AtEnd ma
-    start :: loop [] start
+    start :: loop([], start)
 
 let private sampleFormulas =
     [
@@ -78,7 +77,7 @@ let private editing =
                 fun () ->
                     match MICurs.CursorOrEmpty.BackSpace with
                     | Choice2Of2 ma -> Assert.Equal(MA.Empty, ma)
-                    | Choice1Of2 m -> Assert.Fail(sprintf "expected Choice2, got %O" m)
+                    | Choice1Of2 m -> Assert.Fail($"expected Choice2, got {m}")
             )
             Test.CasesSync(
                 "typingThenBackspaceIsIdentity",
@@ -128,7 +127,7 @@ let private editing =
                 fun () ->
                     match (MICurs.AtEnd(MA.Char 'x')).Delete with
                     | Choice2Of2 ma -> Assert.Equal(MA.Char 'x', ma)
-                    | Choice1Of2 m -> Assert.Fail(sprintf "expected Choice2, got %O" m)
+                    | Choice1Of2 m -> Assert.Fail($"expected Choice2, got {m}")
             )
             Test.Sync(
                 "deleteAtEndOfNumeratorDissolvesFraction",
@@ -161,49 +160,49 @@ let private navigation =
                 fun () ->
                     let start = MICurs.AtStart(MA.String "ab")
                     let expected = MICurs.Row(arr [ MA.Char 'a' ], MICurs.CursorOrEmpty, arr [ MA.Char 'b' ])
-                    Assert.Equal(expected, moved Direction.Right start)
+                    Assert.Equal(expected, moved(Direction.Right, start))
             )
             Test.Sync(
                 "rightEntersFractionNumerator",
                 fun () ->
                     Assert.Equal(
                         MICurs.FracNum(MICurs.AtStart n, d),
-                        moved Direction.Right (MICurs.AtStart frac))
+                        moved(Direction.Right, MICurs.AtStart frac))
             )
             Test.Sync(
                 "rightFromNumeratorEndEntersDenominator",
                 fun () ->
                     Assert.Equal(
                         MICurs.FracDen(n, MICurs.AtStart d),
-                        moved Direction.Right (MICurs.FracNum(MICurs.AtEnd n, d)))
+                        moved(Direction.Right, MICurs.FracNum(MICurs.AtEnd n, d)))
             )
             Test.Sync(
                 "rightFromDenominatorEndExitsFraction",
                 fun () ->
                     Assert.Equal(
                         MICurs.AtEnd frac,
-                        moved Direction.Right (MICurs.FracDen(n, MICurs.AtEnd d)))
+                        moved(Direction.Right, MICurs.FracDen(n, MICurs.AtEnd d)))
             )
             Test.Sync(
                 "leftEntersFractionDenominatorFromTheRight",
                 fun () ->
                     Assert.Equal(
                         MICurs.FracDen(n, MICurs.AtEnd d),
-                        moved Direction.Left (MICurs.AtEnd frac))
+                        moved(Direction.Left, MICurs.AtEnd frac))
             )
             Test.Sync(
                 "upFromDenominatorGoesToNumerator",
                 fun () ->
                     Assert.Equal(
                         MICurs.FracNum(MICurs.AtStart n, d),
-                        moved Direction.Up (MICurs.FracDen(n, MICurs.AtStart d)))
+                        moved(Direction.Up, MICurs.FracDen(n, MICurs.AtStart d)))
             )
             Test.Sync(
                 "downFromNumeratorGoesToDenominator",
                 fun () ->
                     Assert.Equal(
                         MICurs.FracDen(n, MICurs.AtStart d),
-                        moved Direction.Down (MICurs.FracNum(MICurs.AtStart n, d)))
+                        moved(Direction.Down, MICurs.FracNum(MICurs.AtStart n, d)))
             )
             Test.Sync(
                 "upFromBaseGoesToSuperscript",
@@ -212,7 +211,7 @@ let private navigation =
                     let two = MA.Char '2'
                     Assert.Equal(
                         MICurs.ScriptSuper(e, MICurs.AtStart two, ValueNone),
-                        moved Direction.Up (MICurs.ScriptMainSuper(MICurs.AtEnd e, two, ValueNone)))
+                        moved(Direction.Up, MICurs.ScriptMainSuper(MICurs.AtEnd e, two, ValueNone)))
             )
             Test.Sync(
                 "upAndDownStopWhenThereIsNothingStacked",
@@ -240,7 +239,7 @@ let private navigation =
                 fun ma ->
                     let positions = walkRight ma
                     for previous, next in List.pairwise positions do
-                        Assert.Equal(ValueSome previous, next.Left, sprintf "left from %O" next)
+                        Assert.Equal(ValueSome previous, next.Left, $"left from {next}")
             )
         ]
     )
