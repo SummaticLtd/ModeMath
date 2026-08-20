@@ -106,6 +106,13 @@ let private structures =
                     Assert.True(fraction.Descent > 0f, "descent")
             )
             Test.Sync(
+                "aFractionIsSetShorterInlineThanOnItsOwnLine",
+                fun () ->
+                    let fraction = MA.Frac(c '2', c '3')
+                    let inline' = layout.Of(fraction, MathSize.Text)
+                    Assert.True(inline'.Height < (laid fraction).Height, "inline is no shorter")
+            )
+            Test.Sync(
                 "bracketsGrowWithWhatTheyHold",
                 fun () ->
                     let small = laid(MA.RoundBracket(c 'x'))

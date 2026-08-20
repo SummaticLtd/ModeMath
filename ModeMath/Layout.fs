@@ -447,4 +447,7 @@ type Layout(fontSize: float32) =
         | MA.Sqrt x -> t.Radical(ValueNone, x, style)
         | MA.RootN(n, x) -> t.Radical(ValueSome n, x, style)
 
-    member t.Of(ma: MA) = t.Of(ma.Flatten, Style(MathSize.Display, false))
+    /// Laid out on a line of its own, where fractions and radicals are given their full height.
+    member t.Of(ma: MA) = t.Of(ma, MathSize.Display)
+
+    member t.Of(ma: MA, size: MathSize) = t.Of(ma.Flatten, Style(size, false))
