@@ -216,13 +216,12 @@ let private bigOperators =
             Test.Sync(
                 "anIntegralKeepsItsLimitsBesideEvenInDisplayStyle",
                 fun () ->
-                    let scripts(op: BigOperator) =
-                        let bare = layout.Of(MA.BigOp(op, ValueNone, ValueNone), MathSize.Display)
-                        let limited =
-                            layout.Of(MA.BigOp(op, ValueSome(c '0'), ValueSome(c '1')), MathSize.Display)
-                        limited.Width - bare.Width
-                    Assert.True(scripts BigOperator.Integral > 0f, "an integral widens")
-                    nearly(0f, scripts BigOperator.Sum, "a sum does not")
+                    // A limit wider than the operator is centred over a sum but sits beside an integral.
+                    let wide(op: BigOperator) =
+                        (layout.Of(MA.BigOp(op, ValueSome(MA.String "n=1234567"), ValueNone), MathSize.Display)).Width
+                    Assert.True(
+                        wide BigOperator.Integral > wide BigOperator.Sum,
+                        "the integral adds its limit to its own width, the sum does not")
             )
             Test.Sync(
                 "aLimitWiderThanTheOperatorWidensTheWhole",
@@ -233,6 +232,22 @@ let private bigOperators =
                             MA.BigOp(BigOperator.Sum, ValueSome(MA.String "n=1234567"), ValueNone),
                             MathSize.Display)
                     Assert.True(wide.Width > narrow.Width, "the wider limit sets the width")
+            )
+            Test.Sync(
+                "anIntegralsSubscriptStepsBackOverItsLean",
+                fun () ->
+                    let integral(lower, upper) =
+                        layout.Of(MA.BigOp(BigOperator.Integral, lower, upper), MathSize.Display)
+                    let bare = integral(ValueNone, ValueNone)
+                    let one = (layout.Of(c '1', MathSize.Script)).Width
+                    nearly(
+                        bare.Width + one,
+                        (integral(ValueNone, ValueSome(c '1'))).Width,
+                        "a superscript sits at the advance, the operator's box ending there")
+                    nearly(
+                        bare.Width,
+                        (integral(ValueSome(c '0'), ValueNone)).Width,
+                        "a subscript steps back under the lean, so it adds nothing")
             )
             Test.Sync(
                 "limIsSetInLettersRatherThanAGlyph",

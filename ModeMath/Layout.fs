@@ -195,6 +195,17 @@ type Layout(fontSize: float32) =
         | ValueSome found -> glyphDisplay(found, style, ink)
         | ValueNone -> Display.Empty
 
+    /// A large operator's italic correction measures its lean rather than ink past its advance, so it
+    /// does not widen the box, though scripts and limits are still placed by it.
+    let operatorDisplay(glyph: Glyph, style: Style, ink: Ink) =
+        let s = scale style
+        Display(
+            float32 glyph.Advance * s,
+            float32 glyph.Top * s,
+            -(float32 glyph.Bottom) * s,
+            float32 glyph.ItalicCorrection * s,
+            Content.Glyph(glyph, fontSize * style.ScaleFactor, ink))
+
     /// A glyph laid out with its ink resting on the origin, so that callers place it by its bottom.
     let bottomAnchored(glyph: Glyph, style: Style, ink: Ink) =
         let s = scale style
@@ -329,7 +340,7 @@ type Layout(fontSize: float32) =
             children.Add(Placed(display, b.Width, up))
             width <- max width (b.Width + display.Width)
         | ValueNone -> ()
-        // A subscript sits under the upright stem, ahead of the trailing italic correction.
+        // The italic correction leans the base right, so the subscript steps back over it.
         let subscriptX = b.Width - b.ItalicCorrection
         match subscript with
         | ValueSome display ->
@@ -357,7 +368,7 @@ type Layout(fontSize: float32) =
     /// The operator alone: a glyph for the sum and its kin, upright letters for lim.
     member private t.BigOperator(op: BigOperator, style: Style) =
         let big(stretchy: StretchyGlyph) =
-            glyphDisplay(t.BigOperatorGlyph(stretchy, style), style, Ink.Solid)
+            operatorDisplay(t.BigOperatorGlyph(stretchy, style), style, Ink.Solid)
         match op with
         | BigOperator.Sum -> big BigOperators.sum
         | BigOperator.Product -> big BigOperators.product
@@ -379,7 +390,7 @@ type Layout(fontSize: float32) =
         let above = upper |> ValueOption.map (fun ma -> t.Of(ma, style.Superscript))
         let below = lower |> ValueOption.map (fun ma -> t.Of(ma, style.Subscript))
         let half = operator.ItalicCorrection / 2f
-        let centre = (operator.Width - operator.ItalicCorrection) / 2f
+        let centre = operator.Width / 2f
         let placed = ImmutableArray.CreateBuilder<Placed>()
         placed.Add(Placed(operator, 0f, 0f))
         match above with
