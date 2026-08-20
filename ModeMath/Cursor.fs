@@ -144,9 +144,11 @@ type MICurs =
             match sub.BackSpace with
             | Choice1Of2 sub -> ScriptSub(main, super, sub) |> Choice1Of2
             | Choice2Of2 sub ->
-                match super with
-                | ValueSome super -> MICurs.Between(main, MA.ScriptSuper(sub, super, ValueNone)) |> Choice1Of2
-                | ValueNone -> MICurs.Between(main, sub) |> Choice1Of2
+                let baseAtom =
+                    match super with
+                    | ValueSome super -> MA.ScriptSuper(main, super, ValueNone)
+                    | ValueNone -> main
+                MICurs.Between(baseAtom, sub) |> Choice1Of2
         | FracNum(n, d) ->
             match n.BackSpace with
             | Choice1Of2 n -> FracNum(n, d) |> Choice1Of2
