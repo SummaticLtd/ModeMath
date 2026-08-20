@@ -3,15 +3,16 @@ namespace ModeMath
 open System
 open System.Collections.Generic
 open SkiaSharp
+open FSUtils
 
 /// Draws a Display onto an SKCanvas, whose y grows downwards where a Display's grows upwards.
 type Painter(typeface: SKTypeface) =
     let fonts = Dictionary<float32, SKFont>()
 
     let font(size: float32) =
-        match fonts.TryGetValue size with
-        | true, found -> found
-        | false, _ ->
+        match fonts |> Dictionary.tryFind size with
+        | ValueSome found -> found
+        | ValueNone ->
             let created = new SKFont(typeface, size)
             created.Hinting <- SKFontHinting.None
             created.Subpixel <- true

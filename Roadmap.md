@@ -38,11 +38,11 @@ Relations and binary operators carry a TeX atom class, which sets the spacing ar
 
 `MA.Char` already covers `\infty`, `\partial`, `\circ`, `\emptyset`, `\therefore`, `\mid` and the ellipses.
 
-## 4. Adopt FSUtils
+## 4. Units of measure
 
-SummaticApp's `FSUtils` is not open source yet. Once it is, ModeMath should take it rather than keep its
-own `ImmArray` copy, and use its type-specific maxima in place of `max`, its `Dictionary.tryGet` in place
-of matching on `TryGetValue`, and its units of measure for the lengths a `Display` carries.
+A `Display` carries every length as a bare `float32`, so points, ems and font units are one type and
+nothing catches mixing them. `Summatic.FSUtils` supplies the conversions and typed maxima to give them
+units.
 
 ## Tracked separately
 

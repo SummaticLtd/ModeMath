@@ -2,6 +2,7 @@ namespace ModeMath
 
 open System
 open System.Collections.Immutable
+open FSUtils
 
 module internal FunctionNames =
     let table =
@@ -501,7 +502,7 @@ type MICurs =
             FunctionNames.table
             |> Array.tryFind (fun (name, _) -> letters.EndsWith(name, StringComparison.Ordinal))
         match matched with
-        | Some(name, fn) -> (elements |> ImmArray.take (elements.Length - name.Length)).Add(MA.Function fn)
+        | Some(name, fn) -> (elements |> ImmArray.truncate (elements.Length - name.Length)).Add(MA.Function fn)
         | None -> elements
 
     /// Adds a character at the cursor, replacing a completed function name with that function.
