@@ -54,7 +54,7 @@ type AtomClass =
     | Punctuation = 6
     | Inner = 7
 
-module private Symbols =
+module private Conventions =
     let relations =
         set [ '='; '<'; '>'; '≤'; '≥'; '≠'; '≈'; '≡'; '∈'; '∉'
               '⊂'; '⊆'; '→'; '⇒'; '⇔'; '⟺'; '∴'; '∵'
@@ -68,34 +68,24 @@ module private Symbols =
     let closes = set [ ')'; ']'; '}'; '⟩' ]
     let punctuation = set [ ','; ';'; ':' ]
 
-    /// The italic forms of the Greek letters that have a second shape.
-    let private greekVariants =
-        dict [ '∂', 0x1D715; 'ϵ', 0x1D716; 'ϑ', 0x1D717; 'ϰ', 0x1D718; 'ϕ', 0x1D719; 'ϱ', 0x1D71A; 'ϖ', 0x1D71B ]
+    /// A variable is set in italics; anything else is drawn as it was typed.
+    let variable(c: char) =
+        match Letters.italic c with
+        | ValueSome italic -> ValueSome italic
+        | ValueNone -> if c = '-' then ValueSome Operators.minus else MathFont.OfChar c
 
-    /// The codepoint a character is drawn with: letters become the math italics.
-    let codepoint(c: char) =
-        if c >= 'a' && c <= 'z' then (if c = 'h' then 0x210E else 0x1D44E + int c - int 'a')
-        elif c >= 'A' && c <= 'Z' then 0x1D434 + int c - int 'A'
-        elif c >= 'α' && c <= 'ω' then 0x1D6FC + int c - 0x03B1
-        elif c = '-' then 0x2212
-        else
-            match greekVariants.TryGetValue c with
-            | true, italic -> italic
-            | _ -> int c
+    let boldVariable(c: char) =
+        match Letters.bold c with
+        | ValueSome bold -> ValueSome bold
+        | ValueNone -> MathFont.OfChar c
 
-    /// The codepoint a bold variable is drawn with.
-    let boldCodepoint(c: char) =
-        if c >= 'a' && c <= 'z' then 0x1D482 + int c - int 'a'
-        elif c >= 'A' && c <= 'Z' then 0x1D468 + int c - int 'A'
-        else int c
-
-    let operatorCodepoint(o: Operator) =
+    let operator(o: Operator) =
         match o with
-        | Operator.Times -> 0x00D7
-        | Operator.Plus -> int '+'
-        | Operator.Minus -> 0x2212
-        | Operator.Divide -> 0x00F7
-        | _ -> int '='
+        | Operator.Times -> Operators.times
+        | Operator.Plus -> Operators.plus
+        | Operator.Minus -> Operators.minus
+        | Operator.Divide -> Operators.divide
+        | _ -> Operators.equals
 
     let functionName(f: MathFunction) =
         match f with
@@ -190,9 +180,10 @@ type Layout(fontSize: float32) =
             float32 glyph.ItalicCorrection * s,
             Content.Glyph(glyph, fontSize * style.ScaleFactor, ink))
 
-    let symbol(codepoint: int, style: Style, ink: Ink) =
-        match MathFont.OfCodepoint codepoint with
-        | ValueSome glyph -> glyphDisplay(glyph, style, ink)
+    /// A character the font cannot draw takes no room, since there is nothing to show for it.
+    let symbol(glyph: Glyph voption, style: Style, ink: Ink) =
+        match glyph with
+        | ValueSome found -> glyphDisplay(found, style, ink)
         | ValueNone -> Display.Empty
 
     /// A glyph laid out with its ink resting on the origin, so that callers place it by its bottom.
@@ -216,7 +207,7 @@ type Layout(fontSize: float32) =
         float32 eighteenths * fontSize * style.ScaleFactor / 18f
 
     member private t.Row(elements: ImmutableArray<MA>, style: Style) =
-        let classes = Array.init elements.Length (fun i -> Symbols.atomClasses elements.[i])
+        let classes = Array.init elements.Length (fun i -> Conventions.atomClasses elements.[i])
         let facingLeft(i: int) = let struct (left, _) = classes.[i] in left
         let facingRight(i: int) = let struct (_, right) = classes.[i] in right
         let ordinary = struct (AtomClass.Ordinary, AtomClass.Ordinary)
@@ -245,7 +236,7 @@ type Layout(fontSize: float32) =
         let children = ImmutableArray.CreateBuilder<Placed>()
         let mutable x = 0f
         for c in text do
-            let child = symbol(int c, style, Ink.Solid)
+            let child = symbol(MathFont.OfChar c, style, Ink.Solid)
             children.Add(Placed(child, x, 0f))
             x <- x + child.Width - child.ItalicCorrection
         Display.OfChildren(x, 0f, children.ToImmutable())
@@ -343,31 +334,25 @@ type Layout(fontSize: float32) =
         Display.OfChildren(width + after, 0f, children.ToImmutable())
 
     /// The glyph grown to at least the given height, laid out resting on the origin.
-    member private t.Stretched(codepoint: int, style: Style, minHeight: float32, ink: Ink) =
+    member private t.Stretched(stretchy: StretchyGlyph, style: Style, minHeight: float32, ink: Ink) =
         let s = scale style
-        match MathFont.OfCodepoint codepoint with
-        | ValueNone -> Display.Empty
-        | ValueSome glyph ->
-            match glyph.VerticalStretch with
-            | ValueNone -> bottomAnchored(glyph, style, ink)
-            | ValueSome stretch ->
-                let mutable chosen = ValueNone
-                let mutable i = 0
-                while chosen.IsNone && i < stretch.VariantCount do
-                    let variant = stretch.Variant i
-                    if float32 variant.Advance * s >= minHeight then chosen <- ValueSome variant.Glyph
-                    i <- i + 1
-                match chosen with
-                | ValueSome variant -> bottomAnchored(variant, style, ink)
-                | ValueNone when stretch.PartCount > 0 -> t.Assembly(stretch, style, minHeight, ink)
-                | ValueNone when stretch.VariantCount > 0 ->
-                    bottomAnchored(stretch.Variant(stretch.VariantCount - 1).Glyph, style, ink)
-                | ValueNone -> bottomAnchored(glyph, style, ink)
+        let mutable chosen = ValueNone
+        let mutable i = 0
+        while chosen.IsNone && i < stretchy.SizeCount do
+            let size = stretchy.Size i
+            if float32 size.Advance * s >= minHeight then chosen <- ValueSome size.Glyph
+            i <- i + 1
+        match chosen with
+        | ValueSome size -> bottomAnchored(size, style, ink)
+        | ValueNone when stretchy.PartCount > 0 -> t.Assembly(stretchy, style, minHeight, ink)
+        | ValueNone when stretchy.SizeCount > 0 ->
+            bottomAnchored(stretchy.Size(stretchy.SizeCount - 1).Glyph, style, ink)
+        | ValueNone -> bottomAnchored(stretchy.Glyph, style, ink)
 
-    member private _.Assembly(stretch: Stretch, style: Style, minHeight: float32, ink: Ink) =
+    member private _.Assembly(stretchy: StretchyGlyph, style: Style, minHeight: float32, ink: Ink) =
         let s = scale style
         let overlap = float32 MathConstants.MinConnectorOverlap * s
-        let parts = Array.init stretch.PartCount stretch.Part
+        let parts = Array.init stretchy.PartCount stretchy.Part
         let advance(part: StretchPart) = float32 part.FullAdvance * s
         let extenders = parts |> Array.filter (fun part -> part.IsExtender)
         // Each further round of extenders lengthens the assembly by this much, overlaps allowed for.
@@ -399,13 +384,13 @@ type Layout(fontSize: float32) =
         let reach = 2f * max (content.Ascent - axis) (content.Descent + axis)
         // TeX lets a delimiter fall a little short rather than jump to the next size up.
         let needed = max (reach * 0.901f) (reach - 0.5f * fontSize * style.ScaleFactor)
-        let leftCodepoint, rightCodepoint =
+        let leftDelimiter, rightDelimiter =
             match bracket with
-            | Bracket.Line -> int '|', int '|'
-            | _ -> int '(', int ')'
+            | Bracket.Line -> Delimiters.bar, Delimiters.bar
+            | _ -> Delimiters.roundLeft, Delimiters.roundRight
         let ink(completed: bool) = if completed then Ink.Solid else Ink.Tentative
-        let left = t.Stretched(leftCodepoint, style, needed, ink completion.LeftCompleted)
-        let right = t.Stretched(rightCodepoint, style, needed, ink completion.RightCompleted)
+        let left = t.Stretched(leftDelimiter, style, needed, ink completion.LeftCompleted)
+        let right = t.Stretched(rightDelimiter, style, needed, ink completion.RightCompleted)
         let onAxis(display: Display) = axis - display.Ascent / 2f
         let children =
             ImmutableArray.Create(
@@ -424,7 +409,7 @@ type Layout(fontSize: float32) =
                 else MathConstants.RadicalVerticalGap)
             * s
         let needed = x.Ascent + x.Descent + gap + thickness
-        let surd = t.Stretched(0x221A, style, needed, Ink.Solid)
+        let surd = t.Stretched(Radicals.surd, style, needed, Ink.Solid)
         // A surd taller than needed hangs half its surplus below and lifts the rule by the other half.
         let clearance = gap + max 0f (surd.Ascent - needed) / 2f
         let ruleTop = x.Ascent + clearance + thickness
@@ -450,12 +435,12 @@ type Layout(fontSize: float32) =
     member private t.Of(ma: MA, style: Style): Display =
         match ma with
         | MA.Row elements -> t.Row(elements, style)
-        | MA.Char c -> symbol(Symbols.codepoint c, style, Ink.Solid)
-        | MA.BoldVar c -> symbol(Symbols.boldCodepoint c, style, Ink.Solid)
-        | MA.Cdot -> symbol(0x22C5, style, Ink.Solid)
-        | MA.UprightD -> symbol(int 'd', style, Ink.Solid)
-        | MA.Function f -> t.Upright(Symbols.functionName f, style)
-        | MA.Operator o -> symbol(Symbols.operatorCodepoint o, style, Ink.Solid)
+        | MA.Char c -> symbol(Conventions.variable c, style, Ink.Solid)
+        | MA.BoldVar c -> symbol(Conventions.boldVariable c, style, Ink.Solid)
+        | MA.Cdot -> symbol(ValueSome Operators.cdot, style, Ink.Solid)
+        | MA.UprightD -> symbol(MathFont.OfChar 'd', style, Ink.Solid)
+        | MA.Function f -> t.Upright(Conventions.functionName f, style)
+        | MA.Operator o -> symbol(ValueSome(Conventions.operator o), style, Ink.Solid)
         | MA.Frac(numerator, denominator) -> t.Fraction(numerator, denominator, style)
         | MA.ScriptSuper(main, super, sub) -> t.Scripts(main, ValueSome super, sub, style)
         | MA.ScriptSub(main, sub) -> t.Scripts(main, ValueNone, ValueSome sub, style)
