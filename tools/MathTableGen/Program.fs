@@ -61,7 +61,7 @@ let main(args: string array): int =
 
     /// One glyph as the literal that reconstructs it.
     let glyph(id: int) =
-        let italic = match italics.TryGetValue id with | true, value -> value | _ -> 0
+        let italic = match italics.TryGetValue id with | true, value -> value | false, _ -> 0
         $"Glyph({id}, {advances.[id]}, {tops.[id]}, {bottoms.[id]}, {italic})"
 
     let mapped = font.GetGlyphs(ReadOnlySpan allCodepoints)
@@ -73,7 +73,7 @@ let main(args: string array): int =
     let resolve(codepoint: int) =
         match glyphOf.TryGetValue codepoint with
         | true, id -> id
-        | _ -> failwith $"the font has no glyph for U+{codepoint:X4}"
+        | false, _ -> failwith $"the font has no glyph for U+{codepoint:X4}"
 
     let holes = Set.ofList Named.alphabetHoles
     /// An unassigned slot keeps the alphabet indexable and is reported as no letter at all.
@@ -84,7 +84,7 @@ let main(args: string array): int =
     let substituted(codepoint: int) =
         match exceptions.TryGetValue codepoint with
         | true, replacement -> replacement
-        | _ -> codepoint
+        | false, _ -> codepoint
 
     let w = Writer()
     w.Line "namespace ModeMath"

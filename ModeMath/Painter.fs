@@ -11,7 +11,7 @@ type Painter(typeface: SKTypeface) =
     let font(size: float32) =
         match fonts.TryGetValue size with
         | true, found -> found
-        | _ ->
+        | false, _ ->
             let created = new SKFont(typeface, size)
             created.Hinting <- SKFontHinting.None
             created.Subpixel <- true

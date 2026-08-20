@@ -18,9 +18,9 @@ type Style(size: MathSize, cramped: bool) =
 
     member _.ScaleFactor =
         match size with
+        | MathSize.Display | MathSize.Text -> 1f
         | MathSize.Script -> float32 MathConstants.ScriptPercentScaleDown / 100f
         | MathSize.ScriptScript -> float32 MathConstants.ScriptScriptPercentScaleDown / 100f
-        | _ -> 1f
 
     member _.Cramp = Style(size, true)
 
@@ -28,7 +28,7 @@ type Style(size: MathSize, cramped: bool) =
         let smaller =
             match size with
             | MathSize.Display | MathSize.Text -> MathSize.Script
-            | _ -> MathSize.ScriptScript
+            | MathSize.Script | MathSize.ScriptScript -> MathSize.ScriptScript
         Style(smaller, cramped)
 
     member t.Subscript = t.Superscript.Cramp
@@ -38,7 +38,7 @@ type Style(size: MathSize, cramped: bool) =
             match size with
             | MathSize.Display -> MathSize.Text
             | MathSize.Text -> MathSize.Script
-            | _ -> MathSize.ScriptScript
+            | MathSize.Script | MathSize.ScriptScript -> MathSize.ScriptScript
         Style(smaller, cramped)
 
     member t.Denominator = t.Numerator.Cramp
@@ -84,7 +84,7 @@ module internal Conventions =
         | Operator.Plus -> Operators.plus
         | Operator.Minus -> Operators.minus
         | Operator.Divide -> Operators.divide
-        | _ -> Operators.equals
+        | Operator.Equals -> Operators.equals
 
     let functionName(f: MathFunction) =
         match f with
@@ -112,7 +112,7 @@ module internal Conventions =
         | MathFunction.Real -> "Re"
         | MathFunction.Imaginary -> "Im"
         | MathFunction.Gamma -> "Γ"
-        | _ -> "sgn"
+        | MathFunction.Sign -> "sgn"
 
     let charClass(c: char) =
         if relations.Contains c then AtomClass.Relation
@@ -140,14 +140,14 @@ module private Spacing =
     /// Eighteenths of an em by left then right class, negated where only display and text styles space.
     let table =
         [|
-            0; 1; -2; -3; 0; 0; 0; -1;
-            1; 1; 0; -3; 0; 0; 0; -1;
-            -2; -2; 0; 0; -2; 0; 0; -2;
-            -3; -3; 0; 0; -3; 0; 0; -3;
+            0; 3; -4; -5; 0; 0; 0; -3;
+            3; 3; 0; -5; 0; 0; 0; -3;
+            -4; -4; 0; 0; -4; 0; 0; -4;
+            -5; -5; 0; 0; -5; 0; 0; -5;
             0; 0; 0; 0; 0; 0; 0; 0;
-            0; 1; -2; -3; 0; 0; 0; -1;
-            -1; -1; 0; -1; -1; -1; -1; -1;
-            -1; 1; -2; -3; -1; 0; -1; -1
+            0; 3; -4; -5; 0; 0; 0; -3;
+            -3; -3; 0; -3; -3; -3; -3; -3;
+            -3; 3; -4; -5; -3; 0; -3; -3
         |]
 
     /// A binary operator with nothing to bind on its left is ordinary, as in a leading minus sign.
@@ -193,16 +193,10 @@ type Layout(fontSize: float32) =
 
     let spacing(left: AtomClass, right: AtomClass, style: Style) =
         let entry = Spacing.table.[int left * 8 + int right]
-        let code =
+        let eighteenths =
             if entry >= 0 then entry
             elif style.Size = MathSize.Display || style.Size = MathSize.Text then -entry
             else 0
-        let eighteenths =
-            match code with
-            | 1 -> 3
-            | 2 -> 4
-            | 3 -> 5
-            | _ -> 0
         float32 eighteenths * fontSize * style.ScaleFactor / 18f
 
     member private t.Row(elements: ImmutableArray<MA>, style: Style) =
@@ -316,7 +310,7 @@ type Layout(fontSize: float32) =
                 if shortfall > 0f then
                     up <- up + shortfall
                     down <- down - shortfall
-        | _ -> ()
+        | ValueNone, _ | _, ValueNone -> ()
         match superscript with
         | ValueSome display ->
             children.Add(Placed(display, b.Width, up))
@@ -386,7 +380,7 @@ type Layout(fontSize: float32) =
         let leftDelimiter, rightDelimiter =
             match bracket with
             | Bracket.Line -> Delimiters.bar, Delimiters.bar
-            | _ -> Delimiters.roundLeft, Delimiters.roundRight
+            | Bracket.Normal -> Delimiters.roundLeft, Delimiters.roundRight
         let ink(completed: bool) = if completed then Ink.Solid else Ink.Tentative
         let left = t.Stretched(leftDelimiter, style, needed, ink completion.LeftCompleted)
         let right = t.Stretched(rightDelimiter, style, needed, ink completion.RightCompleted)
