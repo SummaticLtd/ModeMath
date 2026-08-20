@@ -180,4 +180,69 @@ let private repertoire =
         ]
     )
 
-let tests = TestFolder("Layout", [ measurement; structures; repertoire ])
+let private bigOperators =
+    TestList(
+        "BigOperators",
+        [   Test.Sync(
+                "displayStyleTakesATallerGlyphThanTextStyle",
+                fun () ->
+                    let sum = MA.BigOp(BigOperator.Sum, ValueNone, ValueNone)
+                    let display = layout.Of(sum, MathSize.Display)
+                    let text = layout.Of(sum, MathSize.Text)
+                    Assert.True(
+                        display.Height > text.Height,
+                        $"display {display.Height} should exceed text {text.Height}")
+            )
+            Test.Sync(
+                "displayStyleSetsLimitsAboveAndBelow",
+                fun () ->
+                    let bare = layout.Of(MA.BigOp(BigOperator.Sum, ValueNone, ValueNone), MathSize.Display)
+                    let limited =
+                        layout.Of(
+                            MA.BigOp(BigOperator.Sum, ValueSome(c 'n'), ValueSome(c 'm')),
+                            MathSize.Display)
+                    Assert.True(limited.Ascent > bare.Ascent, "the upper limit rises above the operator")
+                    Assert.True(limited.Descent > bare.Descent, "the lower limit drops below it")
+                    nearly(bare.Width, limited.Width, "limits narrower than the operator leave it as wide")
+            )
+            Test.Sync(
+                "textStyleSetsLimitsBeside",
+                fun () ->
+                    let bare = layout.Of(MA.BigOp(BigOperator.Sum, ValueNone, ValueNone), MathSize.Text)
+                    let limited =
+                        layout.Of(MA.BigOp(BigOperator.Sum, ValueSome(c 'n'), ValueSome(c 'm')), MathSize.Text)
+                    Assert.True(limited.Width > bare.Width, "scripts take room to the right")
+            )
+            Test.Sync(
+                "anIntegralKeepsItsLimitsBesideEvenInDisplayStyle",
+                fun () ->
+                    let scripts(op: BigOperator) =
+                        let bare = layout.Of(MA.BigOp(op, ValueNone, ValueNone), MathSize.Display)
+                        let limited =
+                            layout.Of(MA.BigOp(op, ValueSome(c '0'), ValueSome(c '1')), MathSize.Display)
+                        limited.Width - bare.Width
+                    Assert.True(scripts BigOperator.Integral > 0f, "an integral widens")
+                    nearly(0f, scripts BigOperator.Sum, "a sum does not")
+            )
+            Test.Sync(
+                "aLimitWiderThanTheOperatorWidensTheWhole",
+                fun () ->
+                    let narrow = layout.Of(MA.BigOp(BigOperator.Sum, ValueSome(c 'n'), ValueNone), MathSize.Display)
+                    let wide =
+                        layout.Of(
+                            MA.BigOp(BigOperator.Sum, ValueSome(MA.String "n=1234567"), ValueNone),
+                            MathSize.Display)
+                    Assert.True(wide.Width > narrow.Width, "the wider limit sets the width")
+            )
+            Test.Sync(
+                "limIsSetInLettersRatherThanAGlyph",
+                fun () ->
+                    let lim = layout.Of(MA.BigOp(BigOperator.Limit, ValueNone, ValueNone), MathSize.Display)
+                    let sum = layout.Of(MA.BigOp(BigOperator.Sum, ValueNone, ValueNone), MathSize.Display)
+                    Assert.True(lim.Width > 0f, "lim is drawn")
+                    Assert.True(lim.Height < sum.Height, "letters do not grow with display style as a glyph does")
+            )
+        ]
+    )
+
+let tests = TestFolder("Layout", [ measurement; structures; repertoire; bigOperators ])

@@ -24,6 +24,18 @@ let delimiters =
         "bar", int '|', "The vertical bar of an absolute value, used on both sides."
     ]
 
+/// Large operators, which take a taller glyph in display style and may carry limits.
+let bigOperators =
+    [
+        "sum", 0x2211, "The summation sign."
+        "product", 0x220F, "The product sign."
+        "coproduct", 0x2210, "The coproduct sign."
+        "integral", 0x222B, "The integral sign."
+        "contourIntegral", 0x222E, "The contour integral sign."
+        "union", 0x22C3, "The n-ary union sign."
+        "intersection", 0x22C2, "The n-ary intersection sign."
+    ]
+
 let radicals =
     [ "surd", 0x221A, "The tick and bar of a root, which grows to cover the radicand." ]
 

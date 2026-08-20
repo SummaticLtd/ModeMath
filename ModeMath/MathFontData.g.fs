@@ -332,6 +332,65 @@ module Delimiters =
                 AssemblyPart(Glyph(2723, 278, 1204, 0, 0), 601, 0, 1202, false)
             |])
 
+/// Large operators, which take a taller glyph in display style and may carry limits.
+module BigOperators =
+    /// The summation sign.
+    let sum =
+        StretchyGlyph(
+            Glyph(3060, 1056, 750, -250, 0),
+            [|
+                StretchSize(Glyph(3060, 1056, 750, -250, 0), 1001); StretchSize(Glyph(3074, 1444, 954, -454, 0), 1401)
+            |],
+            [||])
+    /// The product sign.
+    let product =
+        StretchyGlyph(
+            Glyph(3061, 944, 750, -250, 0),
+            [|
+                StretchSize(Glyph(3061, 944, 750, -250, 0), 1001); StretchSize(Glyph(3075, 1278, 954, -454, 0), 1401)
+            |],
+            [||])
+    /// The coproduct sign.
+    let coproduct =
+        StretchyGlyph(
+            Glyph(3062, 944, 750, -250, 0),
+            [|
+                StretchSize(Glyph(3062, 944, 750, -250, 0), 1001); StretchSize(Glyph(3076, 1278, 954, -454, 0), 1401)
+            |],
+            [||])
+    /// The integral sign.
+    let integral =
+        StretchyGlyph(
+            Glyph(3049, 665, 813, -313, 332),
+            [|
+                StretchSize(Glyph(3049, 665, 813, -313, 332), 1112); StretchSize(Glyph(3063, 999, 1360, -860, 591), 2223)
+            |],
+            [||])
+    /// The contour integral sign.
+    let contourIntegral =
+        StretchyGlyph(
+            Glyph(3053, 665, 813, -313, 332),
+            [|
+                StretchSize(Glyph(3053, 665, 813, -313, 332), 1112); StretchSize(Glyph(3067, 999, 1360, -860, 591), 2223)
+            |],
+            [||])
+    /// The n-ary union sign.
+    let union =
+        StretchyGlyph(
+            Glyph(2767, 833, 750, -282, 0),
+            [|
+                StretchSize(Glyph(2767, 833, 750, -282, 0), 1023); StretchSize(Glyph(2768, 1111, 922, -438, 0), 1357)
+            |],
+            [||])
+    /// The n-ary intersection sign.
+    let intersection =
+        StretchyGlyph(
+            Glyph(2765, 833, 782, -250, 0),
+            [|
+                StretchSize(Glyph(2765, 833, 782, -250, 0), 1023); StretchSize(Glyph(2766, 1111, 938, -422, 0), 1357)
+            |],
+            [||])
+
 /// Roots, whose surd grows to cover the radicand.
 module Radicals =
     /// The tick and bar of a root, which grows to cover the radicand.
