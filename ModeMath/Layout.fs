@@ -81,6 +81,22 @@ module internal Conventions =
 
     let boldVariable(c: char) = Letters.bold c
 
+    let leftDelimiter(bracket: Bracket) =
+        match bracket with
+        | Bracket.Normal -> Delimiters.roundLeft
+        | Bracket.Square -> Delimiters.squareLeft
+        | Bracket.Curly -> Delimiters.curlyLeft
+        | Bracket.Angle -> Delimiters.angleLeft
+        | Bracket.Line -> Delimiters.bar
+
+    let rightDelimiter(bracket: Bracket) =
+        match bracket with
+        | Bracket.Normal -> Delimiters.roundRight
+        | Bracket.Square -> Delimiters.squareRight
+        | Bracket.Curly -> Delimiters.curlyRight
+        | Bracket.Angle -> Delimiters.angleRight
+        | Bracket.Line -> Delimiters.bar
+
     /// LaTeX keeps an integral's limits beside it; the rest take them above and below in display style.
     let takesLimits(op: BigOperator) =
         match op with
@@ -464,20 +480,18 @@ type Layout(fontSize: float32) =
             y <- y + float32 part.FullAdvance * s - overlap
         Display.OfChildren(width, 0f, children.ToImmutable())
 
-    member private t.Brackets(bracket: Bracket, inner: MA, completion: BracketCompletion, style: Style) =
+    member private t.Brackets(brackets: Brackets, inner: MA, completion: BracketCompletion, style: Style) =
         let content = t.Of(inner, style)
         let s = scale style
         let axis = float32 MathConstants.AxisHeight * s
         let reach = 2f * max (content.Ascent - axis) (content.Descent + axis)
         // TeX lets a delimiter fall a little short rather than jump to the next size up.
         let needed = max (reach * 0.901f) (reach - 0.5f * fontSize * style.ScaleFactor)
-        let leftDelimiter, rightDelimiter =
-            match bracket with
-            | Bracket.Line -> Delimiters.bar, Delimiters.bar
-            | Bracket.Normal -> Delimiters.roundLeft, Delimiters.roundRight
         let ink(completed: bool) = if completed then Ink.Solid else Ink.Tentative
-        let left = t.Stretched(leftDelimiter, style, needed, ink completion.LeftCompleted)
-        let right = t.Stretched(rightDelimiter, style, needed, ink completion.RightCompleted)
+        let left =
+            t.Stretched(Conventions.leftDelimiter brackets.Left, style, needed, ink completion.LeftCompleted)
+        let right =
+            t.Stretched(Conventions.rightDelimiter brackets.Right, style, needed, ink completion.RightCompleted)
         let onAxis(display: Display) = axis - display.Ascent / 2f
         let children =
             ImmutableArray.Create(
@@ -532,7 +546,7 @@ type Layout(fontSize: float32) =
         | MA.ScriptSuper(main, super, sub) -> t.Scripts(main, ValueSome super, sub, style)
         | MA.ScriptSub(main, sub) -> t.Scripts(main, ValueNone, ValueSome sub, style)
         | MA.BigOp(op, lower, upper) -> t.BigOp(op, lower, upper, style)
-        | MA.Bracketed(bracket, inner, completion) -> t.Brackets(bracket, inner, completion, style)
+        | MA.Bracketed(brackets, inner, completion) -> t.Brackets(brackets, inner, completion, style)
         | MA.Sqrt x -> t.Radical(ValueNone, x, style)
         | MA.RootN(n, x) -> t.Radical(ValueSome n, x, style)
 

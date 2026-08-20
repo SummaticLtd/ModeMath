@@ -263,8 +263,8 @@ module internal Repertoire =
             CG(8834, Glyph(2914, 778, 547, -47, 0)); CG(8835, Glyph(2915, 778, 547, -47, 0)); CG(8838, Glyph(2918, 778, 641, -141, 0))
             CG(8839, Glyph(2919, 778, 641, -141, 0)); CG(8853, Glyph(2805, 778, 594, -94, 0)); CG(8855, Glyph(2810, 778, 594, -94, 0))
             CG(8869, Glyph(2741, 778, 688, 0, 0)); CG(8901, Glyph(2625, 278, 313, 187, 0)); CG(8942, Glyph(2631, 218, 594, -94, 0))
-            CG(8943, Glyph(2632, 776, 313, 187, 0)); CG(8945, Glyph(2634, 613, 500, 0, 0)); CG(10216, Glyph(2579, 389, 750, -250, 0))
-            CG(10217, Glyph(2580, 389, 750, -250, 0)); CG(10234, Glyph(2120, 1534, 532, -32, 0))
+            CG(8943, Glyph(2632, 776, 313, 187, 0)); CG(8945, Glyph(2634, 613, 500, 0, 0)); CG(9633, Glyph(3003, 778, 594, -94, 0))
+            CG(10216, Glyph(2579, 389, 750, -250, 0)); CG(10217, Glyph(2580, 389, 750, -250, 0)); CG(10234, Glyph(2120, 1534, 532, -32, 0))
         |]
 
 /// Single glyphs the library refers to that no alphabet covers.
@@ -317,6 +317,86 @@ module Delimiters =
                 AssemblyPart(Glyph(2506, 875, 1500, 0, 0), 0, 249, 1495, false); AssemblyPart(Glyph(2507, 875, 500, 0, 0), 498, 498, 498, true)
                 AssemblyPart(Glyph(2508, 875, 1500, 0, 0), 249, 0, 1495, false)
             |])
+    /// The opening square bracket.
+    let squareLeft =
+        StretchyGlyph(
+            Glyph(60, 278, 750, -250, 6),
+            [|
+                StretchSize(Glyph(60, 278, 750, -250, 6), 1001); StretchSize(Glyph(2373, 340, 813, -313, 0), 1101); StretchSize(Glyph(2395, 417, 860, -360, 0), 1201)
+                StretchSize(Glyph(2417, 444, 985, -485, 0), 1451); StretchSize(Glyph(2439, 472, 1157, -657, 4), 1801)
+                StretchSize(Glyph(2461, 499, 1313, -813, 7), 2101); StretchSize(Glyph(2483, 528, 1454, -954, 9), 2401)
+                StretchSize(Glyph(2525, 667, 1750, -1250, 8), 3001)
+            |],
+            [|
+                AssemblyPart(Glyph(2527, 667, 1500, 0, 0), 0, 500, 1500, false); AssemblyPart(Glyph(2528, 667, 1000, 0, 0), 1000, 1000, 1000, true)
+                AssemblyPart(Glyph(2529, 667, 1500, 0, 0), 500, 0, 1500, false)
+            |])
+    /// The closing square bracket.
+    let squareRight =
+        StretchyGlyph(
+            Glyph(62, 278, 750, -250, 0),
+            [|
+                StretchSize(Glyph(62, 278, 750, -250, 0), 1001); StretchSize(Glyph(2374, 340, 813, -313, 0), 1101); StretchSize(Glyph(2396, 417, 860, -360, 0), 1201)
+                StretchSize(Glyph(2418, 444, 985, -485, 0), 1451); StretchSize(Glyph(2440, 472, 1157, -657, 0), 1801)
+                StretchSize(Glyph(2462, 499, 1313, -813, 0), 2101); StretchSize(Glyph(2484, 528, 1454, -954, 0), 2401)
+                StretchSize(Glyph(2526, 667, 1750, -1250, 0), 3001)
+            |],
+            [|
+                AssemblyPart(Glyph(2530, 667, 1500, 0, 0), 0, 500, 1500, false); AssemblyPart(Glyph(2531, 667, 1000, 0, 0), 1000, 1000, 1000, true)
+                AssemblyPart(Glyph(2532, 667, 1500, 0, 0), 500, 0, 1500, false)
+            |])
+    /// The opening curly bracket.
+    let curlyLeft =
+        StretchyGlyph(
+            Glyph(92, 500, 750, -250, 0),
+            [|
+                StretchSize(Glyph(92, 500, 750, -250, 0), 1001); StretchSize(Glyph(2371, 540, 813, -313, 0), 1101); StretchSize(Glyph(2393, 583, 860, -360, 0), 1201)
+                StretchSize(Glyph(2415, 624, 985, -485, 0), 1451); StretchSize(Glyph(2437, 667, 1157, -657, 0), 1801)
+                StretchSize(Glyph(2459, 707, 1313, -813, 0), 2101); StretchSize(Glyph(2481, 750, 1454, -954, 0), 2401)
+                StretchSize(Glyph(2515, 902, 1750, -1250, 0), 3001)
+            |],
+            [|
+                AssemblyPart(Glyph(2517, 902, 750, 0, 0), 0, 374, 750, false); AssemblyPart(Glyph(2518, 902, 750, 0, 0), 748, 748, 748, true)
+                AssemblyPart(Glyph(2519, 902, 1500, 0, 0), 374, 374, 1500, false); AssemblyPart(Glyph(2518, 902, 750, 0, 0), 748, 748, 748, true)
+                AssemblyPart(Glyph(2520, 902, 750, 0, 0), 374, 0, 750, false)
+            |])
+    /// The closing curly bracket.
+    let curlyRight =
+        StretchyGlyph(
+            Glyph(94, 500, 750, -250, 0),
+            [|
+                StretchSize(Glyph(94, 500, 750, -250, 0), 1001); StretchSize(Glyph(2372, 540, 813, -313, 0), 1101); StretchSize(Glyph(2394, 583, 860, -360, 0), 1201)
+                StretchSize(Glyph(2416, 624, 985, -485, 0), 1451); StretchSize(Glyph(2438, 667, 1157, -657, 0), 1801)
+                StretchSize(Glyph(2460, 707, 1313, -813, 0), 2101); StretchSize(Glyph(2482, 750, 1454, -954, 0), 2401)
+                StretchSize(Glyph(2516, 902, 1750, -1250, 0), 3001)
+            |],
+            [|
+                AssemblyPart(Glyph(2521, 902, 750, 0, 0), 0, 374, 750, false); AssemblyPart(Glyph(2522, 902, 750, 0, 0), 748, 748, 748, true)
+                AssemblyPart(Glyph(2523, 902, 1500, 0, 0), 374, 374, 1500, false); AssemblyPart(Glyph(2522, 902, 750, 0, 0), 748, 748, 748, true)
+                AssemblyPart(Glyph(2524, 902, 750, 0, 0), 374, 0, 750, false)
+            |])
+    /// The opening angle bracket, as a bra opens.
+    let angleLeft =
+        StretchyGlyph(
+            Glyph(2579, 389, 750, -250, 0),
+            [|
+                StretchSize(Glyph(2579, 389, 750, -250, 0), 1001); StretchSize(Glyph(2583, 428, 813, -313, 0), 1101); StretchSize(Glyph(2587, 472, 860, -360, 0), 1201)
+                StretchSize(Glyph(2591, 537, 985, -485, 0), 1451); StretchSize(Glyph(2595, 611, 1157, -657, 0), 1801)
+                StretchSize(Glyph(2599, 677, 1313, -813, 0), 2101); StretchSize(Glyph(2603, 750, 1454, -954, 0), 2401)
+                StretchSize(Glyph(2607, 908, 1750, -1250, 0), 3001)
+            |],
+            [||])
+    /// The closing angle bracket, as a ket closes.
+    let angleRight =
+        StretchyGlyph(
+            Glyph(2580, 389, 750, -250, 0),
+            [|
+                StretchSize(Glyph(2580, 389, 750, -250, 0), 1001); StretchSize(Glyph(2584, 428, 813, -313, 0), 1101); StretchSize(Glyph(2588, 472, 860, -360, 0), 1201)
+                StretchSize(Glyph(2592, 537, 985, -485, 0), 1451); StretchSize(Glyph(2596, 611, 1157, -657, 0), 1801)
+                StretchSize(Glyph(2600, 677, 1313, -813, 0), 2101); StretchSize(Glyph(2604, 750, 1454, -954, 0), 2401)
+                StretchSize(Glyph(2608, 908, 1750, -1250, 0), 3001)
+            |],
+            [||])
     /// The vertical bar of an absolute value, used on both sides.
     let bar =
         StretchyGlyph(

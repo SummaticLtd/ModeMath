@@ -56,7 +56,7 @@ let private sampleFormulas =
         MA.ScriptSuper(MA.Char 'e', MA.Char '2', ValueSome(MA.Char '3'))
         MA.Row(arr [ MA.Char 'a'; frac; MA.Char 'b' ])
         MA.RootN(MA.Char '3', MA.Char 'x')
-        MA.Bracketed(Bracket.Normal, MA.String "ab", BracketCompletion.Completed)
+        MA.Bracketed(Brackets.Matching Bracket.Normal, MA.String "ab", BracketCompletion.Completed)
         sum
         MA.Row(arr [ MA.Char 'a'; sum; MA.Char 'b' ])
     ]

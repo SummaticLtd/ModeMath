@@ -152,9 +152,9 @@ let private structures =
                 "anUnclosedBracketIsStillLaidOut",
                 fun () ->
                     let tentative =
-                        laid(MA.Bracketed(Bracket.Normal, MA.String "x+1", BracketCompletion.Left))
+                        laid(MA.Bracketed(Brackets.Matching Bracket.Normal, MA.String "x+1", BracketCompletion.Left))
                     let complete =
-                        laid(MA.Bracketed(Bracket.Normal, MA.String "x+1", BracketCompletion.Completed))
+                        laid(MA.Bracketed(Brackets.Matching Bracket.Normal, MA.String "x+1", BracketCompletion.Completed))
                     nearly(complete.Width, tentative.Width, "an offered bracket takes the same room")
             )
         ]
@@ -264,4 +264,39 @@ let private bigOperators =
         ]
     )
 
-let tests = TestFolder("Layout", [ measurement; structures; repertoire; bigOperators ])
+let private brackets =
+    TestList(
+        "Brackets",
+        [   Test.CasesSync(
+                "everyShapeIsDrawnAndGrowsWithWhatItHolds",
+                [ Bracket.Normal; Bracket.Line; Bracket.Square; Bracket.Curly; Bracket.Angle ]
+                |> List.map (fun b -> string b, b),
+                fun bracket ->
+                    let short = laid(MA.Paired(bracket, c 'x'))
+                    let tall = laid(MA.Paired(bracket, MA.Frac(MA.Frac(c 'a', c 'b'), c 'c')))
+                    Assert.True(short.Width > (laid(c 'x')).Width, $"{bracket} takes room of its own")
+                    Assert.True(tall.Height > short.Height, $"{bracket} grows with what it holds")
+            )
+            Test.Sync(
+                "theTwoSidesAreChosenIndependently",
+                fun () ->
+                    let inner = MA.String "0,1"
+                    let closed = laid(MA.Paired(Bracket.Square, inner))
+                    let halfOpen =
+                        laid(MA.Bracketed(Brackets(Bracket.Square, Bracket.Normal), inner, BracketCompletion.Completed))
+                    let round = laid(MA.Paired(Bracket.Normal, inner))
+                    Assert.True(
+                        abs (halfOpen.Width - closed.Width) > 0.01f || abs (halfOpen.Width - round.Width) > 0.01f,
+                        "a half-open interval matches neither pair")
+            )
+            Test.Sync(
+                "matchingGivesBothSidesTheSameShape",
+                fun () ->
+                    let pair = Brackets.Matching Bracket.Curly
+                    Assert.Equal(Bracket.Curly, pair.Left)
+                    Assert.Equal(Bracket.Curly, pair.Right)
+            )
+        ]
+    )
+
+let tests = TestFolder("Layout", [ measurement; structures; repertoire; bigOperators; brackets ])

@@ -2,19 +2,11 @@
 
 Editing and display work. `examples/` shows what renders today.
 
-## 1. Delimiters
-
-`Bracketed of Bracket * MA * BracketCompletion` gains independent left and right, so that `[0, 1)` is displayable.
-
-`Bracket` gains `Square` and `Curly`. Values are side-agnostic: `Normal` is `(` on the left and `)` on the right.
-
-`Bracketed` is editable, so this changes `MICurs` and every editing member. Entry always produces a matching pair.
-
-## 2. Hit-testing
+## 1. Hit-testing
 
 A point to a `MICurs`, built by descending the display tree and the `MA` together.
 
-## 3. Remaining mathematics
+## 2. Remaining mathematics
 
 All display-only. The cursor treats each as one unit, stepping over it and deleting it whole, so none needs a `MICurs` case.
 
@@ -37,7 +29,7 @@ Relations and binary operators carry a TeX atom class, which sets the spacing ar
 
 `MA.Char` already covers `\infty`, `\partial`, `\circ`, `\emptyset`, `\therefore`, `\mid` and the ellipses.
 
-## 4. Units of measure
+## 3. Units of measure
 
 A `Display` carries every length as a bare `float32`, so points, ems and font units are one type and
 nothing catches mixing them. `Summatic.FSUtils` supplies the conversions and typed maxima to give them

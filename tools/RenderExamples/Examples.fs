@@ -13,7 +13,13 @@ let private supsub(main: MA, super: MA, subscript: MA) = MA.ScriptSuper(main, su
 let private sqrt(radicand: MA) = MA.Sqrt radicand
 let private root(degree: MA, radicand: MA) = MA.RootN(degree, radicand)
 let private paren(inner: MA) = MA.RoundBracket inner
-let private bars(inner: MA) = MA.Bracketed(Bracket.Line, inner, BracketCompletion.Completed)
+let private bars(inner: MA) = MA.Bracketed(Brackets.Matching Bracket.Line, inner, BracketCompletion.Completed)
+let private square(inner: MA) = MA.Paired(Bracket.Square, inner)
+let private curly(inner: MA) = MA.Paired(Bracket.Curly, inner)
+let private pair(left: Bracket, right: Bracket, inner: MA) =
+    MA.Bracketed(Brackets(left, right), inner, BracketCompletion.Completed)
+let private bra(inner: MA) = pair(Bracket.Angle, Bracket.Line, inner)
+let private ket(inner: MA) = pair(Bracket.Line, Bracket.Angle, inner)
 let private fn(f: MathFunction) = MA.Function f
 let private op(o: Operator) = MA.Operator o
 let private bigOp(o: BigOperator) = MA.BigOp(o, ValueNone, ValueNone)
@@ -74,6 +80,27 @@ let implemented = [
     "FunctionDomainCodomain", row [ c 'f'; c ':'; c 'ℕ'; c '→'; c 'ℕ' ]
 
     "IntPlusFraction", row [ c '1'; c '+'; frac(c '2', c '3') ]
+    "BraSum",
+    row [
+        frac(c '1', sqrt(sup(c '2', c 'n')))
+        bigOpSubSup(
+            BigOperator.Sum,
+            row [ c 'i'; op Operator.Equals; c '0' ],
+            row [ sup(c '2', c 'n'); c '-'; c '1' ])
+        bra(c 'i')
+    ]
+    "KetSum",
+    row [
+        frac(c '1', sqrt(sup(c '2', c 'n')))
+        bigOpSubSup(
+            BigOperator.Sum,
+            row [ c 'i'; op Operator.Equals; c '0' ],
+            row [ sup(c '2', c 'n'); c '-'; c '1' ])
+        ket(c 'i')
+    ]
+    "LargeBra", bra(row [ frac(c 'a', c '2'); c '+'; frac(c 'b', c '3') ])
+    "LargeKet", ket(row [ frac(c 'a', c '2'); c '+'; frac(c 'b', c '3') ])
+    "LargerDelimiters", sup(paren(sup(square(sup(curly(c '□'), c '□')), c '□')), c '□')
     "IntegralScripts",
     row [
         bigOp BigOperator.Integral
@@ -164,6 +191,27 @@ let implemented = [
     "SummationWithLimits",
     bigOpSubSup(BigOperator.Sum, row [ c 'n'; op Operator.Equals; c '1' ], c '∞')
 
+    "QuarticSolutions",
+    curly(
+        row [
+            c '-'
+            c '1'
+            c '+'
+            frac(
+                row [
+                    c '-'
+                    sqrt(
+                        row [
+                            s "10"
+                            c '+'
+                            c '2'
+                            op Operator.Times
+                            paren(frac(row [ c '-'; s "25" ], c '3'))
+                        ])
+                ],
+                c '2')
+        ])
+
     "Radical", sqrt(c '3')
     "RadicalFraction", row [ c '2'; c '+'; frac(sqrt(c '3'), c '2') ]
     "RadicalNested", sqrt(sqrt(c 'x'))
@@ -193,9 +241,11 @@ let implemented = [
     ]
     "ModeMathBoldVectors",
     row [ MA.BoldVar 'v'; op Operator.Equals; MA.BoldVar 'a'; MA.Cdot; MA.BoldVar 'b' ]
+    "ModeMathBrackets", row [ paren(c 'a'); square(c 'b'); curly(c 'c'); bars(c 'd') ]
+    "ModeMathHalfOpenInterval", pair(Bracket.Square, Bracket.Normal, row [ c '0'; c ','; c '1' ])
     "ModeMathCubeRoot", root(c '3', row [ c 'x'; c '+'; c '1' ])
     "ModeMathDerivative", frac(row [ MA.UprightD; c 'y' ], row [ MA.UprightD; c 'x' ])
-    "ModeMathTentativeBracket", MA.Bracketed(Bracket.Normal, s "x+1", BracketCompletion.Left)
+    "ModeMathTentativeBracket", MA.Bracketed(Brackets.Matching Bracket.Normal, s "x+1", BracketCompletion.Left)
 ]
 
 /// Examples from the same folder that MA cannot express yet, with the roadmap item each waits on.
@@ -208,7 +258,6 @@ let unimplemented = [
     "AccentUnderThin", @"\threeunderdot{i}", "accents"
     "ArcsinSin", @"\arcsin(\sin x)=x\quad\mathrm{for}\quad|x|\le\frac\pi2", "spacing, Styled"
     "BMartix", @"\begin{bmatrix} x_{11}&x_{12}&.&.&x_{1n} \end{bmatrix}", "tables"
-    "BraSum", @"\frac{1}{\sqrt{2^n}} \sum_{i=0}^{2^n-1} \Bra{i}", "delimiters"
     "Cases", @"w \equiv \begin{cases} 0 & \text{for}\ c = d = 0 \end{cases}", "tables"
     "Choose", @"{6 \choose x}", "fraction with no rule"
     "Color", @"\color{#000088}a\color{#0000FF}b", "Coloured"
@@ -217,16 +266,10 @@ let unimplemented = [
     "FontStyles", @"\mathnormal F\mathrm F\mathbf F\mathcal F\mathtt F", "Styled"
     "Integral", @"\int_{0}^{\infty}e^x \,dx=\oint_0^{\Delta}5\Gamma", "spacing"
     "ItalicAlignment", @"\colorbox{yellow}P\\\begin{array}{r}\colorbox{yellow}{PF}\end{array}", "tables"
-    "KetSum", @"\frac{1}{\sqrt{2^n}} \sum_{i=0}^{2^n-1} \Ket{i}", "delimiters"
-    "LargeBra", @"\Bra{\frac{a}{2}+\frac{b}{3}}", "delimiters"
-    "LargeKet", @"\Ket{\frac{a}{2}+\frac{b}{3}}", "delimiters"
-    "LargerDelimiters", @"\left(\left[\left\{\square\right\}^\square\right]^\square\right)^\square",
-    "delimiters"
     "LineStyles", @"a \displaystyle a \textstyle a \scriptstyle a \scriptscriptstyle a", "style commands"
     "Matrix", @"\begin{pmatrix}a & b\\ c & d\end{pmatrix}", "tables"
     "Matrixception", @"\begin{Vmatrix}\begin{vmatrix}a&b\end{vmatrix}\end{Vmatrix}", "tables"
     "Overline", @"\overline{Overline}", "overline"
-    "QuarticSolutions", @"\left\{-1+\frac{-\sqrt{10+2\times\left(\frac{-25}{3}\right)}}{2}\right\}", "delimiters"
     "RaiseBox", @"a\raisebox{1mu}a\raisebox{2mu}a", "raisebox"
     "SimpleShortProof", @"\begin{aligned}&\because x+3=5\\&\therefore x=2\end{aligned}", "tables"
     "SolveEquations", @"\text{Solve } \begin{cases} y=x^2-x+3 \end{cases}", "tables, Text"
