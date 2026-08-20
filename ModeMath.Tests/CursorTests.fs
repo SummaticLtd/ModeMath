@@ -44,6 +44,8 @@ let private walkLeft(ma: MA) =
     let start = MICurs.AtEnd ma
     start :: loop([], start)
 
+let private sum = MA.BigOp(BigOperator.Sum, ValueSome(MA.String "n=1"), ValueSome(MA.Char 'm'))
+
 let private sampleFormulas =
     [
         MA.Char 'a'
@@ -55,6 +57,8 @@ let private sampleFormulas =
         MA.Row(arr [ MA.Char 'a'; frac; MA.Char 'b' ])
         MA.RootN(MA.Char '3', MA.Char 'x')
         MA.Bracketed(Bracket.Normal, MA.String "ab", BracketCompletion.Completed)
+        sum
+        MA.Row(arr [ MA.Char 'a'; sum; MA.Char 'b' ])
     ]
 
 let private editing =
@@ -123,6 +127,26 @@ let private editing =
                     let cursored = MICurs.ScriptSub(x, ValueSome two, MICurs.AtStart three)
                     Assert.Equal(MA.ScriptSuper(x, two, ValueSome three), cursored.ToMA)
                     Assert.Equal(MICurs.Between(MA.ScriptSuper(x, two, ValueNone), three), backspaced cursored)
+            )
+            Test.Sync(
+                "aLargeOperatorOffersNoPositionInsideItsLimits",
+                fun () ->
+                    Assert.Equal(
+                        (walkRight(MA.Char 'a')).Length,
+                        (walkRight sum).Length,
+                        "a large operator is stepped over like a single character")
+            )
+            Test.Sync(
+                "backspaceRemovesAWholeLargeOperator",
+                fun () ->
+                    let cursored = MICurs.AtEnd(MA.Row2(MA.Char 'x', sum))
+                    Assert.Equal(MA.Char 'x', (backspaced cursored).ToMA, "limits and all")
+            )
+            Test.Sync(
+                "deleteRemovesAWholeLargeOperator",
+                fun () ->
+                    let cursored = MICurs.AtStart(MA.Row2(sum, MA.Char 'x'))
+                    Assert.Equal(MA.Char 'x', (deleted cursored).ToMA, "limits and all")
             )
             Test.Sync(
                 "backspaceInsideSquareRootDeletesWithinIt",

@@ -238,16 +238,20 @@ let private bigOperators =
                 fun () ->
                     let integral(lower, upper) =
                         layout.Of(MA.BigOp(BigOperator.Integral, lower, upper), MathSize.Display)
-                    let bare = integral(ValueNone, ValueNone)
                     let one = (layout.Of(c '1', MathSize.Script)).Width
+                    let above = integral(ValueNone, ValueSome(c '1'))
+                    let below = integral(ValueSome(c '1'), ValueNone)
                     nearly(
-                        bare.Width + one,
-                        (integral(ValueNone, ValueSome(c '1'))).Width,
-                        "a superscript sits at the advance, the operator's box ending there")
-                    nearly(
-                        bare.Width,
-                        (integral(ValueSome(c '0'), ValueNone)).Width,
-                        "a subscript steps back under the lean, so it adds nothing")
+                        below.Width + one,
+                        above.Width,
+                        "the superscript adds its width at the advance, the subscript none behind it")
+            )
+            Test.Sync(
+                "anOperatorWithoutLimitsIsJustItsGlyph",
+                fun () ->
+                    let bare = layout.Of(MA.BigOp(BigOperator.Sum, ValueNone, ValueNone), MathSize.Text)
+                    let advance = float32 BigOperators.sum.Glyph.Advance * 20f / float32 MathConstants.UnitsPerEm
+                    nearly(advance, bare.Width, "no limits, so none of the space that follows one")
             )
             Test.Sync(
                 "limIsSetInLettersRatherThanAGlyph",

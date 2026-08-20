@@ -347,7 +347,11 @@ type Layout(fontSize: float32) =
             children.Add(Placed(display, subscriptX, -down))
             width <- max width (subscriptX + display.Width)
         | ValueNone -> ()
-        let after = float32 MathConstants.SpaceAfterScript * s
+        // Only a script is followed by the space after a script; a bare operator is not.
+        let after =
+            match superscript, subscript with
+            | ValueNone, ValueNone -> 0f
+            | ValueSome _, _ | _, ValueSome _ -> float32 MathConstants.SpaceAfterScript * s
         Display.OfChildren(width + after, 0f, children.ToImmutable())
 
     /// Display style takes the first variant tall enough, which is how a sum grows with the formula.
