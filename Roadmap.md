@@ -10,15 +10,7 @@ Editing works. Nothing is displayed yet.
 
 `Bracketed` is editable, so this changes `MICurs` and every editing member. Entry always produces a matching pair.
 
-## 2. Font metrics
-
-A tool under `tools/`, run by hand, reads Latin Modern Math's OpenType `MATH` table and writes F# source which is committed.
-
-- `SKTypeface.GetTableData` returns the raw table, so the tool needs no OpenType library and the shipped library parses nothing at runtime.
-- Glyph ids are baked in, so the font is embedded and loaded with `SKTypeface.FromStream`, never `FromFamilyName`.
-- Covers `MathConstants`, `MathGlyphInfo` and `MathVariants`.
-
-## 3. Layout and rendering
+## 2. Layout and rendering
 
 `MA` to a display tree of positioned boxes, glyph runs and rules, then onto an `SKCanvas`.
 
@@ -26,11 +18,11 @@ The display tree mirrors the structure of the `MA`.
 
 Limited to what `MA` expresses today: rows, characters, fractions, scripts, radicals and brackets.
 
-## 4. Hit-testing
+## 3. Hit-testing
 
 A point to a `MICurs`, built by descending the display tree and the `MA` together.
 
-## 5. Remaining mathematics
+## 4. Remaining mathematics
 
 All display-only. The cursor treats each as one unit, stepping over it and deleting it whole, so none needs a `MICurs` case.
 

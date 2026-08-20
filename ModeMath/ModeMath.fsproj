@@ -1,8 +1,18 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <Compile Include="MathFontData.g.fs" />
     <Compile Include="MathAtom.fs" />
+    <Compile Include="MathFont.fs" />
     <Compile Include="Cursor.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="ModeMath.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="..\fonts\latinmodern-math.otf" LogicalName="ModeMath.latinmodern-math.otf" />
   </ItemGroup>
 
 </Project>
