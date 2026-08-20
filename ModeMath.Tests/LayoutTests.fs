@@ -152,9 +152,9 @@ let private structures =
                 "anUnclosedBracketIsStillLaidOut",
                 fun () ->
                     let tentative =
-                        laid(MA.Bracketed(Bracket.Normal, MA.String "x+1", BracketCompletion.Left))
+                        laid(MA.Bracketed(Brackets.Matching Bracket.Normal, MA.String "x+1", BracketCompletion.Left))
                     let complete =
-                        laid(MA.Bracketed(Bracket.Normal, MA.String "x+1", BracketCompletion.Completed))
+                        laid(MA.Bracketed(Brackets.Matching Bracket.Normal, MA.String "x+1", BracketCompletion.Completed))
                     nearly(complete.Width, tentative.Width, "an offered bracket takes the same room")
             )
         ]
@@ -264,4 +264,58 @@ let private bigOperators =
         ]
     )
 
-let tests = TestFolder("Layout", [ measurement; structures; repertoire; bigOperators ])
+/// Every glyph a display draws, in order, so that a delimiter can be told from its neighbour.
+let rec private glyphIds(display: Display) =
+    match display.Content with
+    | Content.Glyph(glyph, _, _) -> [ glyph.Id ]
+    | Content.Rule _ -> []
+    | Content.Children children -> [ for child in children do yield! glyphIds child.Display ]
+
+/// The delimiters a bracketed formula was drawn with, which surround its content.
+let private sides(display: Display) =
+    match display.Content with
+    | Content.Children children when children.Length = 3 -> children.[0].Display, children.[2].Display
+    | Content.Children _ | Content.Glyph _ | Content.Rule _ -> failwith $"not a bracketed display: {display}"
+
+let private brackets =
+    TestList(
+        "Brackets",
+        [   Test.CasesSync(
+                "everyShapeIsDrawnAndGrowsWithWhatItHolds",
+                [ Bracket.Normal; Bracket.Line; Bracket.Square; Bracket.Curly; Bracket.Angle ]
+                |> List.map (fun b -> string b, b),
+                fun bracket ->
+                    let shortLeft, shortRight = sides(laid(MA.Paired(bracket, c 'x')))
+                    let tallLeft, tallRight = sides(laid(MA.Paired(bracket, MA.Frac(MA.Frac(c 'a', c 'b'), c 'c'))))
+                    Assert.True(shortLeft.Width > 0f, $"{bracket} draws a left delimiter")
+                    Assert.True(shortRight.Width > 0f, $"{bracket} draws a right one")
+                    Assert.True(tallLeft.Height > shortLeft.Height, $"{bracket}'s left delimiter grows")
+                    Assert.True(tallRight.Height > shortRight.Height, $"{bracket}'s right one grows too")
+            )
+            Test.Sync(
+                "theTwoSidesAreChosenIndependently",
+                fun () ->
+                    let inner = MA.String "0,1"
+                    let square = sides(laid(MA.Paired(Bracket.Square, inner))) |> fst |> glyphIds
+                    let round = sides(laid(MA.Paired(Bracket.Normal, inner))) |> snd |> glyphIds
+                    let left, right =
+                        sides(
+                            laid(
+                                MA.Bracketed(
+                                    Brackets(Bracket.Square, Bracket.Normal),
+                                    inner,
+                                    BracketCompletion.Completed)))
+                    Assert.Equal(square, glyphIds left, "[0, 1) opens with the square bracket's glyph")
+                    Assert.Equal(round, glyphIds right, "and closes with the round one's")
+            )
+            Test.Sync(
+                "matchingGivesBothSidesTheSameShape",
+                fun () ->
+                    let pair = Brackets.Matching Bracket.Curly
+                    Assert.Equal(Bracket.Curly, pair.Left)
+                    Assert.Equal(Bracket.Curly, pair.Right)
+            )
+        ]
+    )
+
+let tests = TestFolder("Layout", [ measurement; structures; repertoire; bigOperators; brackets ])

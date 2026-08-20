@@ -49,9 +49,21 @@ type BigOperator =
     /// Set in upright letters rather than drawn from a glyph.
     | Limit = 7
 
+/// A bracket shape, side-agnostic: Normal draws ( on the left and ) on the right.
 type Bracket =
     | Normal = 0
     | Line = 1
+    | Square = 2
+    | Curly = 3
+    | Angle = 4
+
+/// The pair a formula is bracketed with, which need not match: [0, 1) is a square left and a round right.
+[<Struct>]
+type Brackets(left: Bracket, right: Bracket) =
+    member _.Left = left
+    member _.Right = right
+    /// The pair entry produces, both sides the same shape.
+    static member Matching(bracket: Bracket) = Brackets(bracket, bracket)
 
 [<Struct; RequireQualifiedAccess>]
 type BracketCompletion =
@@ -79,7 +91,7 @@ type MA =
     | Frac of numerator: MA * denominator: MA
     | Function of MathFunction
     | Operator of Operator
-    | Bracketed of Bracket * MA * BracketCompletion
+    | Bracketed of Brackets * MA * BracketCompletion
     | RootN of n: MA * x: MA
     | Sqrt of x: MA
     /// A large operator with its limits, which are scripts in every style but display.
@@ -89,7 +101,11 @@ type MA =
     static member Row2(a: MA, b: MA) = Row(ImmutableArray.Create(a, b))
     static member Row3(a: MA, b: MA, c: MA) = Row(ImmutableArray.Create(a, b, c))
     static member String(s: string) = Row(s.ToImmutableArray() |> ImmArray.map Char)
-    static member RoundBracket(x: MA) = Bracketed(Bracket.Normal, x, BracketCompletion.Completed)
+    /// A matching pair around x, as entering a bracket produces.
+    static member Paired(bracket: Bracket, x: MA) =
+        Bracketed(Brackets.Matching bracket, x, BracketCompletion.Completed)
+
+    static member RoundBracket(x: MA) = MA.Paired(Bracket.Normal, x)
 
     member t.IsEmpty =
         match t with

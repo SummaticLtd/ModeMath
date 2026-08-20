@@ -41,7 +41,7 @@ type MICurs =
     | ScriptSub of main: MA * super: MA voption * sub: MICurs
     | FracNum of n: MICurs * d: MA
     | FracDen of n: MA * d: MICurs
-    | Bracketed of Bracket * MICurs * completion: BracketCompletion
+    | Bracketed of Brackets * MICurs * completion: BracketCompletion
     | RootNDegree of n: MICurs * x: MA
     | RootNMain of n: MA * x: MICurs
     | Sqrt of x: MICurs

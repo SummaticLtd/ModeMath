@@ -21,6 +21,12 @@ let delimiters =
     [
         "roundLeft", int '(', "The opening round bracket."
         "roundRight", int ')', "The closing round bracket."
+        "squareLeft", int '[', "The opening square bracket."
+        "squareRight", int ']', "The closing square bracket."
+        "curlyLeft", int '{', "The opening curly bracket."
+        "curlyRight", int '}', "The closing curly bracket."
+        "angleLeft", 0x27E8, "The opening angle bracket, as a bra opens."
+        "angleRight", 0x27E9, "The closing angle bracket, as a ket closes."
         "bar", int '|', "The vertical bar of an absolute value, used on both sides."
     ]
 
@@ -73,7 +79,7 @@ let repertoire =
         "∈∉∋⊂⊃⊆⊇∅"
         "¬∀∃"
         "→←↔⇒⇐⇔⟺↦"
-        "∞∂∇∠∆"
+        "∞∂∇∠∆□"
         "∴∵…⋯⋮⋱′″‰°"
         "ℕℝℤℚℂℍℙℓ"
         "⟨⟩"
