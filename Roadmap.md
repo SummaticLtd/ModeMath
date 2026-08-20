@@ -14,7 +14,7 @@ Editing works. Nothing is displayed yet.
 
 A tool under `tools/`, run by hand, reads Latin Modern Math's OpenType `MATH` table and writes F# source which is committed.
 
-- `SKTypeface.GetTableData` returns the raw table, so the tool needs no font library and the library needs no parser.
+- `SKTypeface.GetTableData` returns the raw table, so the tool needs no OpenType library and the shipped library parses nothing at runtime.
 - Glyph ids are baked in, so the font is embedded and loaded with `SKTypeface.FromStream`, never `FromFamilyName`.
 - Covers `MathConstants`, `MathGlyphInfo` and `MathVariants`.
 
@@ -22,13 +22,13 @@ A tool under `tools/`, run by hand, reads Latin Modern Math's OpenType `MATH` ta
 
 `MA` to a display tree of positioned boxes, glyph runs and rules, then onto an `SKCanvas`.
 
-Each display node carries the `MICurs` it came from.
+The display tree mirrors the structure of the `MA`.
 
 Limited to what `MA` expresses today: rows, characters, fractions, scripts, radicals and brackets.
 
 ## 4. Hit-testing
 
-A point to a `MICurs`, read off the display tree.
+A point to a `MICurs`, built by descending the display tree and the `MA` together.
 
 ## 5. Remaining mathematics
 
