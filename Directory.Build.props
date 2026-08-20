@@ -4,5 +4,7 @@
     <Company>Summatic Ltd</Company>
     <Copyright>Copyright (c) Summatic Ltd</Copyright>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- FS0104: enums may take values outside their known cases -->
+    <NoWarn>FS0104</NoWarn>
   </PropertyGroup>
 </Project>

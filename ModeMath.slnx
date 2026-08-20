@@ -2,4 +2,5 @@
   <Project Path="ModeMath.Tests/ModeMath.Tests.fsproj" />
   <Project Path="ModeMath/ModeMath.fsproj" />
   <Project Path="tools/MathTableGen/MathTableGen.fsproj" />
+  <Project Path="tools/RenderExamples/RenderExamples.fsproj" />
 </Solution>
