@@ -245,4 +245,62 @@ let private metrics =
         ]
     )
 
-let tests = TestFolder("MathFont", [ data; metrics ])
+let private named =
+    TestList(
+        "Named",
+        [   Test.CasesSync(
+                "everyLetterOfEveryAlphabetIsPresent",
+                [   "italic latin small", [ 'a' .. 'z' ], Letters.italic
+                    "italic latin capital", [ 'A' .. 'Z' ], Letters.italic
+                    "italic greek", [ for c in 'α' .. 'ω' -> c ], Letters.italic
+                    "italic shapes", [ '∂'; 'ϵ'; 'ϑ'; 'ϰ'; 'ϕ'; 'ϱ'; 'ϖ' ], Letters.italic
+                    "bold latin small", [ 'a' .. 'z' ], Letters.bold
+                    "bold latin capital", [ 'A' .. 'Z' ], Letters.bold ]
+                |> List.map (fun (name, letters, alphabet) -> name, (name, letters, alphabet)),
+                fun (name, letters, alphabet) ->
+                    for c in letters do
+                        Assert.True((alphabet c).IsSome, $"{name} has no {c}")
+            )
+            Test.CasesSync(
+                "whatIsNotALetterHasNoAlphabetEntry",
+                [ for c in "0123456789+=()" do yield string c, c ],
+                fun c ->
+                    Assert.True((Letters.italic c).IsNone, $"italic accepted {c}")
+                    Assert.True((Letters.bold c).IsNone, $"bold accepted {c}")
+            )
+            Test.Sync(
+                "capitalGreekIsLeftUpright",
+                fun () -> Assert.True((Letters.italic 'Γ').IsNone, "italic accepted a capital Greek letter")
+            )
+            Test.Sync(
+                "italicLettersDifferFromTheUprightOnes",
+                fun () ->
+                    for c in [ 'a' .. 'z' ] do
+                        match Letters.italic c, MathFont.OfChar c with
+                        | ValueSome italic, ValueSome upright ->
+                            Assert.True(italic.Id <> upright.Id, $"italic {c} is the upright glyph")
+                        | _ -> Assert.Fail $"no glyph for {c}"
+            )
+            Test.Sync(
+                "theMinusSignIsNotTheHyphen",
+                fun () ->
+                    match MathFont.OfChar '-' with
+                    | ValueSome hyphen -> Assert.True(Operators.minus.Id <> hyphen.Id, "same glyph")
+                    | ValueNone -> Assert.Fail "the font has no hyphen"
+            )
+            Test.CasesSync(
+                "namedDelimitersStretch",
+                [   "roundLeft", Delimiters.roundLeft
+                    "roundRight", Delimiters.roundRight
+                    "bar", Delimiters.bar
+                    "surd", Radicals.surd ]
+                |> List.map (fun (name, stretchy) -> name, (name, stretchy)),
+                fun (name, stretchy: StretchyGlyph) ->
+                    Assert.True(stretchy.SizeCount > 1, $"{name} offers one size only")
+                    Assert.Equal(stretchy.Glyph.Id, (stretchy.Size 0).Glyph.Id, $"{name} size 0")
+                    Assert.True(stretchy.PartCount > 0, $"{name} has no assembly")
+            )
+        ]
+    )
+
+let tests = TestFolder("MathFont", [ data; metrics; named ])

@@ -142,3 +142,88 @@ type MathFont =
     /// The font file the metrics were generated from, whose glyph ids Glyph.Id refers to.
     static member OpenFontFile(): Stream =
         typeof<Glyph>.Assembly.GetManifestResourceStream "ModeMath.latinmodern-math.otf"
+
+/// A glyph that grows along an axis, so that callers need not ask whether it does.
+[<Struct>]
+type StretchyGlyph internal (glyph: Glyph, stretch: Stretch) =
+    /// The unstretched glyph, whose metrics apply until it is grown.
+    member _.Glyph = glyph
+    /// Sizes in increasing order, the first being the unstretched glyph where the font offers one.
+    member _.SizeCount = stretch.VariantCount
+    member _.Size(i: int) = stretch.Variant i
+    /// Zero where the font gives no assembly, the sizes then being the only ones available.
+    member _.PartCount = stretch.PartCount
+    member _.Part(i: int) = stretch.Part i
+
+module private Resolve =
+    let glyph(codepoint: int) =
+        match MathFont.OfCodepoint codepoint with
+        | ValueSome found -> found
+        | ValueNone -> failwith $"the font has no glyph for U+{codepoint:X4}"
+
+    let vertical(codepoint: int) =
+        let found = glyph codepoint
+        match found.VerticalStretch with
+        | ValueSome stretch -> StretchyGlyph(found, stretch)
+        | ValueNone -> failwith $"U+{codepoint:X4} does not stretch vertically"
+
+/// The alphabets a variable is set in. ValueNone means not a letter, never a gap in the font.
+module Letters =
+    /// Italic h is unassigned in its block and lives among the letterlike symbols instead.
+    let private italicSmall =
+        Array.init 26 (fun i -> Resolve.glyph(if i = int 'h' - int 'a' then 0x210E else 0x1D44E + i))
+
+    let private italicCapital = Array.init 26 (fun i -> Resolve.glyph(0x1D434 + i))
+    let private boldSmall = Array.init 26 (fun i -> Resolve.glyph(0x1D482 + i))
+    let private boldCapital = Array.init 26 (fun i -> Resolve.glyph(0x1D468 + i))
+    let private italicGreek = Array.init 25 (fun i -> Resolve.glyph(0x1D6FC + i))
+
+    /// The shapes that Unicode keeps outside the alphabet, which follow omega in the italic block.
+    let private italicShapes =
+        dict [
+            '∂', Resolve.glyph 0x1D715
+            'ϵ', Resolve.glyph 0x1D716
+            'ϑ', Resolve.glyph 0x1D717
+            'ϰ', Resolve.glyph 0x1D718
+            'ϕ', Resolve.glyph 0x1D719
+            'ϱ', Resolve.glyph 0x1D71A
+            'ϖ', Resolve.glyph 0x1D71B
+        ]
+
+    /// Math italic, in which variables are set. Capital Greek is absent, being set upright.
+    let italic(c: char) =
+        if c >= 'a' && c <= 'z' then ValueSome italicSmall.[int c - int 'a']
+        elif c >= 'A' && c <= 'Z' then ValueSome italicCapital.[int c - int 'A']
+        elif c >= 'α' && c <= 'ω' then ValueSome italicGreek.[int c - 0x03B1]
+        else
+            match italicShapes.TryGetValue c with
+            | true, glyph -> ValueSome glyph
+            | _ -> ValueNone
+
+    /// Math bold italic, in which bold variables are set.
+    let bold(c: char) =
+        if c >= 'a' && c <= 'z' then ValueSome boldSmall.[int c - int 'a']
+        elif c >= 'A' && c <= 'Z' then ValueSome boldCapital.[int c - int 'A']
+        else ValueNone
+
+/// Operators whose codepoints are easy to mistake for the keys that resemble them.
+module Operators =
+    let plus = Resolve.glyph(int '+')
+    /// The minus sign, which is not the hyphen.
+    let minus = Resolve.glyph 0x2212
+    let times = Resolve.glyph 0x00D7
+    let divide = Resolve.glyph 0x00F7
+    let equals = Resolve.glyph(int '=')
+    /// The centred dot of a product.
+    let cdot = Resolve.glyph 0x22C5
+
+/// Delimiters, which grow to the height of what they hold.
+module Delimiters =
+    let roundLeft = Resolve.vertical(int '(')
+    let roundRight = Resolve.vertical(int ')')
+    /// The vertical bar of an absolute value, used on both sides.
+    let bar = Resolve.vertical(int '|')
+
+module Radicals =
+    /// The tick and bar of a root, which grows to cover the radicand.
+    let surd = Resolve.vertical 0x221A
