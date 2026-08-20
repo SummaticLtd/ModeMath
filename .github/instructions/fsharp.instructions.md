@@ -6,7 +6,7 @@ applyTo: "**/*.fs"
 
 ## Function/Method Definitions
 - Tupled functions (`let f(x: int, y: int) =`) are preferred to curried functions (`let f (x: int) (y: int)`) unless intended for partial application, since these are simpler.
-- Every input of every function or method should be given a type annotation, e.g. `let f(x: int) =` instead of `let f(x) =`.
+- Every input of every named function or method should be given a type annotation, e.g. `let f(x: int) =` instead of `let f(x) =`. A lambda takes its parameter types by inference.
 - If a function or class is generic, use an explicit type parameter where possible, e.g. `let f<'T>(x: 'T) =` instead of `let f(x: 'T) =`. Generally this is possible for top-level functions and methods.
 
 ## Type Design
