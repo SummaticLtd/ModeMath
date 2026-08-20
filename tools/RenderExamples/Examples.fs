@@ -16,6 +16,10 @@ let private paren(inner: MA) = MA.RoundBracket inner
 let private bars(inner: MA) = MA.Bracketed(Bracket.Line, inner, BracketCompletion.Completed)
 let private fn(f: MathFunction) = MA.Function f
 let private op(o: Operator) = MA.Operator o
+let private bigOp(o: BigOperator) = MA.BigOp(o, ValueNone, ValueNone)
+let private bigOpSub(o: BigOperator, lower: MA) = MA.BigOp(o, ValueSome lower, ValueNone)
+let private bigOpSup(o: BigOperator, upper: MA) = MA.BigOp(o, ValueNone, ValueSome upper)
+let private bigOpSubSup(o: BigOperator, lower: MA, upper: MA) = MA.BigOp(o, ValueSome lower, ValueSome upper)
 
 /// 1 + e^(-2pi) / (1 + e^(-4pi) / (...)), the right-hand side of Ramanujan's identity.
 let private continuedFraction(depth: int) =
@@ -70,6 +74,15 @@ let implemented = [
     "FunctionDomainCodomain", row [ c 'f'; c ':'; c 'ℕ'; c '→'; c 'ℕ' ]
 
     "IntPlusFraction", row [ c '1'; c '+'; frac(c '2', c '3') ]
+    "IntegralScripts",
+    row [
+        bigOp BigOperator.Integral
+        bigOp BigOperator.Integral
+        bigOpSup(BigOperator.Integral, c '∞')
+        bigOpSub(BigOperator.Integral, c '0')
+        bigOpSubSup(BigOperator.Integral, c '0', c '∞')
+        bigOp BigOperator.Integral
+    ]
     "ItalicScripts",
     row [
         supsub(c 'U', c '2', c '3')
@@ -120,6 +133,37 @@ let implemented = [
         frac(sqrt(row [ sup(c 'b', c '2'); c '-'; s "4ac" ]), s "2a")
     ]
 
+    "ShortIntegral", bigOpSubSup(BigOperator.Integral, c '0', c '1')
+    "SimpleLimit",
+    row [
+        bigOpSub(BigOperator.Limit, row [ c 'x'; c '→'; c '∞' ])
+        c '3'
+        op Operator.Equals
+        c '3'
+    ]
+    "SummationBigCup", row [ s "234"; bigOpSub(BigOperator.Union, c '1') ]
+    "SummationDouble", row [ bigOp BigOperator.Sum; bigOp BigOperator.Sum ]
+    "SummationWithBigLimits",
+    row [
+        bigOpSubSup(
+            BigOperator.Sum,
+            row [ c 'i'; op Operator.Equals; sub(c '3', sub(c '2', c '1')) ],
+            sup(c '4', sup(c '5', c '6')))
+        c 'i'
+    ]
+    "SummationWithCup",
+    row [
+        bigOpSubSup(BigOperator.Sum, row [ c 'n'; op Operator.Equals; c '1' ], c '∞')
+        frac(row [ c '1'; c '+'; c 'n' ], row [ c '1'; c '-'; c 'n' ])
+        op Operator.Equals
+        bigOpSub(BigOperator.Union, c '1')
+        c 'C'
+        c '∪'
+        c 'B'
+    ]
+    "SummationWithLimits",
+    bigOpSubSup(BigOperator.Sum, row [ c 'n'; op Operator.Equals; c '1' ], c '∞')
+
     "Radical", sqrt(c '3')
     "RadicalFraction", row [ c '2'; c '+'; frac(sqrt(c '3'), c '2') ]
     "RadicalNested", sqrt(sqrt(c 'x'))
@@ -140,6 +184,13 @@ let implemented = [
     "TwoSin", row [ c '2'; fn MathFunction.Sin ]
 
     "ModeMathAbsolute", row [ bars(row [ c 'x'; c '-'; c '1' ]); op Operator.Equals; c '3' ]
+    "ModeMathBigOperators",
+    row [
+        bigOpSubSup(BigOperator.Product, row [ c 'k'; op Operator.Equals; c '1' ], c 'n')
+        bigOp BigOperator.Coproduct
+        bigOpSub(BigOperator.Intersection, c 'i')
+        bigOpSubSup(BigOperator.ContourIntegral, c '0', c 'Δ')
+    ]
     "ModeMathBoldVectors",
     row [ MA.BoldVar 'v'; op Operator.Equals; MA.BoldVar 'a'; MA.Cdot; MA.BoldVar 'b' ]
     "ModeMathCubeRoot", root(c '3', row [ c 'x'; c '+'; c '1' ])
@@ -157,17 +208,16 @@ let unimplemented = [
     "AccentUnderThin", @"\threeunderdot{i}", "accents"
     "ArcsinSin", @"\arcsin(\sin x)=x\quad\mathrm{for}\quad|x|\le\frac\pi2", "spacing, Styled"
     "BMartix", @"\begin{bmatrix} x_{11}&x_{12}&.&.&x_{1n} \end{bmatrix}", "tables"
-    "BraSum", @"\frac{1}{\sqrt{2^n}} \sum_{i=0}^{2^n-1} \Bra{i}", "large operators, delimiters"
+    "BraSum", @"\frac{1}{\sqrt{2^n}} \sum_{i=0}^{2^n-1} \Bra{i}", "delimiters"
     "Cases", @"w \equiv \begin{cases} 0 & \text{for}\ c = d = 0 \end{cases}", "tables"
     "Choose", @"{6 \choose x}", "fraction with no rule"
     "Color", @"\color{#000088}a\color{#0000FF}b", "Coloured"
     "Cyrillic", @"А а\ Б б\ В в", "Text"
-    "EvalIntegral", @"\int_1^2 x\; dx=\left.\frac{x^2}{2}\right|_1^2", "large operators"
+    "EvalIntegral", @"\int_1^2 x\; dx=\left.\frac{x^2}{2}\right|_1^2", "delimiters, spacing"
     "FontStyles", @"\mathnormal F\mathrm F\mathbf F\mathcal F\mathtt F", "Styled"
-    "Integral", @"\int_{0}^{\infty}e^x \,dx=\oint_0^{\Delta}5\Gamma", "large operators"
-    "IntegralScripts", @"\int\int\int^{\infty}\int_0\int^{\infty}_0\int", "large operators"
+    "Integral", @"\int_{0}^{\infty}e^x \,dx=\oint_0^{\Delta}5\Gamma", "spacing"
     "ItalicAlignment", @"\colorbox{yellow}P\\\begin{array}{r}\colorbox{yellow}{PF}\end{array}", "tables"
-    "KetSum", @"\frac{1}{\sqrt{2^n}} \sum_{i=0}^{2^n-1} \Ket{i}", "large operators, delimiters"
+    "KetSum", @"\frac{1}{\sqrt{2^n}} \sum_{i=0}^{2^n-1} \Ket{i}", "delimiters"
     "LargeBra", @"\Bra{\frac{a}{2}+\frac{b}{3}}", "delimiters"
     "LargeKet", @"\Ket{\frac{a}{2}+\frac{b}{3}}", "delimiters"
     "LargerDelimiters", @"\left(\left[\left\{\square\right\}^\square\right]^\square\right)^\square",
@@ -178,16 +228,9 @@ let unimplemented = [
     "Overline", @"\overline{Overline}", "overline"
     "QuarticSolutions", @"\left\{-1+\frac{-\sqrt{10+2\times\left(\frac{-25}{3}\right)}}{2}\right\}", "delimiters"
     "RaiseBox", @"a\raisebox{1mu}a\raisebox{2mu}a", "raisebox"
-    "SimpleLimit", @"\lim_{x\to\infty}3=3", "large operators"
     "SimpleShortProof", @"\begin{aligned}&\because x+3=5\\&\therefore x=2\end{aligned}", "tables"
-    "ShortIntegral", @"\int_0^1", "large operators"
     "SolveEquations", @"\text{Solve } \begin{cases} y=x^2-x+3 \end{cases}", "tables, Text"
-    "SomeLimit", @"\lim_{x\to\infty}\frac{e^2}{1-x}=\limsup_{\sigma}5", "large operators"
-    "SummationBigCup", @"234 \bigcup_1", "large operators"
-    "SummationDouble", @"\sum \sum", "large operators"
-    "SummationWithBigLimits", @"\sum^{4^{5^{6}}}_{i=3_{2_{1}}}i", "large operators"
-    "SummationWithCup", @"\sum_{n=1}^{\infty}\frac{1+n}{1-n}=\bigcup_{1}C\cup B", "large operators"
-    "SummationWithLimits", @"\sum_{n=1}^{\infty}", "large operators"
+    "SomeLimit", @"\lim_{x\to\infty}\frac{e^2}{1-x}=\limsup_{\sigma}5", "limsup"
     "Taylor", @"\begin{eqnarray} e^x &=& \sum_{n=0}^{\infty}\frac{x^n}{n!} \end{eqnarray}", "tables"
     "Underbrace", @"\underbrace{abcd}", "horizontal stretch"
     "UnderbraceSubscript", @"\underbrace{abcdefghklmnopqrst} _{eee}", "horizontal stretch"

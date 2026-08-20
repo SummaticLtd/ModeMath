@@ -37,6 +37,18 @@ type Operator =
     | Divide = 3
     | Equals = 4
 
+/// Operators large enough to carry limits, which sit above and below them in display style.
+type BigOperator =
+    | Sum = 0
+    | Product = 1
+    | Coproduct = 2
+    | Integral = 3
+    | ContourIntegral = 4
+    | Union = 5
+    | Intersection = 6
+    /// Set in upright letters rather than drawn from a glyph.
+    | Limit = 7
+
 type Bracket =
     | Normal = 0
     | Line = 1
@@ -70,6 +82,8 @@ type MA =
     | Bracketed of Bracket * MA * BracketCompletion
     | RootN of n: MA * x: MA
     | Sqrt of x: MA
+    /// A large operator with its limits, which are scripts in every style but display.
+    | BigOp of op: BigOperator * lower: MA voption * upper: MA voption
 
     static member Empty = Row ImmutableArray<MA>.Empty
     static member Row2(a: MA, b: MA) = Row(ImmutableArray.Create(a, b))
@@ -111,6 +125,11 @@ type MA =
         | Bracketed(b, ma, bc) -> Bracketed(b, ma.Flatten, bc)
         | RootN(n, x) -> RootN(n.Flatten, x.Flatten)
         | Sqrt x -> Sqrt x.Flatten
+        | BigOp(op, lower, upper) ->
+            BigOp(
+                op,
+                lower |> ValueOption.map (fun l -> l.Flatten),
+                upper |> ValueOption.map (fun u -> u.Flatten))
 
     override t.ToString() =
         let props(name: string, xs: obj seq) =
@@ -129,6 +148,7 @@ type MA =
         | Bracketed(b, ma, bc) -> props("Bracketed", [ box b; box ma; box bc ])
         | RootN(n, x) -> props("RootN", [ n; x ])
         | Sqrt x -> props("Sqrt", [ x ])
+        | BigOp(op, lower, upper) -> props("BigOp", [ box op; box lower; box upper ])
 
 type Direction =
     | Up = 0

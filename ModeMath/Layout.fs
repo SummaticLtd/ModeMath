@@ -1,6 +1,7 @@
 namespace ModeMath
 
 open System.Collections.Immutable
+open FSUtils
 
 /// TeX's four sizes.
 type MathSize =
@@ -80,6 +81,13 @@ module internal Conventions =
 
     let boldVariable(c: char) = Letters.bold c
 
+    /// LaTeX keeps an integral's limits beside it; the rest take them above and below in display style.
+    let takesLimits(op: BigOperator) =
+        match op with
+        | BigOperator.Integral | BigOperator.ContourIntegral -> false
+        | BigOperator.Sum | BigOperator.Product | BigOperator.Coproduct
+        | BigOperator.Union | BigOperator.Intersection | BigOperator.Limit -> true
+
     let operator(o: Operator) =
         match o with
         | Operator.Times -> Operators.times
@@ -136,6 +144,7 @@ module internal Conventions =
         | MA.Frac _ -> both AtomClass.Inner
         | MA.Bracketed _ -> struct (AtomClass.Open, AtomClass.Close)
         | MA.ScriptSuper(main, _, _) | MA.ScriptSub(main, _) -> atomClasses main
+        | MA.BigOp _ -> both AtomClass.Operator
         | MA.Row _ | MA.BoldVar _ | MA.UprightD | MA.RootN _ | MA.Sqrt _ -> both AtomClass.Ordinary
 
 module private Spacing =
@@ -185,6 +194,17 @@ type Layout(fontSize: float32) =
         match glyph with
         | ValueSome found -> glyphDisplay(found, style, ink)
         | ValueNone -> Display.Empty
+
+    /// A large operator's italic correction measures its lean rather than ink past its advance, so it
+    /// does not widen the box, though scripts and limits are still placed by it.
+    let operatorDisplay(glyph: Glyph, style: Style, ink: Ink) =
+        let s = scale style
+        Display(
+            float32 glyph.Advance * s,
+            float32 glyph.Top * s,
+            -(float32 glyph.Bottom) * s,
+            float32 glyph.ItalicCorrection * s,
+            Content.Glyph(glyph, fontSize * style.ScaleFactor, ink))
 
     /// A glyph laid out with its ink resting on the origin, so that callers place it by its bottom.
     let bottomAnchored(glyph: Glyph, style: Style, ink: Ink) =
@@ -271,7 +291,9 @@ type Layout(fontSize: float32) =
         Display.OfChildren(width, 0f, children)
 
     member private t.Scripts(main: MA, super: MA voption, sub: MA voption, style: Style) =
-        let b = t.Of(main, style)
+        t.ScriptsOn(t.Of(main, style), super, sub, style)
+
+    member private t.ScriptsOn(b: Display, super: MA voption, sub: MA voption, style: Style) =
         let s = scale style
         let children = ImmutableArray.CreateBuilder<Placed>()
         children.Add(Placed(b, 0f, 0f))
@@ -318,15 +340,85 @@ type Layout(fontSize: float32) =
             children.Add(Placed(display, b.Width, up))
             width <- max width (b.Width + display.Width)
         | ValueNone -> ()
-        // A subscript sits under the upright stem, ahead of the trailing italic correction.
+        // The italic correction leans the base right, so the subscript steps back over it.
         let subscriptX = b.Width - b.ItalicCorrection
         match subscript with
         | ValueSome display ->
             children.Add(Placed(display, subscriptX, -down))
             width <- max width (subscriptX + display.Width)
         | ValueNone -> ()
-        let after = float32 MathConstants.SpaceAfterScript * s
+        // Only a script is followed by the space after a script; a bare operator is not.
+        let after =
+            match superscript, subscript with
+            | ValueNone, ValueNone -> 0f
+            | ValueSome _, _ | _, ValueSome _ -> float32 MathConstants.SpaceAfterScript * s
         Display.OfChildren(width + after, 0f, children.ToImmutable())
+
+    /// Display style takes the first variant tall enough, which is how a sum grows with the formula.
+    member private _.BigOperatorGlyph(stretchy: StretchyGlyph, style: Style) =
+        if not style.IsDisplay then stretchy.Glyph
+        else
+            let mutable chosen = ValueNone
+            let mutable i = 0
+            while chosen.IsNone && i < stretchy.SizeCount do
+                let size = stretchy.Size i
+                if size.Advance >= MathConstants.DisplayOperatorMinHeight then chosen <- ValueSome size.Glyph
+                i <- i + 1
+            match chosen with
+            | ValueSome glyph -> glyph
+            | ValueNone when stretchy.SizeCount > 0 -> stretchy.Size(stretchy.SizeCount - 1).Glyph
+            | ValueNone -> stretchy.Glyph
+
+    /// The operator alone: a glyph for the sum and its kin, upright letters for lim.
+    member private t.BigOperator(op: BigOperator, style: Style) =
+        let big(stretchy: StretchyGlyph) =
+            operatorDisplay(t.BigOperatorGlyph(stretchy, style), style, Ink.Solid)
+        match op with
+        | BigOperator.Sum -> big BigOperators.sum
+        | BigOperator.Product -> big BigOperators.product
+        | BigOperator.Coproduct -> big BigOperators.coproduct
+        | BigOperator.Integral -> big BigOperators.integral
+        | BigOperator.ContourIntegral -> big BigOperators.contourIntegral
+        | BigOperator.Union -> big BigOperators.union
+        | BigOperator.Intersection -> big BigOperators.intersection
+        | BigOperator.Limit -> t.Upright("lim", style)
+
+    member private t.BigOp(op: BigOperator, lower: MA voption, upper: MA voption, style: Style) =
+        let operator = t.BigOperator(op, style)
+        if style.IsDisplay && Conventions.takesLimits op then t.Limits(operator, lower, upper, style)
+        else t.ScriptsOn(operator, upper, lower, style)
+
+    /// Limits above and below, centred on the operator and each nudged by half its italic correction.
+    member private t.Limits(operator: Display, lower: MA voption, upper: MA voption, style: Style) =
+        let s = scale style
+        let above = upper |> ValueOption.map (fun ma -> t.Of(ma, style.Superscript))
+        let below = lower |> ValueOption.map (fun ma -> t.Of(ma, style.Subscript))
+        let half = operator.ItalicCorrection / 2f
+        let centre = operator.Width / 2f
+        let placed = ImmutableArray.CreateBuilder<Placed>()
+        placed.Add(Placed(operator, 0f, 0f))
+        match above with
+        | ValueSome display ->
+            let rise =
+                max
+                    (float32 MathConstants.UpperLimitBaselineRiseMin * s)
+                    (float32 MathConstants.UpperLimitGapMin * s + display.Descent)
+            placed.Add(Placed(display, centre + half - display.Width / 2f, operator.Ascent + rise))
+        | ValueNone -> ()
+        match below with
+        | ValueSome display ->
+            let drop =
+                max
+                    (float32 MathConstants.LowerLimitBaselineDropMin * s)
+                    (float32 MathConstants.LowerLimitGapMin * s + display.Ascent)
+            placed.Add(Placed(display, centre - half - display.Width / 2f, -(operator.Descent + drop)))
+        | ValueNone -> ()
+        // A limit wider than the operator overhangs on both sides, so the whole row shifts right.
+        let mutable left = 0f
+        for child in placed do left <- min left child.X
+        let children = placed.ToImmutable() |> ImmArray.map (fun c -> Placed(c.Display, c.X - left, c.Y))
+        let width = ImmArray.maxWithSafe(children, 0f, fun c -> c.X + c.Display.Width)
+        Display.OfChildren(width, 0f, children)
 
     /// The glyph grown to at least the given height, laid out resting on the origin.
     member private t.Stretched(stretchy: StretchyGlyph, style: Style, minHeight: float32, ink: Ink) =
@@ -439,6 +531,7 @@ type Layout(fontSize: float32) =
         | MA.Frac(numerator, denominator) -> t.Fraction(numerator, denominator, style)
         | MA.ScriptSuper(main, super, sub) -> t.Scripts(main, ValueSome super, sub, style)
         | MA.ScriptSub(main, sub) -> t.Scripts(main, ValueNone, ValueSome sub, style)
+        | MA.BigOp(op, lower, upper) -> t.BigOp(op, lower, upper, style)
         | MA.Bracketed(bracket, inner, completion) -> t.Brackets(bracket, inner, completion, style)
         | MA.Sqrt x -> t.Radical(ValueNone, x, style)
         | MA.RootN(n, x) -> t.Radical(ValueSome n, x, style)

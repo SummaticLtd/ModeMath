@@ -162,6 +162,10 @@ let main(args: string array): int =
         "Operators whose codepoints are easy to mistake for the keys that resemble them.",
         Named.operators)
     writeStretchy("Delimiters", "Delimiters, which grow to the height of what they hold.", Named.delimiters)
+    writeStretchy(
+        "BigOperators",
+        "Large operators, which take a taller glyph in display style and may carry limits.",
+        Named.bigOperators)
     writeStretchy("Radicals", "Roots, whose surd grows to cover the radicand.", Named.radicals)
 
     w.Line "module internal FontFile ="

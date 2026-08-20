@@ -27,7 +27,6 @@ Ordered by use in the SummaticApp content library.
 | Relations and arrows | `\leq`, `\Rightarrow`, `\approx`, `\in`, `\to` |
 | `Text` | `\text` |
 | Accents and overline | `\vec`, `\hat`, `\bar`, `\overline`, `\tilde`, `\dot` |
-| Large operators with limits | `\int`, `\sum`, `\lim` |
 | Tables | `pmatrix`, `eqnarray`, `cases`, `vmatrix`, `array` |
 | Binary operators | `\ast`, `\cap`, `\pm`, `\cup`, `\div` |
 | Spacing | `\quad`, `\qquad` |
