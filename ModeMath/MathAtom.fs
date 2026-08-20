@@ -1,34 +1,7 @@
 ﻿namespace ModeMath
 
 open System.Collections.Immutable
-
-module internal ImmArray =
-    let map<'T, 'U> (f: 'T -> 'U) (a: ImmutableArray<'T>) =
-        let b = ImmutableArray.CreateBuilder<'U> a.Length
-        for x in a do b.Add(f x)
-        b.MoveToImmutable()
-
-    let forall<'T> (f: 'T -> bool) (a: ImmutableArray<'T>) =
-        let mutable ok = true
-        let mutable i = 0
-        while ok && i < a.Length do
-            ok <- f a.[i]
-            i <- i + 1
-        ok
-
-    let take<'T> (n: int) (a: ImmutableArray<'T>) =
-        let b = ImmutableArray.CreateBuilder<'T> n
-        for i in 0 .. n - 1 do b.Add a.[i]
-        b.MoveToImmutable()
-
-    /// The largest f x over the array, or minimum, whichever is higher.
-    let inline maxWithSafe<'T, 'U when 'U: comparison>
-        (a: ImmutableArray<'T>, minimum: 'U, [<InlineIfLambda>] f: 'T -> 'U) =
-        let mutable m = minimum
-        for x in a do
-            let fx = f x
-            if fx > m then m <- fx
-        m
+open FSUtils
 
 type MathFunction =
     | Sin = 0

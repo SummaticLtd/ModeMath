@@ -1,6 +1,7 @@
 namespace ModeMath
 
 open System.Collections.Immutable
+open FSUtils
 
 /// Whether something is part of the formula or only offered, such as an unclosed bracket's partner.
 type Ink =
