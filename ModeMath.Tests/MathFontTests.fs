@@ -19,6 +19,14 @@ let private verticalStretch(codepoint: int) =
         | ValueSome stretch -> stretch
         | ValueNone -> failwith $"U+{codepoint:X4} does not stretch vertically"
 
+let private horizontalStretch(codepoint: int) =
+    match MathFont.OfCodepoint codepoint with
+    | ValueNone -> failwith $"the font has no glyph for U+{codepoint:X4}"
+    | ValueSome g ->
+        match g.HorizontalStretch with
+        | ValueSome stretch -> stretch
+        | ValueNone -> failwith $"U+{codepoint:X4} does not stretch horizontally"
+
 let private isSorted(name: string, values: int array) =
     for i in 1 .. values.Length - 1 do
         Assert.True(values.[i - 1] < values.[i], $"{name} is not sorted and unique at index {i}")
@@ -150,7 +158,7 @@ let private metrics =
             )
             Test.CasesSync(
                 "commonCharactersHaveGlyphs",
-                [ for c in "xy0123456789()[]+=" -> string c, c ],
+                [ for c in "xy0123456789()[]+=" do yield string c, c ],
                 fun c -> Assert.True((MathFont.OfChar c).IsSome, $"no glyph for {c}")
             )
             Test.Sync(
@@ -215,6 +223,35 @@ let private metrics =
                 fun () ->
                     let stretch = verticalStretch(int '(')
                     Assert.Equal((glyph '(').Id, (stretch.Variant 0).Glyph.Id)
+            )
+            Test.CasesSync(
+                "bracesAndArrowsStretchHorizontally",
+                [ "overbrace", 0x23DE; "underbrace", 0x23DF; "leftarrow", 0x2190; "widehat", 0x0302 ],
+                fun codepoint ->
+                    let stretch = horizontalStretch codepoint
+                    Assert.True(stretch.VariantCount > 1, "variant count")
+                    let mutable previous = 0
+                    for i in 0 .. stretch.VariantCount - 1 do
+                        let variant = stretch.Variant i
+                        Assert.True(variant.Advance > previous, $"variant {i} is no wider than variant {i - 1}")
+                        previous <- variant.Advance
+            )
+            Test.Sync(
+                "theOverbraceAssemblyHasARepeatablePart",
+                fun () ->
+                    let stretch = horizontalStretch 0x23DE
+                    Assert.True(stretch.PartCount > 2, "part count")
+                    let mutable extenders = 0
+                    for i in 0 .. stretch.PartCount - 1 do
+                        if (stretch.Part i).IsExtender then extenders <- extenders + 1
+                    Assert.True(extenders > 0, "no extender among the parts")
+            )
+            Test.Sync(
+                "aLetterStretchesNeitherWay",
+                fun () ->
+                    let x = glyph 'x'
+                    Assert.True(x.VerticalStretch.IsNone, "x stretches vertically")
+                    Assert.True(x.HorizontalStretch.IsNone, "x stretches horizontally")
             )
             Test.Sync(
                 "tallDelimitersAreExtendedShapes",

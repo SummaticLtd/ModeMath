@@ -56,6 +56,8 @@ let main(args: string array): int =
     let fontBytes = File.ReadAllBytes fontPath
     use typeface = SKTypeface.FromFile fontPath
     let table = MathTable(typeface.GetTableData mathTag)
+    if table.KernedGlyphCount > 0 then
+        failwith $"{table.KernedGlyphCount} glyphs carry MathKernInfo, which is not generated"
     let unitsPerEm = typeface.UnitsPerEm
     let glyphCount = typeface.GlyphCount
 

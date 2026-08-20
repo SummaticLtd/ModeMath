@@ -18,6 +18,9 @@ SHA-256 and a test compares them against the embedded resource. Replacing the fo
 or assembly parts of a delimiter. The remaining 2041 are reachable only through `GSUB` features,
 mainly `ssty`, which chooses optically heavier shapes at superscript size. ModeMath ignores `GSUB`.
 
+The font carries no `MathKernInfo`, so there is no height-dependent script kerning to bake and none is
+generated. MathTableGen fails rather than dropping it should a replacement font have any.
+
 Coverage is complete for everything on the roadmap: ASCII, Greek, the math alphabets (bold, italic,
 bold italic, sans, mono, fraktur, double-struck), 237 of the 256 mathematical operators, and 79
 arrows. Blackboard bold capitals are complete once `C H N P Q R Z` are taken from the Letterlike
