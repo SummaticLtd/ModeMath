@@ -8,6 +8,7 @@
   <ItemGroup>
     <Compile Include="MathTable.fs" />
     <Compile Include="Emit.fs" />
+    <Compile Include="Named.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 

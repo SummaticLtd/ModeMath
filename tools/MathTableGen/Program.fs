@@ -26,32 +26,6 @@ let private writeConstants(w: Writer, table: MathTable, unitsPerEm: int) =
     w.Line "    [<Literal>]"
     w.Line $"    let MinConnectorOverlap = {table.MinConnectorOverlap}"
 
-let private writeConstructions(w: Writer, prefix: string, constructions: GlyphConstruction array) =
-    let sizes = ResizeArray<string>()
-    let parts = ResizeArray<string>()
-    let rows = ResizeArray<string>()
-    for construction in constructions do
-        let sizeStart = sizes.Count
-        for variant in construction.Variants do
-            sizes.Add $"StretchSize({variant.Glyph}, {variant.Advance})"
-        let partStart = parts.Count
-        let italicCorrection =
-            match construction.Assembly with
-            | ValueNone -> 0
-            | ValueSome assembly ->
-                for part in assembly.Parts do
-                    let extender = if part.IsExtender then "true" else "false"
-                    parts.Add
-                        $"AssemblyPart({part.Glyph}, {part.StartConnector}, {part.EndConnector}, \
-                          {part.FullAdvance}, {extender})"
-                assembly.ItalicsCorrection
-        rows.Add
-            $"StretchConstruction({construction.Glyph}, {sizeStart}, {construction.Variants.Length}, \
-              {partStart}, {parts.Count - partStart}, {italicCorrection})"
-    w.Array($"{prefix}Constructions", "StretchConstruction", rows)
-    w.Array($"{prefix}Sizes", "StretchSize", sizes)
-    w.Array($"{prefix}Parts", "AssemblyPart", parts)
-
 [<EntryPoint>]
 let main(args: string array): int =
     let fontPath = args.[0]
@@ -81,13 +55,31 @@ let main(args: string array): int =
             int (MathF.Round width))
 
     // Curve extrema land off the design grid, so bounds are rounded outwards.
-    let lower(select: SKRect -> float32) = bounds |> Array.map (select >> floor >> int)
-    let upper(select: SKRect -> float32) = bounds |> Array.map (select >> ceil >> int)
+    let tops = bounds |> Array.map (fun b -> int (ceil -b.Top))
+    let bottoms = bounds |> Array.map (fun b -> int (floor -b.Bottom))
+    let italics = dict table.ItalicsCorrections
+
+    /// One glyph as the literal that reconstructs it.
+    let glyph(id: int) =
+        let italic = match italics.TryGetValue id with | true, value -> value | _ -> 0
+        $"Glyph({id}, {advances.[id]}, {tops.[id]}, {bottoms.[id]}, {italic})"
 
     let mapped = font.GetGlyphs(ReadOnlySpan allCodepoints)
-    let cmap =
+    let byCodepoint =
         [| for i in 0 .. allCodepoints.Length - 1 do
             if mapped.[i] <> 0us then yield allCodepoints.[i], int mapped.[i] |]
+    let glyphOf = dict byCodepoint
+
+    let resolve(codepoint: int) =
+        match glyphOf.TryGetValue codepoint with
+        | true, id -> id
+        | _ -> failwith $"the font has no glyph for U+{codepoint:X4}"
+
+    let exceptions = dict Named.alphabetExceptions
+    let substituted(codepoint: int) =
+        match exceptions.TryGetValue codepoint with
+        | true, replacement -> replacement
+        | _ -> codepoint
 
     let w = Writer()
     w.Line "namespace ModeMath"
@@ -96,34 +88,73 @@ let main(args: string array): int =
     w.Blank()
     writeConstants(w, table, unitsPerEm)
     w.Blank()
-    w.Line "module internal MathFontData ="
-    w.Line $"    let fontByteLength = {fontBytes.Length}"
-    w.Line $"    let fontSha256 = \"{Convert.ToHexStringLower(SHA256.HashData fontBytes)}\""
-    w.Line $"    let glyphCount = {glyphCount}"
-    let left = lower(fun b -> b.Left)
-    let right = upper(fun b -> b.Right)
-    let top = upper(fun b -> -b.Top)
-    let bottom = lower(fun b -> -b.Bottom)
-    w.Array("codepointGlyphs", "CG", cmap |> Seq.map (fun (c, g) -> $"CG({c}, {g})"))
+
+    w.Line "/// The alphabets a variable is set in, indexed from the first letter of each."
+    w.Line "module internal Alphabets ="
+    for name, first, count, summary in Named.alphabets do
+        w.Line $"    /// {summary}"
+        w.Array(
+            name,
+            "Glyph",
+            seq { for i in 0 .. count - 1 do yield glyph(resolve(substituted(first + i))) })
+    w.Line "    /// The italic shapes Unicode keeps outside the alphabets."
     w.Array(
-        "glyphMetrics",
-        "GlyphMetrics",
-        seq {
-            for i in 0 .. glyphCount - 1 do
-                yield $"GlyphMetrics({advances.[i]}, {left.[i]}, {right.[i]}, {top.[i]}, {bottom.[i]})"
-        })
-    w.Array(
-        "italicCorrections",
-        "ItalicCorrection",
-        table.ItalicsCorrections |> Seq.map (fun (g, v) -> $"ItalicCorrection({g}, {v})"))
-    w.Array(
-        "topAccents",
-        "TopAccent",
-        table.TopAccentAttachments |> Seq.map (fun (g, v) -> $"TopAccent({g}, {v})"))
-    w.Ints("extendedShapeGlyphs", table.ExtendedShapes)
-    writeConstructions(w, "vertical", table.VerticalConstructions)
-    writeConstructions(w, "horizontal", table.HorizontalConstructions)
+        "italicShapes",
+        "CG",
+        Named.italicShapes |> Seq.map (fun (c, italic) -> $"CG({c}, {glyph (resolve italic)})"))
+    w.Blank()
+
+    w.Line "/// Every codepoint the font maps, ascending, for characters no alphabet covers."
+    w.Line "module internal Codepoints ="
+    w.Array("all", "CG", byCodepoint |> Seq.map (fun (c, id) -> $"CG({c}, {glyph id})"))
+    w.Blank()
+
+    /// A delimiter with its sizes and assembly, taken from the vertical constructions.
+    let stretchy(codepoint: int) =
+        let id = resolve codepoint
+        match table.VerticalConstructions |> Array.tryFind (fun c -> c.Glyph = id) with
+        | None -> failwith $"U+{codepoint:X4} does not stretch vertically"
+        | Some construction ->
+            let sizes =
+                construction.Variants
+                |> Array.map (fun v -> $"StretchSize({glyph v.Glyph}, {v.Advance})")
+            let parts =
+                match construction.Assembly with
+                | ValueNone -> Array.empty
+                | ValueSome assembly ->
+                    assembly.Parts
+                    |> Array.map (fun p ->
+                        let extender = if p.IsExtender then "true" else "false"
+                        $"AssemblyPart({glyph p.Glyph}, {p.StartConnector}, {p.EndConnector}, \
+                          {p.FullAdvance}, {extender})")
+            id, sizes, parts
+
+    let writeStretchy(moduleName: string, summary: string, entries: (string * int * string) list) =
+        w.Line $"/// {summary}"
+        w.Line $"module {moduleName} ="
+        for name, codepoint, doc in entries do
+            let id, sizes, parts = stretchy codepoint
+            w.Line $"    /// {doc}"
+            w.Line $"    let {name} ="
+            w.Line "        StretchyGlyph("
+            w.Line $"            {glyph id},"
+            w.Nested(sizes, ",")
+            w.Nested(parts, ")")
+        w.Blank()
+
+    w.Line "/// Operators whose codepoints are easy to mistake for the keys that resemble them."
+    w.Line "module Operators ="
+    for name, codepoint, doc in Named.operators do
+        w.Line $"    /// {doc}"
+        w.Line $"    let {name} = {glyph (resolve codepoint)}"
+    w.Blank()
+    writeStretchy("Delimiters", "Delimiters, which grow to the height of what they hold.", Named.delimiters)
+    writeStretchy("Radicals", "Roots, whose surd grows to cover the radicand.", Named.radicals)
+
+    w.Line "module internal FontFile ="
+    w.Line $"    let byteLength = {fontBytes.Length}"
+    w.Line $"    let sha256 = \"{Convert.ToHexStringLower(SHA256.HashData fontBytes)}\""
 
     File.WriteAllText(outputPath, w.Text, Text.UTF8Encoding false)
-    printfn $"{outputPath}: {glyphCount} glyphs, {cmap.Length} mapped codepoints, {w.Text.Length} bytes"
+    printfn $"{outputPath}: {byCodepoint.Length} codepoints, {w.Text.Length} bytes"
     0
