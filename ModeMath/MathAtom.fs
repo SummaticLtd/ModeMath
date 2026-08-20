@@ -21,6 +21,15 @@ module internal ImmArray =
         for i in 0 .. n - 1 do b.Add a.[i]
         b.MoveToImmutable()
 
+    /// The largest f x over the array, or minimum, whichever is higher.
+    let inline maxWithSafe<'T, 'U when 'U: comparison>
+        (a: ImmutableArray<'T>, minimum: 'U, [<InlineIfLambda>] f: 'T -> 'U) =
+        let mutable m = minimum
+        for x in a do
+            let fx = f x
+            if fx > m then m <- fx
+        m
+
 type MathFunction =
     | Sin = 0
     | Cos = 1

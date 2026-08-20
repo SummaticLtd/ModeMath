@@ -55,14 +55,16 @@ type AtomClass =
     | Inner = 7
 
 module internal Conventions =
-    let relations =
-        set [ '='; '<'; '>'; '≤'; '≥'; '≠'; '≈'; '≡'; '∈'; '∉'
-              '⊂'; '⊆'; '→'; '⇒'; '⇔'; '⟺'; '∴'; '∵'
-              '∼'; '≅'; '∝'; '≡' ]
+    let relations = set [
+        '='; '<'; '>'; '≤'; '≥'; '≠'; '≈'; '≡'; '∈'; '∉'
+        '⊂'; '⊆'; '→'; '⇒'; '⇔'; '⟺'; '∴'; '∵'
+        '∼'; '≅'; '∝'
+    ]
 
-    let binaries =
-        set [ '+'; '-'; '−'; '±'; '∓'; '×'; '÷'; '⋅'; '∗'
-              '∩'; '∪'; '∧'; '∨'; '∖'; '⊕'; '⊗' ]
+    let binaries = set [
+        '+'; '-'; '−'; '±'; '∓'; '×'; '÷'; '⋅'; '∗'
+        '∩'; '∪'; '∧'; '∨'; '∖'; '⊕'; '⊗'
+    ]
 
     let opens = set [ '('; '['; '{'; '⟨' ]
     let closes = set [ ')'; ']'; '}'; '⟩' ]
@@ -154,12 +156,11 @@ module private Spacing =
     let isUnaryPosition(previous: AtomClass voption) =
         match previous with
         | ValueNone -> true
-        | ValueSome AtomClass.Binary
-        | ValueSome AtomClass.Operator
-        | ValueSome AtomClass.Relation
-        | ValueSome AtomClass.Open
-        | ValueSome AtomClass.Punctuation -> true
-        | ValueSome _ -> false
+        | ValueSome previous ->
+            match previous with
+            | AtomClass.Binary | AtomClass.Operator | AtomClass.Relation
+            | AtomClass.Open | AtomClass.Punctuation -> true
+            | AtomClass.Ordinary | AtomClass.Close | AtomClass.Inner -> false
 
     /// A binary operator with nothing to bind on its right is ordinary too, as in a trailing minus sign.
     let leavesNothingToBind(next: AtomClass) =
@@ -204,13 +205,14 @@ type Layout(fontSize: float32) =
         let facingLeft(i: int) = let struct (left, _) = classes.[i] in left
         let facingRight(i: int) = let struct (_, right) = classes.[i] in right
         let ordinary = struct (AtomClass.Ordinary, AtomClass.Ordinary)
+        // A binary atom with nothing to bind is ordinary, so each gap demotes whichever side it strands.
         for i in 0 .. classes.Length - 1 do
             let previous = if i = 0 then ValueNone else ValueSome(facingRight (i - 1))
             if facingLeft i = AtomClass.Binary && Spacing.isUnaryPosition previous then
                 classes.[i] <- ordinary
-            elif i > 0 && facingRight (i - 1) = AtomClass.Binary
-                 && Spacing.leavesNothingToBind(facingLeft i) then
+            elif i > 0 && facingRight (i - 1) = AtomClass.Binary && Spacing.leavesNothingToBind(facingLeft i) then
                 classes.[i - 1] <- ordinary
+        // No gap follows the last atom, so a binary ending the row is stranded too.
         if classes.Length > 0 && facingRight (classes.Length - 1) = AtomClass.Binary then
             classes.[classes.Length - 1] <- ordinary
         let children = ImmutableArray.CreateBuilder<Placed>()

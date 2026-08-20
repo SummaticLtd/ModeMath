@@ -40,9 +40,6 @@ type Display with
 
     /// Bounds taken from the children, which are positioned relative to the new display's origin.
     static member OfChildren(width: float32, italicCorrection: float32, children: ImmutableArray<Placed>) =
-        let mutable ascent = 0f
-        let mutable descent = 0f
-        for child in children do
-            ascent <- max ascent (child.Y + child.Display.Ascent)
-            descent <- max descent (child.Display.Descent - child.Y)
+        let ascent = ImmArray.maxWithSafe(children, 0f, fun c -> c.Y + c.Display.Ascent)
+        let descent = ImmArray.maxWithSafe(children, 0f, fun c -> c.Display.Descent - c.Y)
         Display(width, ascent, descent, italicCorrection, Content.Children children)
