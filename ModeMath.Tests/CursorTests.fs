@@ -105,6 +105,26 @@ let private editing =
                     Assert.Equal(MICurs.Between(n, d), backspaced cursored)
             )
             Test.Sync(
+                "backspaceAtStartOfSuperscriptKeepsSubscriptOnTheBase",
+                fun () ->
+                    let x = MA.Char 'x'
+                    let two = MA.Char '2'
+                    let three = MA.Char '3'
+                    let cursored = MICurs.ScriptSuper(x, MICurs.AtStart two, ValueSome three)
+                    Assert.Equal(MA.ScriptSuper(x, two, ValueSome three), cursored.ToMA)
+                    Assert.Equal(MICurs.Between(MA.ScriptSub(x, three), two), backspaced cursored)
+            )
+            Test.Sync(
+                "backspaceAtStartOfSubscriptKeepsSuperscriptOnTheBase",
+                fun () ->
+                    let x = MA.Char 'x'
+                    let two = MA.Char '2'
+                    let three = MA.Char '3'
+                    let cursored = MICurs.ScriptSub(x, ValueSome two, MICurs.AtStart three)
+                    Assert.Equal(MA.ScriptSuper(x, two, ValueSome three), cursored.ToMA)
+                    Assert.Equal(MICurs.Between(MA.ScriptSuper(x, two, ValueNone), three), backspaced cursored)
+            )
+            Test.Sync(
                 "backspaceInsideSquareRootDeletesWithinIt",
                 fun () ->
                     let cursored = MICurs.Sqrt(MICurs.AtEnd(MA.String "xy"))
@@ -135,11 +155,19 @@ let private editing =
                     Assert.Equal(MICurs.Between(n, d), deleted (MICurs.FracNum(MICurs.AtEnd n, d)))
             )
             Test.Sync(
-                "deleteEntersFractionFromTheLeftWithoutDeleting",
+                "deleteRemovesTheWholeFraction",
+                fun () -> Assert.Equal(MICurs.CursorOrEmpty, deleted (MICurs.AtStart frac))
+            )
+            Test.Sync(
+                "backspaceRemovesTheWholeFraction",
+                fun () -> Assert.Equal(MICurs.CursorOrEmpty, backspaced (MICurs.AtEnd frac))
+            )
+            Test.Sync(
+                "backspaceRemovesAFractionLeavingWhatPrecedesIt",
                 fun () ->
-                    let result = deleted (MICurs.AtStart frac)
-                    Assert.Equal(MICurs.FracNum(MICurs.AtStart n, d), result)
-                    Assert.Equal(frac, result.ToMA)
+                    let x = MA.Char 'x'
+                    let cursored = MICurs.AtEnd(MA.Row(arr [ x; frac ]))
+                    Assert.Equal(MICurs.AtEnd x, backspaced cursored)
             )
         ]
     )
