@@ -50,6 +50,8 @@ Ordered by use in the SummaticApp content library.
 | Fraction with no rule | `\binom`, `\choose` |
 | Open-ended function names | `\operatorname`, `\det`, `\arg` |
 
+Relations and binary operators carry a TeX atom class, which sets the spacing around them.
+
 `MA.Char` already covers `\infty`, `\partial`, `\circ`, `\emptyset`, `\therefore`, `\mid` and the ellipses.
 
 ## Tracked separately
