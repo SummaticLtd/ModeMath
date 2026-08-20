@@ -98,18 +98,14 @@ type MICurs =
                 match MICurs.BackspaceFromRight last with
                 | ValueSome last -> MICurs.MakeRow(prev, last, ImmutableArray.Empty) |> ValueSome
                 | ValueNone -> MICurs.BackspaceFromRight(MA.Row prev)
-        | MA.Char _ | MA.BoldVar _ | MA.Cdot | MA.UprightD | MA.Function _ | MA.Operator _ ->
-            ValueSome CursorOrEmpty
-        | MA.ScriptSuper(main, super, sub) -> ScriptSuper(main, MICurs.AtEnd super, sub) |> ValueSome
-        | MA.ScriptSub(main, sub) -> ScriptSub(main, ValueNone, MICurs.AtEnd sub) |> ValueSome
-        | MA.Frac(n, d) -> FracNum(MICurs.AtEnd n, d) |> ValueSome
         | MA.Bracketed(b, inner, bc) ->
             match bc with
             | BracketCompletion.Left | BracketCompletion.Completed ->
                 Bracketed(b, MICurs.AtEnd inner, BracketCompletion.Left) |> ValueSome
             | BracketCompletion.Right -> MICurs.AtEnd inner |> ValueSome
-        | MA.RootN(n, x) -> RootNMain(n, MICurs.AtEnd x) |> ValueSome
-        | MA.Sqrt x -> Sqrt(MICurs.AtEnd x) |> ValueSome
+        | MA.Char _ | MA.BoldVar _ | MA.Cdot | MA.UprightD | MA.Function _ | MA.Operator _
+        | MA.ScriptSuper _ | MA.ScriptSub _ | MA.Frac _ | MA.RootN _ | MA.Sqrt _ ->
+            ValueSome CursorOrEmpty
 
     /// Returns Choice2 of MA if the cursor is on the left; otherwise returns Choice1 of the altered MICurs
     member t.BackSpace: Choice<MICurs, MA> =
@@ -185,18 +181,14 @@ type MICurs =
                 match MICurs.DeleteFromLeft first with
                 | ValueSome first -> MICurs.MakeRow(ImmutableArray.Empty, first, rest) |> ValueSome
                 | ValueNone -> MICurs.DeleteFromLeft(MA.Row rest)
-        | MA.Char _ | MA.BoldVar _ | MA.Cdot | MA.UprightD | MA.Function _ | MA.Operator _ ->
-            ValueSome CursorOrEmpty
-        | MA.ScriptSuper(main, super, sub) -> ScriptMainSuper(MICurs.AtStart main, super, sub) |> ValueSome
-        | MA.ScriptSub(main, sub) -> ScriptMainSub(MICurs.AtStart main, sub) |> ValueSome
-        | MA.Frac(n, d) -> FracNum(MICurs.AtStart n, d) |> ValueSome
         | MA.Bracketed(b, inner, bc) ->
             match bc with
             | BracketCompletion.Right | BracketCompletion.Completed ->
                 Bracketed(b, MICurs.AtStart inner, BracketCompletion.Right) |> ValueSome
             | BracketCompletion.Left -> MICurs.AtStart inner |> ValueSome
-        | MA.RootN(n, x) -> RootNDegree(MICurs.AtStart n, x) |> ValueSome
-        | MA.Sqrt x -> Sqrt(MICurs.AtStart x) |> ValueSome
+        | MA.Char _ | MA.BoldVar _ | MA.Cdot | MA.UprightD | MA.Function _ | MA.Operator _
+        | MA.ScriptSuper _ | MA.ScriptSub _ | MA.Frac _ | MA.RootN _ | MA.Sqrt _ ->
+            ValueSome CursorOrEmpty
 
     /// Returns Choice2 of MA if the cursor is on the right; otherwise returns Choice1 of the altered MICurs
     member t.Delete: Choice<MICurs, MA> =

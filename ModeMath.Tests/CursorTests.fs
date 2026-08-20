@@ -155,11 +155,19 @@ let private editing =
                     Assert.Equal(MICurs.Between(n, d), deleted (MICurs.FracNum(MICurs.AtEnd n, d)))
             )
             Test.Sync(
-                "deleteEntersFractionFromTheLeftWithoutDeleting",
+                "deleteRemovesTheWholeFraction",
+                fun () -> Assert.Equal(MICurs.CursorOrEmpty, deleted (MICurs.AtStart frac))
+            )
+            Test.Sync(
+                "backspaceRemovesTheWholeFraction",
+                fun () -> Assert.Equal(MICurs.CursorOrEmpty, backspaced (MICurs.AtEnd frac))
+            )
+            Test.Sync(
+                "backspaceRemovesAFractionLeavingWhatPrecedesIt",
                 fun () ->
-                    let result = deleted (MICurs.AtStart frac)
-                    Assert.Equal(MICurs.FracNum(MICurs.AtStart n, d), result)
-                    Assert.Equal(frac, result.ToMA)
+                    let x = MA.Char 'x'
+                    let cursored = MICurs.AtEnd(MA.Row(arr [ x; frac ]))
+                    Assert.Equal(MICurs.AtEnd x, backspaced cursored)
             )
         ]
     )
