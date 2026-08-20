@@ -147,14 +147,14 @@ module private Spacing =
     /// Eighteenths of an em by left then right class, negated where only display and text styles space.
     let table =
         [|
-             0;  1; -2; -3;  0;  0;  0; -1;
-             1;  1;  0; -3;  0;  0;  0; -1;
-            -2; -2;  0;  0; -2;  0;  0; -2;
-            -3; -3;  0;  0; -3;  0;  0; -3;
-             0;  0;  0;  0;  0;  0;  0;  0;
-             0;  1; -2; -3;  0;  0;  0; -1;
-            -1; -1;  0; -1; -1; -1; -1; -1;
-            -1;  1; -2; -3; -1;  0; -1; -1
+            0; 1; -2; -3; 0; 0; 0; -1;
+            1; 1; 0; -3; 0; 0; 0; -1;
+            -2; -2; 0; 0; -2; 0; 0; -2;
+            -3; -3; 0; 0; -3; 0; 0; -3;
+            0; 0; 0; 0; 0; 0; 0; 0;
+            0; 1; -2; -3; 0; 0; 0; -1;
+            -1; -1; 0; -1; -1; -1; -1; -1;
+            -1; 1; -2; -3; -1; 0; -1; -1
         |]
 
     /// A binary operator with nothing to bind on its left is ordinary, as in a leading minus sign.
