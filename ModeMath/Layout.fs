@@ -133,15 +133,18 @@ module private Symbols =
         elif punctuation.Contains c then AtomClass.Punctuation
         else AtomClass.Ordinary
 
-    let rec atomClass(ma: MA) =
+    /// The classes an atom presents to its left and right neighbours, which differ for a bracketed group.
+    let rec atomClasses(ma: MA): struct (AtomClass * AtomClass) =
+        let both(atomClass: AtomClass) = struct (atomClass, atomClass)
         match ma with
-        | MA.Char c -> charClass c
-        | MA.Operator Operator.Equals -> AtomClass.Relation
-        | MA.Operator _ | MA.Cdot -> AtomClass.Binary
-        | MA.Function _ -> AtomClass.Operator
-        | MA.Frac _ | MA.Bracketed _ -> AtomClass.Inner
-        | MA.ScriptSuper(main, _, _) | MA.ScriptSub(main, _) -> atomClass main
-        | MA.Row _ | MA.BoldVar _ | MA.UprightD | MA.RootN _ | MA.Sqrt _ -> AtomClass.Ordinary
+        | MA.Char c -> both(charClass c)
+        | MA.Operator Operator.Equals -> both AtomClass.Relation
+        | MA.Operator _ | MA.Cdot -> both AtomClass.Binary
+        | MA.Function _ -> both AtomClass.Operator
+        | MA.Frac _ -> both AtomClass.Inner
+        | MA.Bracketed _ -> struct (AtomClass.Open, AtomClass.Close)
+        | MA.ScriptSuper(main, _, _) | MA.ScriptSub(main, _) -> atomClasses main
+        | MA.Row _ | MA.BoldVar _ | MA.UprightD | MA.RootN _ | MA.Sqrt _ -> both AtomClass.Ordinary
 
 module private Spacing =
     /// Eighteenths of an em by left then right class, negated where only display and text styles space.
@@ -172,10 +175,11 @@ module private Spacing =
 type Layout(fontSize: float32) =
     let scale(style: Style) = fontSize * style.ScaleFactor / float32 MathConstants.UnitsPerEm
 
+    /// The italic correction trails the advance, as TeX kerns after every character it sets.
     let glyphDisplay(glyph: Glyph, style: Style, ink: Ink) =
         let s = scale style
         Display(
-            float32 glyph.Advance * s,
+            float32 (glyph.Advance + glyph.ItalicCorrection) * s,
             float32 glyph.Top * s,
             -(float32 glyph.Bottom) * s,
             float32 glyph.ItalicCorrection * s,
@@ -207,30 +211,32 @@ type Layout(fontSize: float32) =
         float32 eighteenths * fontSize * style.ScaleFactor / 18f
 
     member private t.Row(elements: ImmutableArray<MA>, style: Style) =
-        let classes = Array.init elements.Length (fun i -> Symbols.atomClass elements.[i])
+        let classes = Array.init elements.Length (fun i -> Symbols.atomClasses elements.[i])
+        let facingLeft(i: int) = let struct (left, _) = classes.[i] in left
+        let facingRight(i: int) = let struct (_, right) = classes.[i] in right
         for i in 0 .. classes.Length - 1 do
-            let previous = if i = 0 then ValueNone else ValueSome classes.[i - 1]
-            if classes.[i] = AtomClass.Binary && Spacing.isUnaryPosition previous then
-                classes.[i] <- AtomClass.Ordinary
+            let previous = if i = 0 then ValueNone else ValueSome(facingRight (i - 1))
+            if facingLeft i = AtomClass.Binary && Spacing.isUnaryPosition previous then
+                classes.[i] <- struct (AtomClass.Ordinary, AtomClass.Ordinary)
         let children = ImmutableArray.CreateBuilder<Placed>()
         let mutable x = 0f
         let mutable italicCorrection = 0f
         for i in 0 .. elements.Length - 1 do
-            if i > 0 then x <- x + spacing(classes.[i - 1], classes.[i], style)
+            if i > 0 then x <- x + spacing(facingRight (i - 1), facingLeft i, style)
             let child = t.Of(elements.[i], style)
             children.Add(Placed(child, x, 0f))
             x <- x + child.Width
             italicCorrection <- child.ItalicCorrection
         Display.OfChildren(x, italicCorrection, children.ToImmutable())
 
-    /// Upright letters, as function names are set.
+    /// Upright letters, as function names are set: one box, so no italic correction trails them.
     member private t.Upright(text: string, style: Style) =
         let children = ImmutableArray.CreateBuilder<Placed>()
         let mutable x = 0f
         for c in text do
             let child = symbol(int c, style, Ink.Solid)
             children.Add(Placed(child, x, 0f))
-            x <- x + child.Width
+            x <- x + child.Width - child.ItalicCorrection
         Display.OfChildren(x, 0f, children.ToImmutable())
 
     member private t.Fraction(numerator: MA, denominator: MA, style: Style) =
@@ -312,13 +318,15 @@ type Layout(fontSize: float32) =
         | _ -> ()
         match superscript with
         | ValueSome display ->
-            children.Add(Placed(display, b.Width + b.ItalicCorrection, up))
-            width <- max width (b.Width + b.ItalicCorrection + display.Width)
+            children.Add(Placed(display, b.Width, up))
+            width <- max width (b.Width + display.Width)
         | ValueNone -> ()
+        // A subscript sits under the upright stem, ahead of the trailing italic correction.
+        let subscriptX = b.Width - b.ItalicCorrection
         match subscript with
         | ValueSome display ->
-            children.Add(Placed(display, b.Width, -down))
-            width <- max width (b.Width + display.Width)
+            children.Add(Placed(display, subscriptX, -down))
+            width <- max width (subscriptX + display.Width)
         | ValueNone -> ()
         let after = float32 MathConstants.SpaceAfterScript * s
         Display.OfChildren(width + after, 0f, children.ToImmutable())
