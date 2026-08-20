@@ -1,4 +1,4 @@
-namespace ModeMath
+﻿namespace ModeMath
 
 open System.Collections.Immutable
 
@@ -59,7 +59,7 @@ type Bracket =
     | Normal = 0
     | Line = 1
 
-[<RequireQualifiedAccess>]
+[<Struct; RequireQualifiedAccess>]
 type BracketCompletion =
     | Completed
     /// Left is done; right is tentative (grey)

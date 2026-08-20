@@ -304,9 +304,7 @@ type MICurs =
             match super.MoveRightWithin with
             | ValueSome super -> ScriptSuper(main, super, sub) |> ValueSome
             | ValueNone ->
-                match sub with
-                | ValueSome sub -> ScriptSub(main, ValueSome super.ToMA, MICurs.AtStart sub) |> ValueSome
-                | ValueNone -> ValueNone
+                sub |> ValueOption.map (fun sub -> ScriptSub(main, ValueSome super.ToMA, MICurs.AtStart sub))
         | ScriptSub(main, super, sub) ->
             sub.MoveRightWithin |> ValueOption.map (fun sub -> ScriptSub(main, super, sub))
         | FracNum(n, d) ->
@@ -428,9 +426,7 @@ type MICurs =
             match main.Down with
             | ValueSome main -> ScriptMainSuper(main, super, sub) |> ValueSome
             | ValueNone ->
-                match sub with
-                | ValueSome sub -> ScriptSub(main.ToMA, ValueSome super, MICurs.AtStart sub) |> ValueSome
-                | ValueNone -> ValueNone
+                sub |> ValueOption.map (fun sub -> ScriptSub(main.ToMA, ValueSome super, MICurs.AtStart sub))
         | ScriptMainSub(main, sub) ->
             match main.Down with
             | ValueSome main -> ScriptMainSub(main, sub) |> ValueSome
