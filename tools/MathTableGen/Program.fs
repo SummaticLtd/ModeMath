@@ -75,6 +75,11 @@ let main(args: string array): int =
         | true, id -> id
         | _ -> failwith $"the font has no glyph for U+{codepoint:X4}"
 
+    let holes = Set.ofList Named.alphabetHoles
+    /// An unassigned slot keeps the alphabet indexable and is reported as no letter at all.
+    let letter(codepoint: int) =
+        if holes.Contains codepoint then "Glyph(0, 0, 0, 0, 0)" else glyph (resolve codepoint)
+
     let exceptions = dict Named.alphabetExceptions
     let substituted(codepoint: int) =
         match exceptions.TryGetValue codepoint with
@@ -96,7 +101,7 @@ let main(args: string array): int =
         w.Array(
             name,
             "Glyph",
-            seq { for i in 0 .. count - 1 do yield glyph(resolve(substituted(first + i))) })
+            seq { for i in 0 .. count - 1 do yield letter(substituted(first + i)) })
     w.Line "    /// The italic shapes Unicode keeps outside the alphabets."
     w.Array(
         "italicShapes",
@@ -104,9 +109,10 @@ let main(args: string array): int =
         Named.italicShapes |> Seq.map (fun (c, italic) -> $"CG({c}, {glyph (resolve italic)})"))
     w.Blank()
 
-    w.Line "/// Every codepoint the font maps, ascending, for characters no alphabet covers."
-    w.Line "module internal Codepoints ="
-    w.Array("all", "CG", byCodepoint |> Seq.map (fun (c, id) -> $"CG({c}, {glyph id})"))
+    w.Line "/// Every character a formula may hold that no alphabet covers, ascending by codepoint."
+    w.Line "module internal Repertoire ="
+    let repertoire = Named.repertoire |> Seq.map int |> Seq.distinct |> Seq.sort |> Seq.toArray
+    w.Array("all", "CG", repertoire |> Seq.map (fun c -> $"CG({c}, {glyph (resolve c)})"))
     w.Blank()
 
     /// A delimiter with its sizes and assembly, taken from the vertical constructions.
@@ -142,12 +148,19 @@ let main(args: string array): int =
             w.Nested(parts, ")")
         w.Blank()
 
-    w.Line "/// Operators whose codepoints are easy to mistake for the keys that resemble them."
-    w.Line "module Operators ="
-    for name, codepoint, doc in Named.operators do
-        w.Line $"    /// {doc}"
-        w.Line $"    let {name} = {glyph (resolve codepoint)}"
-    w.Blank()
+    let writeNamed(moduleName: string, summary: string, entries: (string * int * string) list) =
+        w.Line $"/// {summary}"
+        w.Line $"module {moduleName} ="
+        for name, codepoint, doc in entries do
+            w.Line $"    /// {doc}"
+            w.Line $"    let {name} = {glyph (resolve codepoint)}"
+        w.Blank()
+
+    writeNamed("Symbols", "Single glyphs the library refers to that no alphabet covers.", Named.symbols)
+    writeNamed(
+        "Operators",
+        "Operators whose codepoints are easy to mistake for the keys that resemble them.",
+        Named.operators)
     writeStretchy("Delimiters", "Delimiters, which grow to the height of what they hold.", Named.delimiters)
     writeStretchy("Radicals", "Roots, whose surd grows to cover the radicand.", Named.radicals)
 
@@ -156,5 +169,5 @@ let main(args: string array): int =
     w.Line $"    let sha256 = \"{Convert.ToHexStringLower(SHA256.HashData fontBytes)}\""
 
     File.WriteAllText(outputPath, w.Text, Text.UTF8Encoding false)
-    printfn $"{outputPath}: {byCodepoint.Length} codepoints, {w.Text.Length} bytes"
+    printfn $"{outputPath}: {repertoire.Length} characters in the repertoire, {w.Text.Length} bytes"
     0

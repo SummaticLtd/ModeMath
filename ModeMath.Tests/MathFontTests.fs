@@ -9,7 +9,17 @@ open ModeMath
 let private glyph(c: char) =
     match MathFont.OfChar c with
     | ValueSome g -> g
-    | ValueNone -> failwith $"the font has no glyph for {c}"
+    | ValueNone -> failwith $"the repertoire has no {c}"
+
+let private digit(c: char) =
+    match Digits.glyph c with
+    | ValueSome g -> g
+    | ValueNone -> failwith $"no digit {c}"
+
+let private upright(c: char) =
+    match Letters.upright c with
+    | ValueSome g -> g
+    | ValueNone -> failwith $"no upright {c}"
 
 let private data =
     TestList(
@@ -28,9 +38,9 @@ let private data =
                         "font SHA-256")
             )
             Test.Sync(
-                "codepointsAreSortedAndUnique",
+                "theRepertoireIsSortedAndUnique",
                 fun () ->
-                    let all = Codepoints.all
+                    let all = Repertoire.all
                     for i in 1 .. all.Length - 1 do
                         Assert.True(
                             all.[i - 1].Codepoint < all.[i].Codepoint,
@@ -51,25 +61,25 @@ let private metrics =
     TestList(
         "Metrics",
         [   Test.Sync(
-                "anUnmappedCodepointHasNoGlyph",
-                fun () -> Assert.Equal(ValueNone, MathFont.OfCodepoint 0xE000)
+                "aCharacterOutsideTheRepertoireHasNoGlyph",
+                fun () -> Assert.Equal(ValueNone, MathFont.OfChar '漢')
             )
             Test.CasesSync(
-                "commonCharactersHaveGlyphs",
-                [ for c in "xy0123456789()[]+=" do yield string c, c ],
+                "commonPunctuationIsInTheRepertoire",
+                [ for c in "()[]+=<>,;:!?/" do yield string c, c ],
                 fun c -> Assert.True((MathFont.OfChar c).IsSome, $"no glyph for {c}")
             )
             Test.Sync(
                 "digitsShareOneAdvance",
                 fun () ->
-                    let advance = (glyph '0').Advance
+                    let advance = (digit '0').Advance
                     for c in "123456789" do
-                        Assert.Equal(advance, (glyph c).Advance, $"advance of {c}")
+                        Assert.Equal(advance, (digit c).Advance, $"advance of {c}")
             )
             Test.Sync(
                 "theInkOfXSitsOnTheBaseline",
                 fun () ->
-                    let x = glyph 'x'
+                    let x = upright 'x'
                     Assert.True(x.Advance > 0, "advance")
                     Assert.True(x.Top > 0, "top above the baseline")
                     Assert.True(x.Bottom <= 0, "bottom on or below the baseline")
@@ -84,7 +94,7 @@ let private metrics =
             )
             Test.Sync(
                 "digitsHaveNoItalicCorrection",
-                fun () -> Assert.Equal(0, (glyph '0').ItalicCorrection)
+                fun () -> Assert.Equal(0, (digit '0').ItalicCorrection)
             )
         ]
     )
@@ -114,14 +124,16 @@ let private named =
             )
             Test.Sync(
                 "capitalGreekIsLeftUpright",
-                fun () -> Assert.True((Letters.italic 'Γ').IsNone, "italic accepted a capital Greek letter")
+                fun () ->
+                    Assert.True((Letters.italic 'Γ').IsNone, "italic accepted a capital Greek letter")
+                    Assert.True((Letters.upright 'Γ').IsSome, "upright has no capital Greek")
             )
             Test.Sync(
                 "italicLettersDifferFromTheUprightOnes",
                 fun () ->
                     for c in [ 'a' .. 'z' ] do
                         match Letters.italic c with
-                        | ValueSome italic -> Assert.True(italic.Id <> (glyph c).Id, $"italic {c} is upright")
+                        | ValueSome italic -> Assert.True(italic.Id <> (upright c).Id, $"italic {c} is upright")
                         | ValueNone -> Assert.Fail $"no italic {c}"
             )
             Test.Sync(
