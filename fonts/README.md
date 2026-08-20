@@ -23,9 +23,24 @@ generated. MathTableGen fails rather than dropping it should a replacement font 
 
 Coverage is complete for everything on the roadmap: ASCII, Greek, the math alphabets (bold, italic,
 bold italic, sans, mono, fraktur, double-struck), 237 of the 256 mathematical operators, and 79
-arrows. Blackboard bold capitals are complete once `C H N P Q R Z` are taken from the Letterlike
-Symbols block rather than U+1D538, so CSharpMath's `AMS-Capital-Blackboard-Bold.otf` is not needed.
-Script lowercase is absent, but `\mathcal` is an uppercase-only command.
+arrows. Script lowercase is absent, but `\mathcal` is an uppercase-only command.
+
+Blackboard bold is present but drawn as thin outlined capitals rather than the doubled stems the
+notation calls for, which is why CSharpMath ships `AMS-Capital-Blackboard-Bold.otf` beside Latin
+Modern. Coverage is therefore not the question it first appears: `C H N P Q R Z` do come from the
+Letterlike Symbols block rather than U+1D538, so all 26 exist, but they do not look right.
+
+## TODO: a second face for blackboard bold
+
+`\mathbb` needs shapes Latin Modern does not have. CSharpMath's
+`AMS-Capital-Blackboard-Bold.otf` is 8 KB and covers the capitals.
+
+## TODO: settle the repertoire
+
+`Named.repertoire` lists the characters a formula may hold beyond the alphabets and digits. Of its
+105 entries, 33 are ASCII punctuation and 41 are demanded by an atom class, an example or the
+roadmap. The remaining 31 are a guess and should be checked against the characters the SummaticApp
+content library actually uses.
 
 ## TODO: trim
 
