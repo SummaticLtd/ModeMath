@@ -353,7 +353,7 @@ type Layout(fontSize: float32) =
         let s = scale style
         let overlap = float32 MathConstants.MinConnectorOverlap * s
         let parts = Array.init stretchy.PartCount stretchy.Part
-        let advance(part: StretchPart) = float32 part.FullAdvance * s
+        let advance(part: AssemblyPart) = float32 part.FullAdvance * s
         let extenders = parts |> Array.filter (fun part -> part.IsExtender)
         // Each further round of extenders lengthens the assembly by this much, overlaps allowed for.
         let round = (extenders |> Array.sumBy advance) - overlap * float32 extenders.Length
@@ -363,7 +363,7 @@ type Layout(fontSize: float32) =
         let repeats =
             if extenders.Length = 0 || round <= 0f then 0
             else min 256 (max 0 (int (ceil ((minHeight - shortest) / round))))
-        let items = ResizeArray<StretchPart>()
+        let items = ResizeArray<AssemblyPart>()
         for part in parts do
             for _ in 1 .. (if part.IsExtender then repeats else 1) do
                 items.Add part
