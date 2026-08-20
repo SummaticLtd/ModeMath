@@ -27,103 +27,84 @@ let private horizontalStretch(codepoint: int) =
         | ValueSome stretch -> stretch
         | ValueNone -> failwith $"U+{codepoint:X4} does not stretch horizontally"
 
-let private isSorted(name: string, values: int array) =
-    for i in 1 .. values.Length - 1 do
-        Assert.True(values.[i - 1] < values.[i], $"{name} is not sorted and unique at index {i}")
+let private sortedKeys(name: string, count: int, keyAt: int -> int) =
+    for i in 1 .. count - 1 do
+        Assert.True(keyAt (i - 1) < keyAt i, $"{name} is not sorted and unique at index {i}")
 
-let private inGlyphRange(name: string, values: int array) =
-    for value in values do
+let private glyphIds(name: string, count: int, glyphAt: int -> int) =
+    for i in 0 .. count - 1 do
+        let glyph = glyphAt i
         Assert.True(
-            value >= 0 && value < MathFontData.glyphCount,
-            $"{name} holds {value}, which is not a glyph id")
+            glyph >= 0 && glyph < MathFontData.glyphCount,
+            $"{name} holds {glyph} at index {i}, which is not a glyph id")
 
-let private perGlyph =
+/// Every array whose entries are keyed by a glyph id or a codepoint, in ascending order.
+let private keyed =
     [
-        "advances", MathFontData.advances
-        "boundsLeft", MathFontData.boundsLeft
-        "boundsRight", MathFontData.boundsRight
-        "boundsTop", MathFontData.boundsTop
-        "boundsBottom", MathFontData.boundsBottom
+        "codepointGlyphs", MathFontData.codepointGlyphs.Length, fun i -> MathFontData.codepointGlyphs.[i].Codepoint
+        "italicCorrections", MathFontData.italicCorrections.Length, fun i -> MathFontData.italicCorrections.[i].Glyph
+        "topAccents", MathFontData.topAccents.Length, fun i -> MathFontData.topAccents.[i].Glyph
+        "extendedShapeGlyphs", MathFontData.extendedShapeGlyphs.Length, fun i -> MathFontData.extendedShapeGlyphs.[i]
+        "verticalConstructions", MathFontData.verticalConstructions.Length,
+            fun i -> MathFontData.verticalConstructions.[i].Glyph
+        "horizontalConstructions", MathFontData.horizontalConstructions.Length,
+            fun i -> MathFontData.horizontalConstructions.[i].Glyph
     ]
 
-let private coverages =
+/// Every array whose entries name a glyph to draw.
+let private drawn =
     [
-        "codepoints", MathFontData.codepoints
-        "italicsCorrectionGlyphs", MathFontData.italicsCorrectionGlyphs
-        "topAccentGlyphs", MathFontData.topAccentGlyphs
-        "extendedShapeGlyphs", MathFontData.extendedShapeGlyphs
-        "verticalGlyphs", MathFontData.verticalGlyphs
-        "horizontalGlyphs", MathFontData.horizontalGlyphs
+        "codepointGlyphs", MathFontData.codepointGlyphs.Length, fun i -> MathFontData.codepointGlyphs.[i].Glyph
+        "italicCorrections", MathFontData.italicCorrections.Length, fun i -> MathFontData.italicCorrections.[i].Glyph
+        "topAccents", MathFontData.topAccents.Length, fun i -> MathFontData.topAccents.[i].Glyph
+        "extendedShapeGlyphs", MathFontData.extendedShapeGlyphs.Length, fun i -> MathFontData.extendedShapeGlyphs.[i]
+        "verticalSizes", MathFontData.verticalSizes.Length, fun i -> MathFontData.verticalSizes.[i].Glyph
+        "verticalParts", MathFontData.verticalParts.Length, fun i -> MathFontData.verticalParts.[i].Glyph
+        "horizontalSizes", MathFontData.horizontalSizes.Length, fun i -> MathFontData.horizontalSizes.[i].Glyph
+        "horizontalParts", MathFontData.horizontalParts.Length, fun i -> MathFontData.horizontalParts.[i].Glyph
     ]
 
-let private pairs =
+/// Each axis, with the arrays its constructions slice.
+let private axes =
     [
-        "codepoints", MathFontData.codepoints, MathFontData.codepointGlyphs
-        "italicsCorrections", MathFontData.italicsCorrectionGlyphs, MathFontData.italicsCorrections
-        "topAccentAttachments", MathFontData.topAccentGlyphs, MathFontData.topAccentAttachments
-        "verticalVariants", MathFontData.verticalVariantGlyphs, MathFontData.verticalVariantAdvances
-        "horizontalVariants", MathFontData.horizontalVariantGlyphs, MathFontData.horizontalVariantAdvances
-    ]
-
-let private glyphIdArrays =
-    [
-        "codepointGlyphs", MathFontData.codepointGlyphs
-        "italicsCorrectionGlyphs", MathFontData.italicsCorrectionGlyphs
-        "topAccentGlyphs", MathFontData.topAccentGlyphs
-        "extendedShapeGlyphs", MathFontData.extendedShapeGlyphs
-        "verticalGlyphs", MathFontData.verticalGlyphs
-        "verticalVariantGlyphs", MathFontData.verticalVariantGlyphs
-        "verticalPartGlyphs", MathFontData.verticalPartGlyphs
-        "horizontalGlyphs", MathFontData.horizontalGlyphs
-        "horizontalVariantGlyphs", MathFontData.horizontalVariantGlyphs
-        "horizontalPartGlyphs", MathFontData.horizontalPartGlyphs
-    ]
-
-/// Index arrays that partition a flattened array, one entry per owner plus a final total.
-let private partitions =
-    [
-        "verticalVariantStarts", MathFontData.verticalVariantStarts, MathFontData.verticalGlyphs.Length,
-            MathFontData.verticalVariantGlyphs.Length
-        "verticalPartStarts", MathFontData.verticalPartStarts, MathFontData.verticalGlyphs.Length,
-            MathFontData.verticalPartGlyphs.Length
-        "horizontalVariantStarts", MathFontData.horizontalVariantStarts, MathFontData.horizontalGlyphs.Length,
-            MathFontData.horizontalVariantGlyphs.Length
-        "horizontalPartStarts", MathFontData.horizontalPartStarts, MathFontData.horizontalGlyphs.Length,
-            MathFontData.horizontalPartGlyphs.Length
+        "vertical", MathFontData.verticalConstructions, MathFontData.verticalSizes.Length,
+            MathFontData.verticalParts.Length
+        "horizontal", MathFontData.horizontalConstructions, MathFontData.horizontalSizes.Length,
+            MathFontData.horizontalParts.Length
     ]
 
 let private data =
     TestList(
         "Data",
-        [   Test.CasesSync(
-                "perGlyphArraysCoverEveryGlyph",
-                perGlyph |> List.map (fun (name, values) -> name, (name, values)),
-                fun (name, values) -> Assert.Equal(MathFontData.glyphCount, values.Length, name)
+        [   Test.Sync(
+                "everyGlyphHasMetrics",
+                fun () -> Assert.Equal(MathFontData.glyphCount, MathFontData.glyphMetrics.Length)
             )
             Test.CasesSync(
-                "coverageArraysAreSortedAndUnique",
-                coverages |> List.map (fun (name, values) -> name, (name, values)),
-                isSorted
-            )
-            Test.CasesSync(
-                "pairedArraysHaveMatchingLengths",
-                pairs |> List.map (fun (name, keys, values) -> name, (name, keys, values)),
-                fun (name, keys, values) -> Assert.Equal(keys.Length, values.Length, name)
+                "keysAreSortedAndUnique",
+                keyed |> List.map (fun (name, count, keyAt) -> name, (name, count, keyAt)),
+                sortedKeys
             )
             Test.CasesSync(
                 "glyphIdsAreInRange",
-                glyphIdArrays |> List.map (fun (name, values) -> name, (name, values)),
-                inGlyphRange
+                drawn |> List.map (fun (name, count, glyphAt) -> name, (name, count, glyphAt)),
+                glyphIds
             )
             Test.CasesSync(
-                "partitionsAreMonotonicAndComplete",
-                partitions |> List.map (fun (name, starts, owners, total) -> name, (name, starts, owners, total)),
-                fun (name, starts, owners, total) ->
-                    Assert.Equal(owners + 1, starts.Length, $"{name} length")
-                    Assert.Equal(0, starts.[0], $"{name} start")
-                    Assert.Equal(total, starts.[starts.Length - 1], $"{name} total")
-                    for i in 1 .. starts.Length - 1 do
-                        Assert.True(starts.[i - 1] <= starts.[i], $"{name} decreases at index {i}")
+                "everySliceLiesWithinItsArray",
+                axes |> List.map (fun (name, constructions, sizes, parts) -> name, (name, constructions, sizes, parts)),
+                fun (name, constructions: StretchConstruction array, sizes, parts) ->
+                    for i in 0 .. constructions.Length - 1 do
+                        let construction = constructions.[i]
+                        Assert.True(
+                            construction.SizeCount > 0 || construction.PartCount > 0,
+                            $"{name} {i} offers neither a size nor an assembly")
+                        Assert.True(
+                            construction.SizeStart >= 0 && construction.SizeStart + construction.SizeCount <= sizes,
+                            $"{name} {i} slices sizes out of range")
+                        Assert.True(
+                            construction.PartStart >= 0 && construction.PartStart + construction.PartCount <= parts,
+                            $"{name} {i} slices parts out of range")
             )
             Test.Sync(
                 "embeddedFontIsTheOneTheMetricsCameFrom",

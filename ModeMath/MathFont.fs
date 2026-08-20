@@ -4,99 +4,86 @@ open System
 open System.IO
 
 module private Lookup =
-    let value(keys: int array, values: int array, key: int) =
-        let index = Array.BinarySearch(keys, key)
-        if index >= 0 then ValueSome values.[index] else ValueNone
+    /// The position of a key in a sorted array, or -1. Inline, so that keyAt costs no closure.
+    let inline search(count: int, key: int, keyAt: int -> int) =
+        let mutable low = 0
+        let mutable high = count - 1
+        let mutable found = -1
+        while found < 0 && low <= high do
+            let middle = low + (high - low) / 2
+            let candidate = keyAt middle
+            if candidate = key then found <- middle
+            elif candidate < key then low <- middle + 1
+            else high <- middle - 1
+        found
 
-    let index(keys: int array, key: int) =
-        let index = Array.BinarySearch(keys, key)
-        if index >= 0 then ValueSome index else ValueNone
-
+/// One axis along which glyphs stretch, as the three arrays generated for it.
 type internal StretchTable
     (
-        glyphs: int array,
-        variantStarts: int array,
-        variantGlyphs: int array,
-        variantAdvances: int array,
-        partStarts: int array,
-        partGlyphs: int array,
-        partStartConnectors: int array,
-        partEndConnectors: int array,
-        partFullAdvances: int array,
-        partExtenders: int array,
-        assemblyItalicsCorrections: int array
+        constructions: StretchConstruction array,
+        sizes: StretchSize array,
+        parts: AssemblyPart array
     ) =
-    member _.Glyphs = glyphs
-    member _.VariantStarts = variantStarts
-    member _.VariantGlyphs = variantGlyphs
-    member _.VariantAdvances = variantAdvances
-    member _.PartStarts = partStarts
-    member _.PartGlyphs = partGlyphs
-    member _.PartStartConnectors = partStartConnectors
-    member _.PartEndConnectors = partEndConnectors
-    member _.PartFullAdvances = partFullAdvances
-    member _.PartExtenders = partExtenders
-    member _.AssemblyItalicsCorrections = assemblyItalicsCorrections
+    member _.Constructions = constructions
+    member _.Sizes = sizes
+    member _.Parts = parts
+
+    /// The construction for a glyph, or -1.
+    member _.IndexOf(glyph: int) =
+        Lookup.search(constructions.Length, glyph, fun i -> constructions.[i].Glyph)
 
     static member val Vertical =
         StretchTable(
-            MathFontData.verticalGlyphs,
-            MathFontData.verticalVariantStarts,
-            MathFontData.verticalVariantGlyphs,
-            MathFontData.verticalVariantAdvances,
-            MathFontData.verticalPartStarts,
-            MathFontData.verticalPartGlyphs,
-            MathFontData.verticalPartStartConnectors,
-            MathFontData.verticalPartEndConnectors,
-            MathFontData.verticalPartFullAdvances,
-            MathFontData.verticalPartExtenders,
-            MathFontData.verticalAssemblyItalicsCorrections)
+            MathFontData.verticalConstructions,
+            MathFontData.verticalSizes,
+            MathFontData.verticalParts)
 
     static member val Horizontal =
         StretchTable(
-            MathFontData.horizontalGlyphs,
-            MathFontData.horizontalVariantStarts,
-            MathFontData.horizontalVariantGlyphs,
-            MathFontData.horizontalVariantAdvances,
-            MathFontData.horizontalPartStarts,
-            MathFontData.horizontalPartGlyphs,
-            MathFontData.horizontalPartStartConnectors,
-            MathFontData.horizontalPartEndConnectors,
-            MathFontData.horizontalPartFullAdvances,
-            MathFontData.horizontalPartExtenders,
-            MathFontData.horizontalAssemblyItalicsCorrections)
+            MathFontData.horizontalConstructions,
+            MathFontData.horizontalSizes,
+            MathFontData.horizontalParts)
 
 /// A glyph of the math font, measured in design units from the origin on the baseline, y upwards.
 [<Struct>]
 type Glyph internal (id: int) =
     member _.Id = id
-    member _.Advance = MathFontData.advances.[id]
-    member _.Left = MathFontData.boundsLeft.[id]
-    member _.Right = MathFontData.boundsRight.[id]
-    member _.Top = MathFontData.boundsTop.[id]
-    member _.Bottom = MathFontData.boundsBottom.[id]
+    member _.Advance = MathFontData.glyphMetrics.[id].Advance
+    member _.Left = MathFontData.glyphMetrics.[id].Left
+    member _.Right = MathFontData.glyphMetrics.[id].Right
+    member _.Top = MathFontData.glyphMetrics.[id].Top
+    member _.Bottom = MathFontData.glyphMetrics.[id].Bottom
 
     /// Zero where the font gives none.
     member _.ItalicCorrection =
-        Lookup.value(MathFontData.italicsCorrectionGlyphs, MathFontData.italicsCorrections, id)
-        |> ValueOption.defaultValue 0
+        let corrections = MathFontData.italicCorrections
+        match Lookup.search(corrections.Length, id, fun i -> corrections.[i].Glyph) with
+        | -1 -> 0
+        | found -> corrections.[found].Correction
 
     /// Where an accent sits over this glyph. ValueNone where the font gives none, meaning the accent is centred.
     member _.TopAccentAttachment =
-        Lookup.value(MathFontData.topAccentGlyphs, MathFontData.topAccentAttachments, id)
+        let accents = MathFontData.topAccents
+        match Lookup.search(accents.Length, id, fun i -> accents.[i].Glyph) with
+        | -1 -> ValueNone
+        | found -> ValueSome accents.[found].Attachment
 
     /// Tall enough that a following superscript is not raised to clear it.
-    member _.IsExtendedShape = (Lookup.index(MathFontData.extendedShapeGlyphs, id)).IsSome
+    member _.IsExtendedShape =
+        let shapes = MathFontData.extendedShapeGlyphs
+        Lookup.search(shapes.Length, id, fun i -> shapes.[i]) >= 0
 
     /// How this glyph grows taller, if it does.
     member _.VerticalStretch: Stretch voption =
-        Lookup.index(StretchTable.Vertical.Glyphs, id)
-        |> ValueOption.map (fun index -> Stretch(StretchTable.Vertical, index))
+        match StretchTable.Vertical.IndexOf id with
+        | -1 -> ValueNone
+        | found -> ValueSome(Stretch(StretchTable.Vertical, found))
 
     /// How this glyph grows wider, if it does.
     member _.HorizontalStretch: Stretch voption =
-        Lookup.index(StretchTable.Horizontal.Glyphs, id)
-        |> ValueOption.map (fun index -> Stretch(StretchTable.Horizontal, index))
+        match StretchTable.Horizontal.IndexOf id with
+        | -1 -> ValueNone
+        | found -> ValueSome(Stretch(StretchTable.Horizontal, found))
 
 /// A ready-drawn glyph of one size in a stretched sequence.
 and [<Struct>] StretchVariant internal (glyph: Glyph, advance: int) =
@@ -118,33 +105,37 @@ and [<Struct>] StretchPart
 
 /// How one glyph is enlarged along an axis: by larger variants, then by assembly from parts.
 and [<Struct>] Stretch internal (table: StretchTable, index: int) =
-    /// Sizes in increasing order, the first being the unstretched glyph.
-    member _.VariantCount = table.VariantStarts.[index + 1] - table.VariantStarts.[index]
+    member private _.Construction = table.Constructions.[index]
 
-    member _.Variant(i: int) =
-        let at = table.VariantStarts.[index] + i
-        StretchVariant(Glyph table.VariantGlyphs.[at], table.VariantAdvances.[at])
+    /// Sizes in increasing order, the first being the unstretched glyph.
+    member t.VariantCount = t.Construction.SizeCount
+
+    member t.Variant(i: int) =
+        let size = table.Sizes.[t.Construction.SizeStart + i]
+        StretchVariant(Glyph size.Glyph, size.Advance)
 
     /// Zero where the font gives no assembly, the variants then being the only sizes available.
-    member _.PartCount = table.PartStarts.[index + 1] - table.PartStarts.[index]
+    member t.PartCount = t.Construction.PartCount
 
-    member _.Part(i: int) =
-        let at = table.PartStarts.[index] + i
+    member t.Part(i: int) =
+        let part = table.Parts.[t.Construction.PartStart + i]
         StretchPart(
-            Glyph table.PartGlyphs.[at],
-            table.PartStartConnectors.[at],
-            table.PartEndConnectors.[at],
-            table.PartFullAdvances.[at],
-            table.PartExtenders.[at] = 1)
+            Glyph part.Glyph,
+            part.StartConnector,
+            part.EndConnector,
+            part.FullAdvance,
+            part.IsExtender)
 
-    member _.AssemblyItalicCorrection = table.AssemblyItalicsCorrections.[index]
+    member t.AssemblyItalicCorrection = t.Construction.ItalicCorrection
 
 [<AbstractClass; Sealed>]
 type MathFont =
     /// ValueNone where the font has no glyph for the codepoint.
     static member OfCodepoint(codepoint: int) =
-        Lookup.value(MathFontData.codepoints, MathFontData.codepointGlyphs, codepoint)
-        |> ValueOption.map Glyph
+        let mapped = MathFontData.codepointGlyphs
+        match Lookup.search(mapped.Length, codepoint, fun i -> mapped.[i].Codepoint) with
+        | -1 -> ValueNone
+        | found -> ValueSome(Glyph mapped.[found].Glyph)
 
     static member OfChar(c: char) = MathFont.OfCodepoint(int c)
 

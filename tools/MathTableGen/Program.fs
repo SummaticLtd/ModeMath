@@ -27,27 +27,30 @@ let private writeConstants(w: Writer, table: MathTable, unitsPerEm: int) =
     w.Line $"    let MinConnectorOverlap = {table.MinConnectorOverlap}"
 
 let private writeConstructions(w: Writer, prefix: string, constructions: GlyphConstruction array) =
-    w.Array($"{prefix}Glyphs", constructions |> Array.map (fun c -> c.Glyph))
-    let ends(counts: int seq) = Seq.scan (+) 0 counts
-    w.Array($"{prefix}VariantStarts", ends(constructions |> Seq.map (fun c -> c.Variants.Length)))
-    let variants = constructions |> Array.collect (fun c -> c.Variants)
-    w.Array($"{prefix}VariantGlyphs", variants |> Array.map (fun v -> v.Glyph))
-    w.Array($"{prefix}VariantAdvances", variants |> Array.map (fun v -> v.Advance))
-    let parts(c: GlyphConstruction) =
-        match c.Assembly with
-        | ValueSome a -> a.Parts
-        | ValueNone -> Array.empty
-    w.Array($"{prefix}PartStarts", ends(constructions |> Seq.map (fun c -> (parts c).Length)))
-    let allParts = constructions |> Array.collect parts
-    w.Array($"{prefix}PartGlyphs", allParts |> Array.map (fun p -> p.Glyph))
-    w.Array($"{prefix}PartStartConnectors", allParts |> Array.map (fun p -> p.StartConnector))
-    w.Array($"{prefix}PartEndConnectors", allParts |> Array.map (fun p -> p.EndConnector))
-    w.Array($"{prefix}PartFullAdvances", allParts |> Array.map (fun p -> p.FullAdvance))
-    w.Array($"{prefix}PartExtenders", allParts |> Array.map (fun p -> if p.IsExtender then 1 else 0))
-    w.Array(
-        $"{prefix}AssemblyItalicsCorrections",
-        constructions
-        |> Array.map (fun c -> match c.Assembly with ValueSome a -> a.ItalicsCorrection | ValueNone -> 0))
+    let sizes = ResizeArray<string>()
+    let parts = ResizeArray<string>()
+    let rows = ResizeArray<string>()
+    for construction in constructions do
+        let sizeStart = sizes.Count
+        for variant in construction.Variants do
+            sizes.Add $"StretchSize({variant.Glyph}, {variant.Advance})"
+        let partStart = parts.Count
+        let italicCorrection =
+            match construction.Assembly with
+            | ValueNone -> 0
+            | ValueSome assembly ->
+                for part in assembly.Parts do
+                    let extender = if part.IsExtender then "true" else "false"
+                    parts.Add
+                        $"AssemblyPart({part.Glyph}, {part.StartConnector}, {part.EndConnector}, \
+                          {part.FullAdvance}, {extender})"
+                assembly.ItalicsCorrection
+        rows.Add
+            $"StretchConstruction({construction.Glyph}, {sizeStart}, {construction.Variants.Length}, \
+              {partStart}, {parts.Count - partStart}, {italicCorrection})"
+    w.Array($"{prefix}Constructions", "StretchConstruction", rows)
+    w.Array($"{prefix}Sizes", "StretchSize", sizes)
+    w.Array($"{prefix}Parts", "AssemblyPart", parts)
 
 [<EntryPoint>]
 let main(args: string array): int =
@@ -97,18 +100,27 @@ let main(args: string array): int =
     w.Line $"    let fontByteLength = {fontBytes.Length}"
     w.Line $"    let fontSha256 = \"{Convert.ToHexStringLower(SHA256.HashData fontBytes)}\""
     w.Line $"    let glyphCount = {glyphCount}"
-    w.Array("codepoints", cmap |> Array.map fst)
-    w.Array("codepointGlyphs", cmap |> Array.map snd)
-    w.Array("advances", advances)
-    w.Array("boundsLeft", lower(fun b -> b.Left))
-    w.Array("boundsRight", upper(fun b -> b.Right))
-    w.Array("boundsTop", upper(fun b -> -b.Top))
-    w.Array("boundsBottom", lower(fun b -> -b.Bottom))
-    w.Array("italicsCorrectionGlyphs", table.ItalicsCorrections |> Array.map fst)
-    w.Array("italicsCorrections", table.ItalicsCorrections |> Array.map snd)
-    w.Array("topAccentGlyphs", table.TopAccentAttachments |> Array.map fst)
-    w.Array("topAccentAttachments", table.TopAccentAttachments |> Array.map snd)
-    w.Array("extendedShapeGlyphs", table.ExtendedShapes)
+    let left = lower(fun b -> b.Left)
+    let right = upper(fun b -> b.Right)
+    let top = upper(fun b -> -b.Top)
+    let bottom = lower(fun b -> -b.Bottom)
+    w.Array("codepointGlyphs", "CG", cmap |> Seq.map (fun (c, g) -> $"CG({c}, {g})"))
+    w.Array(
+        "glyphMetrics",
+        "GlyphMetrics",
+        seq {
+            for i in 0 .. glyphCount - 1 do
+                yield $"GlyphMetrics({advances.[i]}, {left.[i]}, {right.[i]}, {top.[i]}, {bottom.[i]})"
+        })
+    w.Array(
+        "italicCorrections",
+        "ItalicCorrection",
+        table.ItalicsCorrections |> Seq.map (fun (g, v) -> $"ItalicCorrection({g}, {v})"))
+    w.Array(
+        "topAccents",
+        "TopAccent",
+        table.TopAccentAttachments |> Seq.map (fun (g, v) -> $"TopAccent({g}, {v})"))
+    w.Ints("extendedShapeGlyphs", table.ExtendedShapes)
     writeConstructions(w, "vertical", table.VerticalConstructions)
     writeConstructions(w, "horizontal", table.HorizontalConstructions)
 
