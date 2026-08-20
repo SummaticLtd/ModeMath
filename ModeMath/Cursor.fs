@@ -45,19 +45,24 @@ type MICurs =
     | RootNMain of n: MA * x: MICurs
     | Sqrt of x: MICurs
 
+    /// Builds a Row in canonical form, collapsing an empty split and merging a nested Row.
     static member MakeRow(before: ImmutableArray<MA>, inner: MICurs, after: ImmutableArray<MA>) =
         match inner with
         | Row(b, i, a) -> MICurs.MakeRow(before.AddRange b, i, a.AddRange after)
         | _ when before.IsEmpty && after.IsEmpty -> inner
         | _ -> Row(before, inner, after)
 
+    /// Cursor at the right-hand end of an MA.
     static member AtEnd(ma: MA) = MICurs.MakeRow(ma.Elements, CursorOrEmpty, ImmutableArray.Empty)
 
+    /// Cursor at the left-hand end of an MA.
     static member AtStart(ma: MA) = MICurs.MakeRow(ImmutableArray.Empty, CursorOrEmpty, ma.Elements)
 
+    /// Cursor between two MAs.
     static member Between(before: MA, after: MA) =
         MICurs.MakeRow(before.Elements, CursorOrEmpty, after.Elements)
 
+    /// The formula with the cursor removed.
     member t.ToMA: MA =
         match t with
         | CursorOrEmpty -> MA.Empty
@@ -167,6 +172,7 @@ type MICurs =
             | Choice1Of2 x -> Sqrt x |> Choice1Of2
             | Choice2Of2 x -> MICurs.AtStart x |> Choice1Of2
 
+    /// Gives the MICurs resulting from pressing delete from the left of an MA. ValueNone if the original MA is Empty
     static member private DeleteFromLeft(ma: MA): MICurs voption =
         match ma with
         | MA.Row l ->
@@ -190,6 +196,7 @@ type MICurs =
         | MA.RootN(n, x) -> RootNDegree(MICurs.AtStart n, x) |> ValueSome
         | MA.Sqrt x -> Sqrt(MICurs.AtStart x) |> ValueSome
 
+    /// Returns Choice2 of MA if the cursor is on the right; otherwise returns Choice1 of the altered MICurs
     member t.Delete: Choice<MICurs, MA> =
         match t with
         | CursorOrEmpty -> Choice2Of2 MA.Empty
@@ -250,6 +257,7 @@ type MICurs =
             | Choice1Of2 x -> Sqrt x |> Choice1Of2
             | Choice2Of2 x -> MICurs.AtEnd x |> Choice1Of2
 
+    /// Cursor at the start of an MA's first editable part. ValueNone if it has none.
     static member private EnterFromLeft(ma: MA): MICurs voption =
         match ma with
         | MA.Row _ | MA.Char _ | MA.BoldVar _ | MA.Cdot | MA.UprightD | MA.Function _ | MA.Operator _ ->
@@ -261,6 +269,7 @@ type MICurs =
         | MA.RootN(n, x) -> RootNDegree(MICurs.AtStart n, x) |> ValueSome
         | MA.Sqrt x -> Sqrt(MICurs.AtStart x) |> ValueSome
 
+    /// Cursor at the end of an MA's last editable part. ValueNone if it has none.
     static member private EnterFromRight(ma: MA): MICurs voption =
         match ma with
         | MA.Row _ | MA.Char _ | MA.BoldVar _ | MA.Cdot | MA.UprightD | MA.Function _ | MA.Operator _ ->
@@ -275,6 +284,7 @@ type MICurs =
         | MA.RootN(n, x) -> RootNMain(n, MICurs.AtEnd x) |> ValueSome
         | MA.Sqrt x -> Sqrt(MICurs.AtEnd x) |> ValueSome
 
+    /// Moves the cursor one place right without leaving this MICurs. ValueNone if it is already at the right-hand end.
     member private t.MoveRightWithin: MICurs voption =
         match t with
         | CursorOrEmpty -> ValueNone
@@ -321,6 +331,7 @@ type MICurs =
         | RootNMain(n, x) -> x.MoveRightWithin |> ValueOption.map (fun x -> RootNMain(n, x))
         | Sqrt x -> x.MoveRightWithin |> ValueOption.map (fun x -> Sqrt x)
 
+    /// Moves the cursor one place left without leaving this MICurs. ValueNone if it is already at the left-hand end.
     member private t.MoveLeftWithin: MICurs voption =
         match t with
         | CursorOrEmpty -> ValueNone
@@ -367,6 +378,7 @@ type MICurs =
             | ValueNone -> RootNDegree(MICurs.AtEnd n, x.ToMA) |> ValueSome
         | Sqrt x -> x.MoveLeftWithin |> ValueOption.map (fun x -> Sqrt x)
 
+    /// Moves the cursor one place right, leaving the outermost atom if needed. ValueNone at the end of the formula.
     member t.Right: MICurs voption =
         match t.MoveRightWithin with
         | ValueSome moved -> ValueSome moved
@@ -376,6 +388,7 @@ type MICurs =
             | Row(_, CursorOrEmpty, after) when after.IsEmpty -> ValueNone
             | _ -> MICurs.AtEnd t.ToMA |> ValueSome
 
+    /// Moves the cursor one place left, leaving the outermost atom if needed. ValueNone at the start of the formula.
     member t.Left: MICurs voption =
         match t.MoveLeftWithin with
         | ValueSome moved -> ValueSome moved
@@ -385,6 +398,7 @@ type MICurs =
             | Row(before, CursorOrEmpty, _) when before.IsEmpty -> ValueNone
             | _ -> MICurs.AtStart t.ToMA |> ValueSome
 
+    /// Moves the cursor to the start of the block above, e.g. the numerator from the denominator. ValueNone if there is none.
     member t.Up: MICurs voption =
         match t with
         | CursorOrEmpty -> ValueNone
@@ -417,6 +431,7 @@ type MICurs =
             | ValueNone -> RootNDegree(MICurs.AtStart n, x.ToMA) |> ValueSome
         | Sqrt x -> x.Up |> ValueOption.map (fun x -> Sqrt x)
 
+    /// Moves the cursor to the start of the block below, e.g. the denominator from the numerator. ValueNone if there is none.
     member t.Down: MICurs voption =
         match t with
         | CursorOrEmpty -> ValueNone
@@ -474,6 +489,7 @@ type MICurs =
         | RootNMain(n, x) -> RootNMain(n, x.AddMICurs addition)
         | Sqrt x -> Sqrt(x.AddMICurs addition)
 
+    /// Replaces a trailing run of letters spelling a function name with that function.
     static member private RecogniseFunction(elements: ImmutableArray<MA>) =
         let isLetter(i: int) =
             match elements.[i] with
@@ -494,6 +510,7 @@ type MICurs =
         | Some(name, fn) -> (elements |> ImmArray.take (elements.Length - name.Length)).Add(MA.Function fn)
         | None -> elements
 
+    /// Adds a character at the cursor, replacing a completed function name with that function.
     member t.AddAlphanumeric(c: char): MICurs =
         match t with
         | CursorOrEmpty -> MICurs.AtEnd(MA.Char c)
