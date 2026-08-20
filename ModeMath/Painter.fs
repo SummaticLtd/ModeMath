@@ -24,8 +24,10 @@ type Painter(typeface: SKTypeface) =
         use stream = MathFont.OpenFontFile()
         new Painter(SKTypeface.FromStream stream)
 
+    /// Draws what is only offered at a third of the given paint's opacity.
     member t.Draw(display: Display, canvas: SKCanvas, x: float32, baseline: float32, paint: SKPaint) =
-        use tentative = new SKPaint(Color = paint.Color.WithAlpha 0x50uy, IsAntialias = paint.IsAntialias)
+        use tentative = paint.Clone()
+        tentative.Color <- paint.Color.WithAlpha(byte (int paint.Color.Alpha / 3))
         t.Draw(display, canvas, x, baseline, paint, tentative)
 
     member t.Draw

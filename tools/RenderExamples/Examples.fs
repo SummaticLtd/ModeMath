@@ -29,6 +29,14 @@ let private nestedRadical(depth: int) =
     let rec build(level: int) = if level = 0 then c 'x' else sqrt(build (level - 1))
     build depth
 
+/// The left-hand side of Ramanujan's identity.
+let private leftSide =
+    frac(
+        c '1',
+        row
+            [ paren(row [ sqrt(row [ c 'ϕ'; sqrt(c '5') ]); c '-'; c 'ϕ' ])
+              sup(c 'e', row [ frac(c '2', c '5'); c 'π' ]) ])
+
 /// Examples from CSharpMath.Rendering.Tests/MathDisplay, plus a few that exercise MA alone.
 let implemented =
     [
@@ -75,12 +83,8 @@ let implemented =
 
         "LeftRight", paren(frac(c '2', c '3'))
         "LeftRightMinus", row [ paren(frac(c '2', c '3')); c '-' ]
-        "LeftSide",
-        frac(
-            c '1',
-            row
-                [ paren(row [ sqrt(row [ c 'ϕ'; sqrt(c '5') ]); c '-'; c 'ϕ' ])
-                  sup(c 'e', row [ frac(c '2', c '5'); c 'π' ]) ])
+        "LeftSide", leftSide
+        "FractionNestedDeep", row [ leftSide; op Operator.Equals; continuedFraction 4 ]
         "LnEquation",
         row
             [ fn MathFunction.Ln
@@ -155,9 +159,6 @@ let unimplemented =
         "Cyrillic", @"А а\ Б б\ В в", "Text"
         "EvalIntegral", @"\int_1^2 x\; dx=\left.\frac{x^2}{2}\right|_1^2", "large operators"
         "FontStyles", @"\mathnormal F\mathrm F\mathbf F\mathcal F\mathtt F", "Styled"
-        "FractionNestedDeep",
-        @"\frac{1}{\left(\sqrt{\phi \sqrt{5}}-\phi\right) e^{\frac25 \pi}} = 1+\frac{e^{-2\pi}}{1+\cdots}",
-        "tables"
         "Integral", @"\int_{0}^{\infty}e^x \,dx=\oint_0^{\Delta}5\Gamma", "large operators"
         "IntegralScripts", @"\int\int\int^{\infty}\int_0\int^{\infty}_0\int", "large operators"
         "ItalicAlignment", @"\colorbox{yellow}P\\\begin{array}{r}\colorbox{yellow}{PF}\end{array}", "tables"

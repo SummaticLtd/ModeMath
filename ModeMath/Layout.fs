@@ -66,7 +66,7 @@ module private Symbols =
 
     let opens = set [ '('; '['; '{'; '⟨' ]
     let closes = set [ ')'; ']'; '}'; '⟩' ]
-    let punctuation = set [ ','; ';' ]
+    let punctuation = set [ ','; ';'; ':' ]
 
     /// The italic forms of the Greek letters that have a second shape.
     let private greekVariants =
@@ -140,6 +140,7 @@ module private Symbols =
         | MA.Char c -> both(charClass c)
         | MA.Operator Operator.Equals -> both AtomClass.Relation
         | MA.Operator _ | MA.Cdot -> both AtomClass.Binary
+        | MA.Function MathFunction.Fact -> both AtomClass.Close
         | MA.Function _ -> both AtomClass.Operator
         | MA.Frac _ -> both AtomClass.Inner
         | MA.Bracketed _ -> struct (AtomClass.Open, AtomClass.Close)
@@ -170,6 +171,10 @@ module private Spacing =
         | ValueSome AtomClass.Open
         | ValueSome AtomClass.Punctuation -> true
         | ValueSome _ -> false
+
+    /// A binary operator with nothing to bind on its right is ordinary too, as in a trailing minus sign.
+    let leavesNothingToBind(next: AtomClass) =
+        next = AtomClass.Relation || next = AtomClass.Close || next = AtomClass.Punctuation
 
 /// Lays out an MA at a base font size in points.
 type Layout(fontSize: float32) =
@@ -214,10 +219,16 @@ type Layout(fontSize: float32) =
         let classes = Array.init elements.Length (fun i -> Symbols.atomClasses elements.[i])
         let facingLeft(i: int) = let struct (left, _) = classes.[i] in left
         let facingRight(i: int) = let struct (_, right) = classes.[i] in right
+        let ordinary = struct (AtomClass.Ordinary, AtomClass.Ordinary)
         for i in 0 .. classes.Length - 1 do
             let previous = if i = 0 then ValueNone else ValueSome(facingRight (i - 1))
             if facingLeft i = AtomClass.Binary && Spacing.isUnaryPosition previous then
-                classes.[i] <- struct (AtomClass.Ordinary, AtomClass.Ordinary)
+                classes.[i] <- ordinary
+            elif i > 0 && facingRight (i - 1) = AtomClass.Binary
+                 && Spacing.leavesNothingToBind(facingLeft i) then
+                classes.[i - 1] <- ordinary
+        if classes.Length > 0 && facingRight (classes.Length - 1) = AtomClass.Binary then
+            classes.[classes.Length - 1] <- ordinary
         let children = ImmutableArray.CreateBuilder<Placed>()
         let mutable x = 0f
         let mutable italicCorrection = 0f
@@ -357,23 +368,20 @@ type Layout(fontSize: float32) =
         let s = scale style
         let overlap = float32 MathConstants.MinConnectorOverlap * s
         let parts = Array.init stretch.PartCount stretch.Part
-        let extenders = parts |> Array.filter (fun part -> part.IsExtender) |> Array.length
-        let sequence(repeats: int) =
-            let items = ResizeArray<StretchPart>()
-            for part in parts do
-                for _ in 1 .. (if part.IsExtender then repeats else 1) do
-                    items.Add part
-            items
-        let height(items: ResizeArray<StretchPart>) =
-            let mutable total = 0f
-            for part in items do
-                total <- total + float32 part.FullAdvance * s
-            total - overlap * float32 (items.Count - 1)
-        let mutable repeats = if extenders = 0 then 1 else 0
-        let mutable items = sequence repeats
-        while extenders > 0 && height items < minHeight && repeats < 64 do
-            repeats <- repeats + 1
-            items <- sequence repeats
+        let advance(part: StretchPart) = float32 part.FullAdvance * s
+        let extenders = parts |> Array.filter (fun part -> part.IsExtender)
+        // Each further round of extenders lengthens the assembly by this much, overlaps allowed for.
+        let round = (extenders |> Array.sumBy advance) - overlap * float32 extenders.Length
+        let shortest =
+            (parts |> Array.filter (fun part -> not part.IsExtender) |> Array.sumBy advance)
+            - overlap * float32 (parts.Length - extenders.Length - 1)
+        let repeats =
+            if extenders.Length = 0 || round <= 0f then 0
+            else min 256 (max 0 (int (ceil ((minHeight - shortest) / round))))
+        let items = ResizeArray<StretchPart>()
+        for part in parts do
+            for _ in 1 .. (if part.IsExtender then repeats else 1) do
+                items.Add part
         let children = ImmutableArray.CreateBuilder<Placed>()
         let mutable y = 0f
         let mutable width = 0f
