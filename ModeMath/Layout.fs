@@ -54,7 +54,7 @@ type AtomClass =
     | Punctuation = 6
     | Inner = 7
 
-module private Conventions =
+module internal Conventions =
     let relations =
         set [ '='; '<'; '>'; '≤'; '≥'; '≠'; '≈'; '≡'; '∈'; '∉'
               '⊂'; '⊆'; '→'; '⇒'; '⇔'; '⟺'; '∴'; '∵'
@@ -68,16 +68,15 @@ module private Conventions =
     let closes = set [ ')'; ']'; '}'; '⟩' ]
     let punctuation = set [ ','; ';'; ':' ]
 
-    /// A variable is set in italics; anything else is drawn as it was typed.
+    /// Latin and small Greek variables are italic, capital Greek upright, as TeX sets them.
     let variable(c: char) =
-        match Letters.italic c with
-        | ValueSome italic -> ValueSome italic
-        | ValueNone -> if c = '-' then ValueSome Operators.minus else MathFont.OfChar c
+        Letters.italic c
+        |> ValueOption.orElseWith (fun () -> Letters.upright c)
+        |> ValueOption.orElseWith (fun () -> Digits.glyph c)
+        |> ValueOption.orElseWith (fun () ->
+            if c = '-' then ValueSome Operators.minus else MathFont.OfChar c)
 
-    let boldVariable(c: char) =
-        match Letters.bold c with
-        | ValueSome bold -> ValueSome bold
-        | ValueNone -> MathFont.OfChar c
+    let boldVariable(c: char) = Letters.bold c
 
     let operator(o: Operator) =
         match o with
@@ -236,7 +235,7 @@ type Layout(fontSize: float32) =
         let children = ImmutableArray.CreateBuilder<Placed>()
         let mutable x = 0f
         for c in text do
-            let child = symbol(MathFont.OfChar c, style, Ink.Solid)
+            let child = symbol(Letters.upright c, style, Ink.Solid)
             children.Add(Placed(child, x, 0f))
             x <- x + child.Width - child.ItalicCorrection
         Display.OfChildren(x, 0f, children.ToImmutable())
@@ -438,7 +437,7 @@ type Layout(fontSize: float32) =
         | MA.Char c -> symbol(Conventions.variable c, style, Ink.Solid)
         | MA.BoldVar c -> symbol(Conventions.boldVariable c, style, Ink.Solid)
         | MA.Cdot -> symbol(ValueSome Operators.cdot, style, Ink.Solid)
-        | MA.UprightD -> symbol(MathFont.OfChar 'd', style, Ink.Solid)
+        | MA.UprightD -> symbol(ValueSome Symbols.uprightD, style, Ink.Solid)
         | MA.Function f -> t.Upright(Conventions.functionName f, style)
         | MA.Operator o -> symbol(ValueSome(Conventions.operator o), style, Ink.Solid)
         | MA.Frac(numerator, denominator) -> t.Fraction(numerator, denominator, style)

@@ -160,4 +160,24 @@ let private structures =
         ]
     )
 
-let tests = TestFolder("Layout", [ measurement; structures ])
+let private repertoire =
+    TestList(
+        "Repertoire",
+        [   Test.CasesSync(
+                "everyClassifiedCharacterCanBeDrawn",
+                [   "relations", Conventions.relations
+                    "binaries", Conventions.binaries
+                    "opens", Conventions.opens
+                    "closes", Conventions.closes
+                    "punctuation", Conventions.punctuation ]
+                |> List.map (fun (name, chars) -> name, (name, chars)),
+                fun (name, chars) ->
+                    for c in chars do
+                        Assert.True(
+                            (laid (c |> MA.Char)).Width > 0f,
+                            $"{name} holds {c}, which the repertoire cannot draw")
+            )
+        ]
+    )
+
+let tests = TestFolder("Layout", [ measurement; structures; repertoire ])
