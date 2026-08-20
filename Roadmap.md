@@ -1,6 +1,6 @@
 # Roadmap
 
-Editing works. Nothing is displayed yet.
+Editing and display work. `examples/` shows what renders today.
 
 ## 1. Delimiters
 
@@ -10,19 +10,11 @@ Editing works. Nothing is displayed yet.
 
 `Bracketed` is editable, so this changes `MICurs` and every editing member. Entry always produces a matching pair.
 
-## 2. Layout and rendering
-
-`MA` to a display tree of positioned boxes, glyph runs and rules, then onto an `SKCanvas`.
-
-The display tree mirrors the structure of the `MA`.
-
-Limited to what `MA` expresses today: rows, characters, fractions, scripts, radicals and brackets.
-
-## 3. Hit-testing
+## 2. Hit-testing
 
 A point to a `MICurs`, built by descending the display tree and the `MA` together.
 
-## 4. Remaining mathematics
+## 3. Remaining mathematics
 
 All display-only. The cursor treats each as one unit, stepping over it and deleting it whole, so none needs a `MICurs` case.
 
