@@ -92,19 +92,19 @@ let private measurement =
             Test.Sync(
                 "aBinaryOperatorIsGivenRoomOnBothSides",
                 fun () ->
-                    let spaced = laid(row [ c 'a'; MA.Operator Operator.Plus; c 'b' ])
+                    let spaced = laid(row [ c 'a'; MA.Char '+'; c 'b' ])
                     let crowded =
-                        [ c 'a'; MA.Operator Operator.Plus; c 'b' ]
+                        [ c 'a'; MA.Char '+'; c 'b' ]
                         |> List.sumBy (fun ma -> (laid ma).Width)
                     Assert.True(spaced.Width > crowded + 1f<px>, $"{spaced.Width} is no wider than {crowded}")
             )
             Test.Sync(
                 "aRelationIsGivenMoreRoomThanABinaryOperator",
                 fun () ->
-                    let binary = laid(row [ c 'a'; MA.Operator Operator.Plus; c 'b' ])
-                    let relation = laid(row [ c 'a'; MA.Operator Operator.Equals; c 'b' ])
-                    let plus = (laid(MA.Operator Operator.Plus)).Width
-                    let equals = (laid(MA.Operator Operator.Equals)).Width
+                    let binary = laid(row [ c 'a'; MA.Char '+'; c 'b' ])
+                    let relation = laid(row [ c 'a'; MA.Char '='; c 'b' ])
+                    let plus = (laid(MA.Char '+')).Width
+                    let equals = (laid(MA.Char '=')).Width
                     Assert.True(
                         relation.Width - equals > binary.Width - plus,
                         "a relation is spaced no wider than a binary operator")
@@ -532,7 +532,7 @@ let private colours =
             Test.Sync(
                 "aColourKeepsWhatTheAtomBindsToOnEitherSide",
                 fun () ->
-                    let plus = MA.Operator Operator.Plus
+                    let plus = MA.Char '+'
                     let bare = laid(row [ c 'a'; plus; c 'b' ])
                     let painted = laid(row [ c 'a'; MA.Coloured(Color.Crimson, plus); c 'b' ])
                     nearly(bare.Width, painted.Width, "a coloured operator is spaced as a plain one")
@@ -807,14 +807,14 @@ let private everyKind =
         MA.String "ab"
         c 'x'
         MA.BoldVar 'v'
-        MA.Cdot
+        MA.Char '⋅'
         MA.UprightD
         MA.ScriptSuper(c 'e', c '2', ValueNone)
         MA.ScriptSuper(c 'e', c '2', ValueSome(c '3'))
         MA.ScriptSub(c 'a', c '1')
         MA.Frac(c 'a', c 'b')
         MA.Function MathFunction.Sin
-        MA.Operator Operator.Plus
+        MA.Char '+'
         MA.Paired(Bracket.Square, MA.String "0,1")
         MA.Sqrt(c 'x')
         MA.RootN(c '3', c 'x')

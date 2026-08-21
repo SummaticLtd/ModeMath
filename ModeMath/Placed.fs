@@ -73,13 +73,11 @@ type PlacedMA =
     | Char of char * PlacedGlyph
     | BoldVar of char * PlacedGlyph
     | Blackboard of char * PlacedGlyph
-    | Cdot of PlacedGlyph
     | UprightD of PlacedGlyph
     | ScriptSuper of main: Placed * super: Placed * sub: Placed voption
     | ScriptSub of main: Placed * sub: Placed
     | Frac of numerator: Placed * rule: PlacedRule * denominator: Placed
     | Function of MathFunction * letters: PlacedGlyphs
-    | Operator of Operator * PlacedGlyph
     | Bracketed of Brackets * left: PlacedGlyphs * inner: Placed * right: PlacedGlyphs * BracketCompletion
     | RootN of degree: Placed * surd: PlacedGlyphs * bar: PlacedRule * radicand: Placed
     | Sqrt of surd: PlacedGlyphs * bar: PlacedRule * radicand: Placed
@@ -146,8 +144,8 @@ type PlacedMA with
             | ValueNone -> ()
         match t with
         | PlacedMA.Row children -> for c in children do child c
-        | PlacedMA.Char(_, g) | PlacedMA.BoldVar(_, g) | PlacedMA.Blackboard(_, g) | PlacedMA.Cdot g
-        | PlacedMA.UprightD g | PlacedMA.Operator(_, g) -> glyph g
+        | PlacedMA.Char(_, g) | PlacedMA.BoldVar(_, g) | PlacedMA.Blackboard(_, g)
+        | PlacedMA.UprightD g -> glyph g
         | PlacedMA.ScriptSuper(main, super, sub) ->
             child main
             child super
@@ -203,8 +201,8 @@ type PlacedMA with
     /// The glyph this atom draws, where it draws exactly one and nothing besides.
     member t.SingleGlyph: PlacedGlyph voption =
         match t with
-        | PlacedMA.Char(_, g) | PlacedMA.BoldVar(_, g) | PlacedMA.Blackboard(_, g) | PlacedMA.Cdot g
-        | PlacedMA.UprightD g | PlacedMA.Operator(_, g) -> ValueSome g
+        | PlacedMA.Char(_, g) | PlacedMA.BoldVar(_, g) | PlacedMA.Blackboard(_, g)
+        | PlacedMA.UprightD g -> ValueSome g
         | PlacedMA.Row _ | PlacedMA.ScriptSuper _ | PlacedMA.ScriptSub _ | PlacedMA.Frac _
         | PlacedMA.Function _ | PlacedMA.Bracketed _ | PlacedMA.RootN _ | PlacedMA.Sqrt _
         | PlacedMA.BigOp _ | PlacedMA.Accented _ | PlacedMA.Spanned _ | PlacedMA.Overline _
@@ -218,14 +216,12 @@ type PlacedMA with
         | PlacedMA.Char(c, _) -> MA.Char c
         | PlacedMA.BoldVar(c, _) -> MA.BoldVar c
         | PlacedMA.Blackboard(c, _) -> MA.Blackboard c
-        | PlacedMA.Cdot _ -> MA.Cdot
         | PlacedMA.UprightD _ -> MA.UprightD
         | PlacedMA.ScriptSuper(main, super, sub) ->
             MA.ScriptSuper(main.Pma.ToMA, super.Pma.ToMA, sub |> ValueOption.map (fun s -> s.Pma.ToMA))
         | PlacedMA.ScriptSub(main, sub) -> MA.ScriptSub(main.Pma.ToMA, sub.Pma.ToMA)
         | PlacedMA.Frac(numerator, _, denominator) -> MA.Frac(numerator.Pma.ToMA, denominator.Pma.ToMA)
         | PlacedMA.Function(f, _) -> MA.Function f
-        | PlacedMA.Operator(o, _) -> MA.Operator o
         | PlacedMA.Bracketed(brackets, _, inner, _, completion) ->
             MA.Bracketed(brackets, inner.Pma.ToMA, completion)
         | PlacedMA.RootN(degree, _, _, radicand) -> MA.RootN(degree.Pma.ToMA, radicand.Pma.ToMA)
@@ -524,8 +520,7 @@ type PlacedCurs with
         | PlacedMA.Sqrt(_, _, radicand) ->
             nearest [ struct (radicand, MACurs.Sqrt) ]
         | PlacedMA.Row _ | PlacedMA.Char _ | PlacedMA.BoldVar _ | PlacedMA.Blackboard _
-        | PlacedMA.Cdot _ | PlacedMA.UprightD _ | PlacedMA.Function _ | PlacedMA.Operator _
-        | PlacedMA.BigOp _ | PlacedMA.Accented _ | PlacedMA.Spanned _ | PlacedMA.Overline _
+        | PlacedMA.UprightD _ | PlacedMA.Function _ | PlacedMA.BigOp _ | PlacedMA.Accented _ | PlacedMA.Spanned _ | PlacedMA.Overline _
         | PlacedMA.Underline _ | PlacedMA.Stack _ | PlacedMA.Table _ | PlacedMA.Coloured _
         | PlacedMA.Text _ | PlacedMA.Space _ | PlacedMA.Placeholder _ -> ValueNone
 

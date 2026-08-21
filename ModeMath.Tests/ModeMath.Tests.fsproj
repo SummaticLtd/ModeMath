@@ -12,6 +12,7 @@
     <Compile Include="LayoutTests.fs" />
     <Compile Include="PainterTests.fs" />
     <Compile Include="EditorTests.fs" />
+    <Compile Include="LatexTests.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 

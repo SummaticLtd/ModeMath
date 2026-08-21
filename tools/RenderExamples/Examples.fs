@@ -23,7 +23,6 @@ let private pair(left: Bracket, right: Bracket, inner: MA) =
 let private bra(inner: MA) = pair(Bracket.Angle, Bracket.Line, inner)
 let private ket(inner: MA) = pair(Bracket.Line, Bracket.Angle, inner)
 let private fn(f: MathFunction) = MA.Function f
-let private op(o: Operator) = MA.Operator o
 let private bigOp(o: BigOperator) = MA.BigOp(o, ValueNone, ValueNone)
 let private bigOpSub(o: BigOperator, lower: MA) = MA.BigOp(o, ValueSome lower, ValueNone)
 let private bigOpSup(o: BigOperator, upper: MA) = MA.BigOp(o, ValueNone, ValueSome upper)
@@ -83,9 +82,9 @@ let implemented = [
     "Commands",
     row [
         c '5'
-        op Operator.Times
-        paren(row [ c '-'; c '2'; op Operator.Divide; c '1' ])
-        op Operator.Equals
+        c '×'
+        paren(row [ c '-'; c '2'; c '÷'; c '1' ])
+        c '='
         c '-'
         s "10"
     ]
@@ -109,7 +108,7 @@ let implemented = [
         frac(c '1', sqrt(sup(c '2', c 'n')))
         bigOpSubSup(
             BigOperator.Sum,
-            row [ c 'i'; op Operator.Equals; c '0' ],
+            row [ c 'i'; c '='; c '0' ],
             row [ sup(c '2', c 'n'); c '-'; c '1' ])
         bra(c 'i')
     ]
@@ -118,7 +117,7 @@ let implemented = [
         frac(c '1', sqrt(sup(c '2', c 'n')))
         bigOpSubSup(
             BigOperator.Sum,
-            row [ c 'i'; op Operator.Equals; c '0' ],
+            row [ c 'i'; c '='; c '0' ],
             row [ sup(c '2', c 'n'); c '-'; c '1' ])
         ket(c 'i')
     ]
@@ -150,12 +149,12 @@ let implemented = [
     "LeftRight", paren(frac(c '2', c '3'))
     "LeftRightMinus", row [ paren(frac(c '2', c '3')); c '-' ]
     "LeftSide", leftSide
-    "FractionNestedDeep", row [ leftSide; op Operator.Equals; continuedFraction 4 ]
+    "FractionNestedDeep", row [ leftSide; c '='; continuedFraction 4 ]
     "LnEquation",
     row [
         fn MathFunction.Ln
         paren(c 'P')
-        op Operator.Equals
+        c '='
         sub(c 'a', c '0')
         c '-'
         frac(sub(c 'a', c '1'), row [ sub(c 'a', c '2'); c '+'; c 'T' ])
@@ -177,7 +176,7 @@ let implemented = [
     "QuadraticFormula",
     row [
         c 'x'
-        op Operator.Equals
+        c '='
         c '-'
         c 'b'
         c '±'
@@ -189,7 +188,7 @@ let implemented = [
     row [
         bigOpSub(BigOperator.Limit, row [ c 'x'; c '→'; c '∞' ])
         c '3'
-        op Operator.Equals
+        c '='
         c '3'
     ]
     "SummationBigCup", row [ s "234"; bigOpSub(BigOperator.Union, c '1') ]
@@ -198,22 +197,22 @@ let implemented = [
     row [
         bigOpSubSup(
             BigOperator.Sum,
-            row [ c 'i'; op Operator.Equals; sub(c '3', sub(c '2', c '1')) ],
+            row [ c 'i'; c '='; sub(c '3', sub(c '2', c '1')) ],
             sup(c '4', sup(c '5', c '6')))
         c 'i'
     ]
     "SummationWithCup",
     row [
-        bigOpSubSup(BigOperator.Sum, row [ c 'n'; op Operator.Equals; c '1' ], c '∞')
+        bigOpSubSup(BigOperator.Sum, row [ c 'n'; c '='; c '1' ], c '∞')
         frac(row [ c '1'; c '+'; c 'n' ], row [ c '1'; c '-'; c 'n' ])
-        op Operator.Equals
+        c '='
         bigOpSub(BigOperator.Union, c '1')
         c 'C'
         c '∪'
         c 'B'
     ]
     "SummationWithLimits",
-    bigOpSubSup(BigOperator.Sum, row [ c 'n'; op Operator.Equals; c '1' ], c '∞')
+    bigOpSubSup(BigOperator.Sum, row [ c 'n'; c '='; c '1' ], c '∞')
 
     "QuarticSolutions",
     curly(
@@ -229,7 +228,7 @@ let implemented = [
                             s "10"
                             c '+'
                             c '2'
-                            op Operator.Times
+                            c '×'
                             paren(frac(row [ c '-'; s "25" ], c '3'))
                         ])
                 ],
@@ -248,7 +247,7 @@ let implemented = [
     row [
         fn MathFunction.Tan
         paren(row [ c 'θ'; c '±'; frac(c 'π', c '4') ])
-        op Operator.Equals
+        c '='
         frac(
             row [ fn MathFunction.Tan; c 'θ'; c '±'; c '1' ],
             row [ c '1'; c '∓'; fn MathFunction.Tan; c 'θ' ])
@@ -258,7 +257,7 @@ let implemented = [
     "Abs",
     row [
         bars(c 'x')
-        op Operator.Equals
+        c '='
         cases [
             [ row [ c '-'; c 'x'; c ',' ]; row [ text " if "; c 'x'; c '<'; c '0' ] ]
             [ row [ c 'x'; c ',' ]; row [ text " if "; c 'x'; c '≥'; c '0' ] ]
@@ -270,7 +269,7 @@ let implemented = [
     row [
         fn MathFunction.Asin
         paren(row [ fn MathFunction.Sin; c 'x' ])
-        op Operator.Equals
+        c '='
         c 'x'
         space Space.Quad
         text "for"
@@ -289,9 +288,9 @@ let implemented = [
                     text "for"
                     space Space.Thin
                     c 'c'
-                    op Operator.Equals
+                    c '='
                     c 'd'
-                    op Operator.Equals
+                    c '='
                     c '0'
                 ] ] ]
     ]
@@ -302,7 +301,7 @@ let implemented = [
         space Space.Thick
         MA.UprightD
         c 'x'
-        op Operator.Equals
+        c '='
         evaluatedAt(frac(sup(c 'x', c '2'), c '2'), c '1', c '2')
     ]
     "Integral",
@@ -312,7 +311,7 @@ let implemented = [
         space Space.Thin
         MA.UprightD
         c 'x'
-        op Operator.Equals
+        c '='
         bigOpSubSup(BigOperator.ContourIntegral, c '0', c 'Δ')
         c '5'
         fn MathFunction.Gamma
@@ -320,7 +319,7 @@ let implemented = [
     "SolveEquations",
     row [
         text "Solve "
-        cases [ [ row [ c 'y'; op Operator.Equals; sup(c 'x', c '2'); c '-'; c 'x'; c '+'; c '3' ] ] ]
+        cases [ [ row [ c 'y'; c '='; sup(c 'x', c '2'); c '-'; c 'x'; c '+'; c '3' ] ] ]
     ]
     "Underbrace", spanned(Spanning.Underbrace, s "abcd")
     "UnderbraceSubscript", sub(spanned(Spanning.Underbrace, s "abcdefghklmnopqrst"), s "eee")
@@ -336,16 +335,16 @@ let implemented = [
     "SimpleShortProof",
     grid(
         [
-            [ row [ c '∵'; c 'x'; c '+'; c '3'; op Operator.Equals; c '5' ] ]
-            [ row [ c '∴'; c 'x'; op Operator.Equals; c '2' ] ]
+            [ row [ c '∵'; c 'x'; c '+'; c '3'; c '='; c '5' ] ]
+            [ row [ c '∴'; c 'x'; c '='; c '2' ] ]
         ],
         [ Alignment.Left ])
     "Taylor",
     grid(
         [ [ sup(c 'e', c 'x')
-            op Operator.Equals
+            c '='
             row [
-                bigOpSubSup(BigOperator.Sum, row [ c 'n'; op Operator.Equals; c '0' ], c '∞')
+                bigOpSubSup(BigOperator.Sum, row [ c 'n'; c '='; c '0' ], c '∞')
                 frac(sup(c 'x', c 'n'), row [ c 'n'; fn MathFunction.Fact ])
             ] ] ],
         [ Alignment.Right; Alignment.Centre; Alignment.Left ])
@@ -354,19 +353,19 @@ let implemented = [
         s "Pro"
         sub(c 'j', acc(Accent.Vec, c 'v'))
         acc(Accent.Vec, c 'u')
-        op Operator.Equals
+        c '='
         bars(acc(Accent.Vec, c 'u'))
         fn MathFunction.Cos
         c 'θ'
     ]
 
-    "ModeMathAbsolute", row [ bars(row [ c 'x'; c '-'; c '1' ]); op Operator.Equals; c '3' ]
+    "ModeMathAbsolute", row [ bars(row [ c 'x'; c '-'; c '1' ]); c '='; c '3' ]
     "ModeMathColoured",
     row [
         coloured(Color.Crimson, MA.String "3x")
-        op Operator.Plus
+        c '+'
         coloured(Color.SeaGreen, frac(c '1', c '2'))
-        op Operator.Equals
+        c '='
         c '5'
     ]
     "ModeMathOverbrace",
@@ -388,7 +387,7 @@ let implemented = [
         c 'g'
     ]
     "ModeMathVectorArrow",
-    row [ spanned(Spanning.Overrightarrow, s "AB"); op Operator.Equals; acc(Accent.Vec, MA.BoldVar 'v') ]
+    row [ spanned(Spanning.Overrightarrow, s "AB"); c '='; acc(Accent.Vec, MA.BoldVar 'v') ]
     "ModeMathWideTilde", acc(Accent.WideTilde, s "xyz")
     "ModeMathAccents",
     row [
@@ -408,7 +407,7 @@ let implemented = [
     "ModeMathCases",
     row [
         bars(c 'x')
-        op Operator.Equals
+        c '='
         cases [
             [ row [ c '-'; c 'x' ]; row [ c 'x'; c '<'; c '0' ] ]
             [ c 'x'; row [ c 'x'; c '≥'; c '0' ] ]
@@ -417,13 +416,13 @@ let implemented = [
     "ModeMathEvaluatedAt", evaluatedAt(frac(sup(c 'x', c '2'), c '2'), c '1', c '2')
     "ModeMathBigOperators",
     row [
-        bigOpSubSup(BigOperator.Product, row [ c 'k'; op Operator.Equals; c '1' ], c 'n')
+        bigOpSubSup(BigOperator.Product, row [ c 'k'; c '='; c '1' ], c 'n')
         bigOp BigOperator.Coproduct
         bigOpSub(BigOperator.Intersection, c 'i')
         bigOpSubSup(BigOperator.ContourIntegral, c '0', c 'Δ')
     ]
     "ModeMathBoldVectors",
-    row [ MA.BoldVar 'v'; op Operator.Equals; MA.BoldVar 'a'; MA.Cdot; MA.BoldVar 'b' ]
+    row [ MA.BoldVar 'v'; c '='; MA.BoldVar 'a'; MA.Char '⋅'; MA.BoldVar 'b' ]
     "ModeMathBrackets", row [ paren(c 'a'); square(c 'b'); curly(c 'c'); bars(c 'd') ]
     "ModeMathHalfOpenInterval", pair(Bracket.Square, Bracket.Normal, row [ c '0'; c ','; c '1' ])
     "ModeMathCubeRoot", root(c '3', row [ c 'x'; c '+'; c '1' ])
