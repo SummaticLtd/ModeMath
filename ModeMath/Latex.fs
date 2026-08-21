@@ -54,11 +54,7 @@ module internal Latexing =
                     let from = i
                     while i < latex.Length && spells latex.[i] do
                         i <- i + 1
-                    let name = latex.Substring(from, i - from)
-                    // A control word swallows the spaces after it, so \alpha x is two atoms, not three.
-                    while i < latex.Length && latex.[i] = ' ' do
-                        i <- i + 1
-                    take(Token.Command name)
+                    take(Token.Command(latex.Substring(from, i - from)))
                 elif i < latex.Length then
                     let symbol = latex.[i]
                     i <- i + 1
