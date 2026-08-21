@@ -575,6 +575,20 @@ let private words =
                     nearly(eighteenths * 20f<px> / 18f, (laid(MA.Space space)).Width, $"{space}")
             )
             Test.Sync(
+                "aSpaceDoesNotStandBetweenAnOperatorAndWhatItBinds",
+                fun () ->
+                    // TeX's spacing commands are kerns, not atoms, so \,-x is still a unary minus.
+                    let thin = (laid(MA.Space Space.Thin)).Width
+                    nearly(
+                        (laid(row [ c '-'; c 'x' ])).Width + thin,
+                        (laid(row [ MA.Space Space.Thin; c '-'; c 'x' ])).Width,
+                        "the space before the minus made it binary")
+                    nearly(
+                        (laid(row [ c 'a'; c '+'; c 'b' ])).Width + thin,
+                        (laid(row [ c 'a'; MA.Space Space.Thin; c '+'; c 'b' ])).Width,
+                        "the space beside the plus changed what it binds to")
+            )
+            Test.Sync(
                 "aSpaceDrawsNothingAndReachesNowhere",
                 fun () ->
                     let quad = laid(MA.Space Space.Quad)
@@ -582,7 +596,7 @@ let private words =
                     nearly(0f<px>, quad.Height, "height")
             )
             Test.Sync(
-                "aNegativeSpaceCloseTheGapItIsPutIn",
+                "aNegativeSpaceClosesTheGapItIsPutIn",
                 fun () ->
                     let apart = laid(row [ c 'a'; c 'b' ])
                     let pulled = laid(row [ c 'a'; MA.Space Space.NegativeThin; c 'b' ])

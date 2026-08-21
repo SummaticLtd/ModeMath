@@ -207,9 +207,9 @@ module internal Conventions =
         elif punctuation.Contains c then AtomClass.Punctuation
         else AtomClass.Ordinary
 
-    /// The classes an atom presents to its left and right neighbours, which differ for a bracketed group.
-    let rec atomClasses(ma: MA): struct (AtomClass * AtomClass) =
-        let both(atomClass: AtomClass) = struct (atomClass, atomClass)
+    /// The classes an atom presents to its neighbours. ValueNone for a gap, which stands between none.
+    let rec atomClasses(ma: MA): struct (AtomClass * AtomClass) voption =
+        let both(atomClass: AtomClass) = ValueSome(struct (atomClass, atomClass))
         match ma with
         | MA.Char c -> both(charClass c)
         | MA.Operator Operator.Equals -> both AtomClass.Relation
@@ -217,14 +217,15 @@ module internal Conventions =
         | MA.Function MathFunction.Fact -> both AtomClass.Close
         | MA.Function _ -> both AtomClass.Operator
         | MA.Frac _ | MA.Stack _ | MA.Table _ -> both AtomClass.Inner
-        | MA.Bracketed _ -> struct (AtomClass.Open, AtomClass.Close)
+        | MA.Bracketed _ -> ValueSome(struct (AtomClass.Open, AtomClass.Close))
         | MA.ScriptSuper(main, _, _) | MA.ScriptSub(main, _) -> atomClasses main
         // A colour changes how an atom is drawn, not what it binds to on either side.
         | MA.Coloured(_, x) -> atomClasses x
         | MA.BigOp _ -> both AtomClass.Operator
         | MA.Row _ | MA.BoldVar _ | MA.Blackboard _ | MA.UprightD | MA.RootN _ | MA.Sqrt _
-        | MA.Accented _ | MA.Spanned _ | MA.Overline _ | MA.Underline _ | MA.Text _ | MA.Space _ ->
+        | MA.Accented _ | MA.Spanned _ | MA.Overline _ | MA.Underline _ | MA.Text _ ->
             both AtomClass.Ordinary
+        | MA.Space _ -> ValueNone
 
 module private Spacing =
     /// Eighteenths of an em by left then right class, negated where only display and text styles space.
@@ -393,25 +394,37 @@ type Layout(fontSize: float32<px>) =
 
     member private t.Row(elements: ImmutableArray<MA>, style: Style) =
         let classes = Array.init elements.Length (fun i -> Conventions.atomClasses elements.[i])
-        let facingLeft(i: int) = let struct (left, _) = classes.[i] in left
-        let facingRight(i: int) = let struct (_, right) = classes.[i] in right
-        let ordinary = struct (AtomClass.Ordinary, AtomClass.Ordinary)
+        // A space is a gap rather than an atom, so an operator binds straight through it.
+        let bound = [| for i in 0 .. elements.Length - 1 do if classes.[i].IsSome then yield i |]
+        let facingLeft(i: int) = let struct (left, _) = classes.[i].Value in left
+        let facingRight(i: int) = let struct (_, right) = classes.[i].Value in right
+        let ordinary = ValueSome(struct (AtomClass.Ordinary, AtomClass.Ordinary))
         // A binary atom with nothing to bind is ordinary, so each gap demotes whichever side it strands.
-        for i in 0 .. classes.Length - 1 do
-            let previous = if i = 0 then ValueNone else ValueSome(facingRight (i - 1))
+        for n in 0 .. bound.Length - 1 do
+            let i = bound.[n]
+            let previous = if n = 0 then ValueNone else ValueSome(facingRight bound.[n - 1])
             if facingLeft i = AtomClass.Binary && Spacing.isUnaryPosition previous then
                 classes.[i] <- ordinary
-            elif i > 0 && facingRight (i - 1) = AtomClass.Binary && Spacing.leavesNothingToBind(facingLeft i) then
-                classes.[i - 1] <- ordinary
-        // No gap follows the last atom, so a binary ending the row is stranded too.
-        if classes.Length > 0 && facingRight (classes.Length - 1) = AtomClass.Binary then
-            classes.[classes.Length - 1] <- ordinary
+            elif
+                n > 0
+                && facingRight bound.[n - 1] = AtomClass.Binary
+                && Spacing.leavesNothingToBind(facingLeft i)
+            then
+                classes.[bound.[n - 1]] <- ordinary
+        // No atom follows the last, so a binary ending the row is stranded too.
+        if bound.Length > 0 && facingRight bound.[bound.Length - 1] = AtomClass.Binary then
+            classes.[bound.[bound.Length - 1]] <- ordinary
         let children = ImmutableArray.CreateBuilder<Placed>()
         let mutable x = 0f<px>
         let mutable reach = 0f<px>
         let mutable italicCorrection = 0f<px>
+        let mutable previous = ValueNone
         for i in 0 .. elements.Length - 1 do
-            if i > 0 then x <- x + spacing(facingRight (i - 1), facingLeft i, style)
+            if classes.[i].IsSome then
+                match previous with
+                | ValueSome before -> x <- x + spacing(facingRight before, facingLeft i, style)
+                | ValueNone -> ()
+                previous <- ValueSome i
             let child = t.Of(elements.[i], style)
             children.Add(child.At(x, 0f<px>))
             // A lean is ink above the baseline, which the next atom sets under rather than after.
@@ -699,7 +712,7 @@ type Layout(fontSize: float32<px>) =
             sized(size.Glyph, size.Advance)
         | ValueNone -> sized(stretchy.Glyph, stretchy.Glyph.Advance)
 
-    /// The parts laid along the line, repeating the extenders until they reach the width.
+    /// The parts laid along the line, repeating the extenders up to a cap no formula reaches.
     member private _.Spread(stretchy: StretchyGlyph, style: Style, minWidth: float32<px>) =
         let s = scale style
         let overlap = MathConstants.MinConnectorOverlap * s
