@@ -273,6 +273,9 @@ type Layout(fontSize: float32<px>) =
         let body = Extent.OfParts(width, 0f<px>, parts)
         Placed(pma, parts, Extent(width, body.Ascent + ascender, body.Descent + descender, 0f<px>), 0f<px>, 0f<px>)
 
+    /// An atom measured by what it is told rather than by what it draws, as the cursor is.
+    let measuredAtom(pma: PlacedMA, extent: Extent) = Placed(pma, pma.Parts, extent, 0f<px>, 0f<px>)
+
     let markOf(glyphs: ImmutableArray<PlacedGlyph>, width: float32<px>) =
         let ascent = ImmArray.maxWithSafe(glyphs, 0f<px>, fun g -> g.Top)
         let descent = -ImmArray.minWithSafe(glyphs, 0f<px>, fun g -> g.Bottom)
@@ -283,6 +286,9 @@ type Layout(fontSize: float32<px>) =
         match glyph with
         | ValueSome found -> found
         | ValueNone -> failwith $"the font cannot draw {what}"
+
+    /// The box an empty slot shows, which the cursor fills where it is put in one.
+    let emptySlot = required(MathFont.OfChar '□', "an empty slot")
 
     /// The atom reaches past the advance by the glyph lean, which is what its scripts are placed by.
     let single(glyph: Glyph, style: Style, make: PlacedGlyph -> PlacedMA) =
@@ -392,10 +398,15 @@ type Layout(fontSize: float32<px>) =
             | ValueSome _, _ | _, ValueSome _ -> MathConstants.SpaceAfterScript * s
         struct (up, down, subscriptX, width + after)
 
-    member private t.Row(elements: ImmutableArray<MA>, style: Style) =
-        let classes = Array.init elements.Length (fun i -> Conventions.atomClasses elements.[i])
+    /// A row from children already laid out, each with the classes it shows its neighbours.
+    member private _.PlaceRow
+        (
+            children: ImmutableArray<Placed>,
+            classes: struct (AtomClass * AtomClass) voption array,
+            style: Style
+        ) =
         // A space is a gap rather than an atom, so an operator binds straight through it.
-        let bound = [| for i in 0 .. elements.Length - 1 do if classes.[i].IsSome then yield i |]
+        let bound = [| for i in 0 .. classes.Length - 1 do if classes.[i].IsSome then yield i |]
         let facingLeft(i: int) = let struct (left, _) = classes.[i].Value in left
         let facingRight(i: int) = let struct (_, right) = classes.[i].Value in right
         let ordinary = ValueSome(struct (AtomClass.Ordinary, AtomClass.Ordinary))
@@ -414,28 +425,34 @@ type Layout(fontSize: float32<px>) =
         // No atom follows the last, so a binary ending the row is stranded too.
         if bound.Length > 0 && facingRight bound.[bound.Length - 1] = AtomClass.Binary then
             classes.[bound.[bound.Length - 1]] <- ordinary
-        let children = ImmutableArray.CreateBuilder<Placed>()
+        let placed = ImmutableArray.CreateBuilder<Placed>()
         let mutable x = 0f<px>
         let mutable reach = 0f<px>
         let mutable italicCorrection = 0f<px>
         let mutable previous = ValueNone
-        for i in 0 .. elements.Length - 1 do
+        for i in 0 .. children.Length - 1 do
             if classes.[i].IsSome then
                 match previous with
                 | ValueSome before -> x <- x + spacing(facingRight before, facingLeft i, style)
                 | ValueNone -> ()
                 previous <- ValueSome i
-            let child = t.Of(elements.[i], style)
-            children.Add(child.At(x, 0f<px>))
+            let child = children.[i]
+            placed.Add(child.At(x, 0f<px>))
             // A lean is ink above the baseline, which the next atom sets under rather than after.
             x <- x + child.Width - child.ItalicCorrection
             reach <- max reach (x + child.ItalicCorrection)
             italicCorrection <- child.ItalicCorrection
-        atomOf(PlacedMA.Row(children.ToImmutable()), reach, italicCorrection)
+        atomOf(PlacedMA.Row(placed.ToImmutable()), reach, italicCorrection)
 
-    member private t.Fraction(numerator: MA, denominator: MA, style: Style) =
-        let n = t.Of(numerator, style.Numerator)
-        let d = t.Of(denominator, style.Denominator)
+    member private t.Row(elements: ImmutableArray<MA>, style: Style) =
+        if elements.IsEmpty then single(emptySlot, style, PlacedMA.Placeholder)
+        else
+            t.PlaceRow(
+                elements |> ImmArray.map (fun ma -> t.Of(ma, style)),
+                Array.init elements.Length (fun i -> Conventions.atomClasses elements.[i]),
+                style)
+
+    member private _.Fraction(n: Placed, d: Placed, style: Style) =
         let s = scale style
         let axis = MathConstants.AxisHeight * s
         let thickness = MathConstants.FractionRuleThickness * s
@@ -880,7 +897,8 @@ type Layout(fontSize: float32<px>) =
             let letters = upright(Conventions.functionName f, style)
             atomOf(PlacedMA.Function(f, letters), letters.Width, 0f<px>)
         | MA.Operator o -> single(Conventions.operator o, style, fun g -> PlacedMA.Operator(o, g))
-        | MA.Frac(numerator, denominator) -> t.Fraction(numerator, denominator, style)
+        | MA.Frac(numerator, denominator) ->
+            t.Fraction(t.Of(numerator, style.Numerator), t.Of(denominator, style.Denominator), style)
         | MA.ScriptSuper(main, super, sub) -> t.ScriptSuper(main, super, sub, style)
         | MA.ScriptSub(main, sub) -> t.ScriptSub(main, sub, style)
         | MA.BigOp(op, lower, upper) -> t.BigOp(op, lower, upper, style)
@@ -902,7 +920,76 @@ type Layout(fontSize: float32<px>) =
             let inner = t.Of(x, style)
             atomOf(PlacedMA.Coloured(colour, inner), inner.Width, inner.ItalicCorrection)
 
+    /// The cursor between atoms, measured as nothing so that the formula does not move under it.
+    member private _.CursorBar(style: Style) =
+        let s = scale style
+        let thickness = MathConstants.FractionRuleThickness * s
+        let caret =
+            PlacedRule(
+                thickness,
+                (emptySlot.Top - emptySlot.Bottom) * s,
+                -thickness / 2f,
+                emptySlot.Bottom * s)
+        measuredAtom(PlacedMA.Cursor caret, Extent(0f<px>, 0f<px>, 0f<px>, 0f<px>))
+
+    /// The cursor in an empty slot, which fills the box the slot shows without it.
+    member private _.CursorOnEmpty(style: Style) =
+        let s = scale style
+        let filled =
+            PlacedRule(
+                emptySlot.Advance * s,
+                (emptySlot.Top - emptySlot.Bottom) * s,
+                0f<px>,
+                emptySlot.Bottom * s)
+        atomOf(PlacedMA.Cursor filled, (emptySlot.Advance + emptySlot.ItalicCorrection) * s, 0f<px>)
+
+    member private t.Cursored(cursor: MICurs, style: Style): Placed =
+        match cursor with
+        | MICurs.CursorOrEmpty -> t.CursorOnEmpty style
+        | MICurs.Row(before, inner, after) ->
+            let children = ImmutableArray.CreateBuilder<Placed>()
+            let classes = ResizeArray<struct (AtomClass * AtomClass) voption>()
+            let atom(ma: MA) =
+                children.Add(t.Of(ma, style))
+                classes.Add(Conventions.atomClasses ma)
+            for ma in before do
+                atom ma
+            if inner.IsCursorOrEmpty then
+                children.Add(t.CursorBar style)
+                // The cursor is a gap, so the atoms either side of it bind as though it were not there.
+                classes.Add ValueNone
+            else
+                children.Add(t.Cursored(inner, style))
+                classes.Add(Conventions.atomClasses inner.ToMA)
+            for ma in after do
+                atom ma
+            t.PlaceRow(children.ToImmutable(), classes.ToArray(), style)
+        | MICurs.FracNum(n, d) ->
+            t.Fraction(t.Cursored(n, style.Numerator), t.Of(d, style.Denominator), style)
+        | MICurs.FracDen(n, d) ->
+            t.Fraction(t.Of(n, style.Numerator), t.Cursored(d, style.Denominator), style)
+        | MICurs.ScriptMainSuper _ | MICurs.ScriptMainSub _ | MICurs.ScriptSuper _
+        | MICurs.ScriptSub _ | MICurs.Bracketed _ | MICurs.RootNDegree _ | MICurs.RootNMain _
+        | MICurs.Sqrt _ -> failwith $"the spike lays out rows and fractions, not {cursor}"
+
     /// Laid out on a line of its own, where fractions and radicals are given their full height.
     member t.Of(ma: MA) = t.Of(ma, MathSize.Display)
 
     member t.Of(ma: MA, size: MathSize) = t.Of(ma.Flatten, Style(size, false))
+
+    /// Laid out with the cursor drawn, which the formula it stands in is measured without.
+    member t.Of(cursor: MICurs) = t.Of(cursor, MathSize.Display)
+
+    /// The MA the cursor stands in must already be flat, as Layout.Of makes an MA of its own.
+    member t.Of(cursor: MICurs, size: MathSize) = t.Cursored(cursor, Style(size, false))
+
+    /// The cursor position nearest a point, in pixels from the formula origin with y upwards.
+    member t.Nearest(ma: MA, x: float32<px>, y: float32<px>) =
+        let away(from: float32<px>, until: float32<px>, point: float32<px>) =
+            max 0f<px> (max (from - point) (point - until))
+        let distance(cursor: MICurs) =
+            match (t.Of cursor).Caret with
+            | ValueSome caret ->
+                away(caret.X, caret.X + caret.Width, x) + away(caret.Y, caret.Y + caret.Thickness, y)
+            | ValueNone -> failwith $"a cursored layout drew no cursor: {cursor}"
+        MICurs.Positions ma |> Seq.minBy distance

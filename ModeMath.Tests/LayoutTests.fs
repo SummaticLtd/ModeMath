@@ -23,7 +23,7 @@ let private rules(placed: Placed) =
     [ for part in placed.Parts do
         match part with
         | Part.Rule(rule, _) -> yield rule
-        | Part.Glyph _ | Part.Child _ | Part.Painted _ -> () ]
+        | Part.Glyph _ | Part.Child _ | Part.Painted _ | Part.Caret _ -> () ]
 
 let private glyphOf(placed: Placed) =
     match placed.Pma.SingleGlyph with
@@ -45,11 +45,14 @@ let private measurement =
                     Assert.True(x.Descent >= 0f<px>, "descent")
             )
             Test.Sync(
-                "anEmptyFormulaHasNoSize",
+                "anEmptySlotShowsTheBoxAFormulaCouldBeWrittenIn",
                 fun () ->
                     let empty = laid MA.Empty
-                    nearly(0f<px>, empty.Width, "width")
-                    nearly(0f<px>, empty.Height, "height")
+                    Assert.True(empty.Width > 0f<px>, "width")
+                    Assert.True(empty.Height > 0f<px>, "height")
+                    match empty.Pma with
+                    | PlacedMA.Placeholder _ -> ()
+                    | other -> failwith $"an empty slot drew {other}"
             )
             Test.Sync(
                 "aRowOfOrdinariesIsAsWideAsItsPartsLessTheLeansTheySetUnder",
@@ -68,7 +71,7 @@ let private measurement =
                 fun () ->
                     let f = laid(c 'f')
                     Assert.True(f.ItalicCorrection > 0f<px>, "italic f does not lean")
-                    let followed = laid(row [ c 'f'; MA.Overline MA.Empty ])
+                    let followed = laid(row [ c 'f'; MA.Text "" ])
                     nearly(f.Width, followed.Width, "the row stopped short of the lean it drew")
             )
             Test.Sync(
@@ -850,6 +853,93 @@ let private roundTrip =
         ]
     )
 
+let private flat(ma: MA) = ma.Flatten
+
+let private positions(ma: MA) = MICurs.Positions ma |> List.ofSeq
+
+let private caretOf(cursor: MICurs) =
+    match (layout.Of cursor).Caret with
+    | ValueSome caret -> caret
+    | ValueNone -> failwith $"no cursor was drawn in {cursor}"
+
+let private cursors =
+    TestList(
+        "Cursor",
+        [   Test.Sync(
+                "steppingRightEndsRatherThanRunningOn",
+                fun () ->
+                    // Hit-testing walks every position, so a formula that never ends would hang it.
+                    let counted = positions(MA.String "ab" |> flat)
+                    Assert.Equal(3, counted.Length, "positions in ab")
+                    Assert.Equal(6, (positions(MA.Frac(c 'b', c 'd') |> flat)).Length, "in a fraction")
+            )
+            Test.Sync(
+                "aCursorIsDrawnWithoutDisturbingWhatIsAroundIt",
+                fun () ->
+                    let formulas = [
+                        row [ c 'a'; MA.Frac(c 'b', c 'c'); c 'd' ]
+                        // Letters the cursor stands taller than, so measuring it would show.
+                        MA.String "abc"
+                        MA.Frac(MA.Empty, c 'c')
+                    ]
+                    for formula in formulas |> List.map flat do
+                        let bare = laid formula
+                        for cursor in positions formula do
+                            let cursored = layout.Of cursor
+                            nearly(bare.Width, cursored.Width, $"width at {cursor}")
+                            nearly(bare.Ascent, cursored.Ascent, $"ascent at {cursor}")
+                            nearly(bare.Descent, cursored.Descent, $"descent at {cursor}")
+            )
+            Test.Sync(
+                "aCursorDoesNotChangeWhatAnOperatorBindsTo",
+                fun () ->
+                    // A leading minus is unary, and a cursor before it is a gap rather than an atom.
+                    let unary = row [ c '-'; c 'x' ] |> flat
+                    nearly((laid unary).Width, (layout.Of(MICurs.AtStart unary)).Width, "before the minus")
+            )
+            Test.Sync(
+                "theCursorMovesRightwardsAsItIsStepped",
+                fun () ->
+                    let formula = MA.String "abc" |> flat
+                    let xs = [ for cursor in positions formula -> (caretOf cursor).X ]
+                    for pair in List.pairwise xs do
+                        let previous, next = pair
+                        Assert.True(next > previous, $"the cursor did not move: {previous} then {next}")
+            )
+            Test.Sync(
+                "theCursorInAnEmptySlotFillsTheBoxTheSlotShows",
+                fun () ->
+                    let slot = MA.Frac(MA.Empty, c 'c') |> flat
+                    let placeholder =
+                        match (laid slot).Pma with
+                        | PlacedMA.Frac(numerator, _, _) -> numerator
+                        | other -> failwith $"not a fraction: {other}"
+                    let caret = caretOf (positions slot).[1]
+                    nearly(placeholder.Width, caret.Width, "the cursor did not fill the box")
+                    nearly(placeholder.Height, caret.Thickness, "the cursor did not fill the box")
+            )
+            Test.Sync(
+                "aPointOnAPositionFindsThatPosition",
+                fun () ->
+                    let formula = row [ c 'a'; MA.Frac(MA.String "bc", c 'd'); c 'e' ] |> flat
+                    for cursor in positions formula do
+                        let caret = caretOf cursor
+                        let x = caret.X + caret.Width / 2f
+                        let y = caret.Y + caret.Thickness / 2f
+                        Assert.Equal(cursor, layout.Nearest(formula, x, y), $"clicking on {cursor}")
+            )
+            Test.Sync(
+                "aPointFarBelowFindsAPositionInTheDenominator",
+                fun () ->
+                    let formula = MA.Frac(c 'b', c 'd') |> flat
+                    let found = layout.Nearest(formula, (laid formula).Width / 2f, -(laid formula).Descent)
+                    match found with
+                    | MICurs.FracDen _ -> ()
+                    | other -> failwith $"a point under the bar found {other}"
+            )
+        ]
+    )
+
 let tests =
     TestFolder(
         "Layout",
@@ -865,4 +955,5 @@ let tests =
             stacks
             tables
             blackboard
+            cursors
             roundTrip ])

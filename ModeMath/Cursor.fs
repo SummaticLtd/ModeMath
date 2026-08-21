@@ -63,6 +63,15 @@ type MICurs =
     static member Between(before: MA, after: MA) =
         MICurs.MakeRow(before.Elements, CursorOrEmpty, after.Elements)
 
+    /// Every cursor position in a formula, from its left-hand end rightwards.
+    static member Positions(ma: MA) =
+        seq {
+            let mutable current = ValueSome(MICurs.AtStart ma)
+            while current.IsSome do
+                yield current.Value
+                current <- current.Value.Right
+        }
+
     /// The formula with the cursor removed.
     member t.ToMA: MA =
         match t with

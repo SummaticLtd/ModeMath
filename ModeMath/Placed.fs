@@ -87,6 +87,10 @@ type PlacedMA =
     | Text of string * letters: PlacedGlyphs
     /// A gap, which draws nothing at all.
     | Space of Space
+    /// An empty slot, which shows the box a formula could be written in.
+    | Placeholder of PlacedGlyph
+    /// Where the cursor is: a bar between atoms, or the box of the empty slot it fills.
+    | Cursor of PlacedRule
 
 /// A laid-out MA at an offset from its parent's origin, holding what it draws so that painting a
 /// second time builds nothing.
@@ -118,6 +122,8 @@ and [<RequireQualifiedAccess>] Part =
     | Child of Placed
     /// A child drawn in a colour of its own, which the one around it goes back to afterwards.
     | Painted of colour: Color * child: Placed
+    /// The cursor, drawn and measured as a rule, and told apart so a caret can be found.
+    | Caret of PlacedRule
 
 type PlacedMA with
     /// Everything this atom draws, in the order it is drawn. Built once, and kept by the Placed that
@@ -185,6 +191,8 @@ type PlacedMA with
         | PlacedMA.Coloured(colour, x) -> b.Add(Part.Painted(colour, x))
         | PlacedMA.Text(_, letters) -> marks(letters, Ink.Solid)
         | PlacedMA.Space _ -> ()
+        | PlacedMA.Placeholder box -> glyph box
+        | PlacedMA.Cursor caret -> b.Add(Part.Caret caret)
         b.ToImmutable()
 
     /// The glyph this atom draws, where it draws exactly one and nothing besides.
@@ -196,7 +204,8 @@ type PlacedMA with
         | PlacedMA.Function _ | PlacedMA.Bracketed _ | PlacedMA.RootN _ | PlacedMA.Sqrt _
         | PlacedMA.BigOp _ | PlacedMA.Accented _ | PlacedMA.Spanned _ | PlacedMA.Overline _
         | PlacedMA.Underline _ | PlacedMA.Stack _ | PlacedMA.Table _ | PlacedMA.Text _
-        | PlacedMA.Space _ | PlacedMA.Coloured _ -> ValueNone
+        | PlacedMA.Space _ | PlacedMA.Coloured _ | PlacedMA.Placeholder _ | PlacedMA.Cursor _ ->
+            ValueNone
 
     /// The MA this was laid out from, which a cursor position is expressed against.
     member t.ToMA: MA =
@@ -232,6 +241,7 @@ type PlacedMA with
         | PlacedMA.Coloured(colour, x) -> MA.Coloured(colour, x.Pma.ToMA)
         | PlacedMA.Text(text, _) -> MA.Text text
         | PlacedMA.Space space -> MA.Space space
+        | PlacedMA.Placeholder _ | PlacedMA.Cursor _ -> MA.Empty
 
 type Extent with
     /// Covering everything drawn, which is placed relative to the atom's own origin.
@@ -240,13 +250,29 @@ type Extent with
         let top(part: Part) =
             match part with
             | Part.Child c | Part.Painted(_, c) -> c.Y + c.Extent.Ascent
-            | Part.Rule(r, _) -> r.Y + r.Thickness
+            | Part.Rule(r, _) | Part.Caret r -> r.Y + r.Thickness
             | Part.Glyph(g, _) -> g.Top
         let bottom(part: Part) =
             match part with
             | Part.Child c | Part.Painted(_, c) -> c.Y - c.Extent.Descent
-            | Part.Rule(r, _) -> r.Y
+            | Part.Rule(r, _) | Part.Caret r -> r.Y
             | Part.Glyph(g, _) -> g.Bottom
         let ascent = ImmArray.maxWithSafe(parts, 0f<px>, top)
         let descent = -ImmArray.minWithSafe(parts, 0f<px>, bottom)
         Extent(width, ascent, descent, italicCorrection)
+
+type Placed with
+    /// Where the cursor is, in pixels from this atom's origin. ValueNone where it holds none.
+    member t.Caret: PlacedRule voption =
+        let rec find(placed: Placed, x: float32<px>, y: float32<px>) =
+            let mutable found = ValueNone
+            for part in placed.Parts do
+                if found.IsNone then
+                    match part with
+                    | Part.Caret caret ->
+                        found <- ValueSome(PlacedRule(caret.Width, caret.Thickness, x + caret.X, y + caret.Y))
+                    | Part.Child child | Part.Painted(_, child) ->
+                        found <- find(child, x + child.X, y + child.Y)
+                    | Part.Glyph _ | Part.Rule _ -> ()
+            found
+        find(t, 0f<px>, 0f<px>)

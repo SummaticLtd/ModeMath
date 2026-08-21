@@ -72,6 +72,14 @@ type Painter(math: SKTypeface, blackboard: SKTypeface) =
                         number rule.Width,
                         number rule.Thickness),
                     paint ink)
+            | Part.Caret caret ->
+                canvas.DrawRect(
+                    SKRect.Create(
+                        number(x + caret.X),
+                        number(baseline - caret.Y - caret.Thickness),
+                        number caret.Width,
+                        number caret.Thickness),
+                    solid)
             | Part.Child child ->
                 t.Draw(child, canvas, x + child.X, baseline - child.Y, solid, tentative)
             | Part.Painted(colour, child) ->

@@ -28,13 +28,7 @@ let private n = MA.Char 'n'
 let private d = MA.Char 'd'
 let private frac = MA.Frac(n, d)
 
-let private walkRight(ma: MA) =
-    let rec loop(acc: MICurs list, m: MICurs) =
-        match m.Right with
-        | ValueSome next -> loop(next :: acc, next)
-        | ValueNone -> List.rev acc
-    let start = MICurs.AtStart ma
-    start :: loop([], start)
+let private walkRight(ma: MA) = MICurs.Positions ma |> List.ofSeq
 
 let private walkLeft(ma: MA) =
     let rec loop(acc: MICurs list, m: MICurs) =
