@@ -57,24 +57,24 @@ type Editor(layout: Layout, cursor: PlacedCurs) =
     /// A superscript on the atom before the cursor, which then stands in it. An atom already
     /// carrying one keeps it and is entered rather than being set under a second.
     member _.InsertSuperscript =
-        let superscripted(main: MA) =
-            match main with
+        let superscripted(atom: MA) =
+            match atom with
             | MA.ScriptSuper(main, super, sub) -> MACurs.ScriptSuper(main, MACurs.AtEnd super, sub)
             | MA.ScriptSub(main, sub) -> MACurs.ScriptSuper(main, MACurs.CursorOrEmpty, ValueSome sub)
-            | main -> MACurs.ScriptSuper(main, MACurs.CursorOrEmpty, ValueNone)
+            | _ -> MACurs.ScriptSuper(atom, MACurs.CursorOrEmpty, ValueNone)
         over(cursor.ToMACurs.ReplaceBefore superscripted)
 
     /// A subscript on the atom before the cursor, which then stands in it. An atom already carrying
     /// one keeps it and is entered rather than being set over a second.
     member _.InsertSubscript =
-        let subscripted(main: MA) =
-            match main with
+        let subscripted(atom: MA) =
+            match atom with
             | MA.ScriptSuper(main, super, ValueSome sub) ->
                 MACurs.ScriptSub(main, ValueSome super, MACurs.AtEnd sub)
             | MA.ScriptSuper(main, super, ValueNone) ->
                 MACurs.ScriptSub(main, ValueSome super, MACurs.CursorOrEmpty)
             | MA.ScriptSub(main, sub) -> MACurs.ScriptSub(main, ValueNone, MACurs.AtEnd sub)
-            | main -> MACurs.ScriptSub(main, ValueNone, MACurs.CursorOrEmpty)
+            | _ -> MACurs.ScriptSub(atom, ValueNone, MACurs.CursorOrEmpty)
         over(cursor.ToMACurs.ReplaceBefore subscripted)
 
     /// ValueNone where there is nothing to the left to delete, so that a caller can pass the key on.

@@ -530,12 +530,11 @@ type internal MACurs =
         match t with
         | CursorOrEmpty -> build MA.Empty
         | Row(before, inner, after) ->
-            match inner with
-            | CursorOrEmpty when before.IsEmpty -> MACurs.MakeRow(before, build MA.Empty, after)
-            | CursorOrEmpty ->
+            if not inner.IsCursorOrEmpty then MACurs.MakeRow(before, inner.ReplaceBefore build, after)
+            elif before.IsEmpty then MACurs.MakeRow(before, build MA.Empty, after)
+            else
                 let last = before.Length - 1
                 MACurs.MakeRow(before.RemoveAt last, build before.[last], after)
-            | inner -> MACurs.MakeRow(before, inner.ReplaceBefore build, after)
         | ScriptMainSuper(main, super, sub) -> ScriptMainSuper(main.ReplaceBefore build, super, sub)
         | ScriptMainSub(main, sub) -> ScriptMainSub(main.ReplaceBefore build, sub)
         | ScriptSuper(main, super, sub) -> ScriptSuper(main, super.ReplaceBefore build, sub)
