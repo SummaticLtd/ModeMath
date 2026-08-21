@@ -855,7 +855,7 @@ let private roundTrip =
 
 let private flat(ma: MA) = ma.Flatten
 
-let private positions(ma: MA) = MICurs.Positions ma |> List.ofSeq
+let private positions(ma: MA) = MACurs.Positions ma |> List.ofSeq
 
 let private cursors =
     TestList(
@@ -890,7 +890,7 @@ let private cursors =
                 fun () ->
                     // A leading minus is unary, and a cursor before it is a gap rather than an atom.
                     let unary = row [ c '-'; c 'x' ] |> flat
-                    let cursored = (layout.Of(MICurs.AtStart unary)).Placed
+                    let cursored = (layout.Of(MACurs.AtStart unary)).Placed
                     nearly((laid unary).Width, cursored.Width, "before the minus")
             )
             Test.Sync(
@@ -930,7 +930,7 @@ let private cursors =
                     let formula = MA.Frac(c 'b', c 'd') |> flat
                     let found = layout.Nearest(formula, (laid formula).Width / 2f, -(laid formula).Descent)
                     match found with
-                    | MICurs.FracDen _ -> ()
+                    | MACurs.FracDen _ -> ()
                     | other -> failwith $"a point under the bar found {other}"
             )
         ]

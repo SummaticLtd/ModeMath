@@ -943,10 +943,10 @@ type Layout(fontSize: float32<px>) =
                 emptySlot.Bottom * s)
         atomOf(PlacedMA.Cursor filled, (emptySlot.Advance + emptySlot.ItalicCorrection) * s, 0f<px>)
 
-    member private t.Cursored(cursor: MICurs, style: Style): Placed =
+    member private t.Cursored(cursor: MACurs, style: Style): Placed =
         match cursor with
-        | MICurs.CursorOrEmpty -> t.CursorOnEmpty style
-        | MICurs.Row(before, inner, after) ->
+        | MACurs.CursorOrEmpty -> t.CursorOnEmpty style
+        | MACurs.Row(before, inner, after) ->
             let children = ImmutableArray.CreateBuilder<Placed>()
             let classes = ResizeArray<struct (AtomClass * AtomClass) voption>()
             let atom(ma: MA) =
@@ -964,13 +964,13 @@ type Layout(fontSize: float32<px>) =
             for ma in after do
                 atom ma
             t.PlaceRow(children.ToImmutable(), classes.ToArray(), style)
-        | MICurs.FracNum(n, d) ->
+        | MACurs.FracNum(n, d) ->
             t.Fraction(t.Cursored(n, style.Numerator), t.Of(d, style.Denominator), style)
-        | MICurs.FracDen(n, d) ->
+        | MACurs.FracDen(n, d) ->
             t.Fraction(t.Of(n, style.Numerator), t.Cursored(d, style.Denominator), style)
-        | MICurs.ScriptMainSuper _ | MICurs.ScriptMainSub _ | MICurs.ScriptSuper _
-        | MICurs.ScriptSub _ | MICurs.Bracketed _ | MICurs.RootNDegree _ | MICurs.RootNMain _
-        | MICurs.Sqrt _ -> failwith $"the spike lays out rows and fractions, not {cursor}"
+        | MACurs.ScriptMainSuper _ | MACurs.ScriptMainSub _ | MACurs.ScriptSuper _
+        | MACurs.ScriptSub _ | MACurs.Bracketed _ | MACurs.RootNDegree _ | MACurs.RootNMain _
+        | MACurs.Sqrt _ -> failwith $"the spike lays out rows and fractions, not {cursor}"
 
     /// Laid out on a line of its own, where fractions and radicals are given their full height.
     member t.Of(ma: MA) = t.Of(ma, MathSize.Display)
@@ -978,21 +978,21 @@ type Layout(fontSize: float32<px>) =
     member t.Of(ma: MA, size: MathSize) = t.Of(ma.Flatten, Style(size, false))
 
     /// Laid out with the cursor drawn, which the formula it stands in is measured without.
-    member t.Of(cursor: MICurs) = t.Of(cursor, MathSize.Display)
+    member t.Of(cursor: MACurs) = t.Of(cursor, MathSize.Display)
 
     /// The MA the cursor stands in must already be flat, as Layout.Of makes an MA of its own.
-    member t.Of(cursor: MICurs, size: MathSize) =
+    member t.Of(cursor: MACurs, size: MathSize) =
         let placed = t.Cursored(cursor, Style(size, false))
         // Every cursored path draws the cursor, so this is the one place that has to be sure of it.
         match placed.Caret with
-        | ValueSome caret -> PlacedMICurs(placed, caret)
+        | ValueSome caret -> PlacedMACurs(placed, caret)
         | ValueNone -> failwith $"a cursored layout drew no cursor: {cursor}"
 
     /// The cursor position nearest a point, in pixels from the formula origin with y upwards.
     member t.Nearest(ma: MA, x: float32<px>, y: float32<px>) =
         let away(from: float32<px>, until: float32<px>, point: float32<px>) =
             max 0f<px> (max (from - point) (point - until))
-        let distance(cursor: MICurs) =
+        let distance(cursor: MACurs) =
             let caret = (t.Of cursor).Caret
             away(caret.X, caret.X + caret.Width, x) + away(caret.Y, caret.Y + caret.Thickness, y)
-        MICurs.Positions ma |> Seq.minBy distance
+        MACurs.Positions ma |> Seq.minBy distance

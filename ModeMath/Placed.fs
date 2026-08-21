@@ -279,7 +279,7 @@ type Placed with
 
 /// A cursored formula laid out: everything it draws, and where in it the cursor came to rest.
 [<Struct>]
-type PlacedMICurs(placed: Placed, caret: PlacedRule) =
+type PlacedMACurs(placed: Placed, caret: PlacedRule) =
     member _.Placed = placed
     /// In pixels from the formula's origin, so that what was clicked on is what is drawn.
     member _.Caret = caret

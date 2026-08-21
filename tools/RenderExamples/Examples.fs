@@ -435,12 +435,12 @@ let implemented = [
 /// The same, with the cursor somewhere in each. Rows and fractions only until the spike is finished.
 let cursored =
     let formula = (row [ c 'a'; frac(s "b+1", c 'c'); c 'd' ]).Flatten
-    let positions = MICurs.Positions formula |> List.ofSeq
+    let positions = MACurs.Positions formula |> List.ofSeq
     let slot = (frac(MA.Empty, c 'c')).Flatten
     [
         "CursorBeforeAFraction", positions.[1]
         "CursorAfterALetterInTheNumerator", positions.[3]
-        "CursorInAnEmptySlot", (MICurs.Positions slot |> Seq.item 1)
+        "CursorInAnEmptySlot", (MACurs.Positions slot |> Seq.item 1)
     ]
 
 /// Examples from the same folder that MA cannot express yet, with the roadmap item each waits on.

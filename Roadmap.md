@@ -4,12 +4,12 @@ Editing and display work. `examples/` shows what renders today.
 
 ## 1. Hit-testing
 
-A point to a `MICurs`, built by descending the display tree and the `MA` together.
+A point to a `MACurs`, built by descending the display tree and the `MA` together.
 
 ## 2. Remaining mathematics
 
 All display-only. The cursor treats each as one unit, stepping over it and deleting it whole, so none
-needs a `MICurs` case.
+needs a `MACurs` case.
 
 Ordered by use in the SummaticApp content library.
 
