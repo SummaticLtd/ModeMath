@@ -351,13 +351,15 @@ module internal Latexing =
             | "{" | "}" | "%" | "#" | "&" | "_" | "$" -> MA.Char name.[0]
             | _ ->
                 match commands |> ImmutableDictionary.tryFind name with
-                | ValueSome(Standing.Symbol c) -> MA.Char c
-                | ValueSome(Standing.Function f) -> MA.Function f
-                | ValueSome(Standing.BigOp op) -> MA.BigOp(op, ValueNone, ValueNone)
-                | ValueSome(Standing.Space space) -> MA.Space space
-                | ValueSome(Standing.Accent accent) -> MA.Accented(accent, t.Argument())
-                | ValueSome(Standing.Spanning mark) -> MA.Spanned(mark, t.Argument())
                 | ValueNone -> fail($"{name} is no command this reads", position)
+                | ValueSome standing ->
+                    match standing with
+                    | Standing.Symbol c -> MA.Char c
+                    | Standing.Function f -> MA.Function f
+                    | Standing.BigOp op -> MA.BigOp(op, ValueNone, ValueNone)
+                    | Standing.Space space -> MA.Space space
+                    | Standing.Accent accent -> MA.Accented(accent, t.Argument())
+                    | Standing.Spanning mark -> MA.Spanned(mark, t.Argument())
 
         /// The degree a root is taken to, which square brackets hold rather than braces.
         member private t.Degree() =
