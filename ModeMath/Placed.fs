@@ -32,9 +32,9 @@ type PlacedGlyph(glyph: Glyph, size: float32<px>, x: float32<px>, y: float32<px>
     member _.Size = size
     member _.X = x
     member _.Y = y
-    member private _.Scale = size / design MathConstants.UnitsPerEm
-    member t.Top = y + design glyph.Top * t.Scale
-    member t.Bottom = y + design glyph.Bottom * t.Scale
+    member private _.Scale = size / MathConstants.UnitsPerEm
+    member t.Top = y + glyph.Top * t.Scale
+    member t.Bottom = y + glyph.Bottom * t.Scale
 
 /// Glyphs forming one mark: a delimiter grown by stacking, a surd, or a function's letters.
 [<Struct>]

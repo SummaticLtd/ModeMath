@@ -50,14 +50,14 @@ let private writeConstants(w: Writer, table: MathTable, unitsPerEm: int) =
     w.Line "/// Positioning values from the MATH table, in font design units."
     w.Line "module MathConstants ="
     w.Line "    [<Literal>]"
-    w.Line $"    let UnitsPerEm = {unitsPerEm}<du>"
+    w.Line $"    let UnitsPerEm = {unitsPerEm}f<du>"
     for i in 0 .. MathConstantNames.table.Length - 1 do
         let name = MathConstantNames.table.[i]
-        let unit = if MathConstantNames.percentages.Contains name then "" else "<du>"
+        let unit = if MathConstantNames.percentages.Contains name then "f" else "f<du>"
         w.Line "    [<Literal>]"
         w.Line $"    let {name} = {table.Constants.[i]}{unit}"
     w.Line "    [<Literal>]"
-    w.Line $"    let MinConnectorOverlap = {table.MinConnectorOverlap}<du>"
+    w.Line $"    let MinConnectorOverlap = {table.MinConnectorOverlap}f<du>"
 
 [<EntryPoint>]
 let main(args: string array): int =
@@ -90,8 +90,8 @@ let main(args: string array): int =
             match attachments.TryGetValue id with
             | true, value -> value
             | false, _ -> advances.[id] / 2
-        $"Glyph({id}, {advances.[id]}<du>, {tops.[id]}<du>, {bottoms.[id]}<du>, {italic}<du>, \
-            {attachment}<du>)"
+        $"Glyph({id}, {advances.[id]}f<du>, {tops.[id]}f<du>, {bottoms.[id]}f<du>, {italic}f<du>, \
+            {attachment}f<du>)"
 
     if blackboardTypeface.GlyphCount <> blackboardGlyphCount then
         failwith
@@ -112,8 +112,8 @@ let main(args: string array): int =
     /// The blackboard face carries no MATH table, so it leans nowhere and attaches at its midpoint.
     let blackboardGlyph(id: int) =
         let advance = blackboardAdvances.[id]
-        $"Glyph(Face.Blackboard, {id}, {advance}<du>, {blackboardTops.[id]}<du>, \
-            {blackboardBottoms.[id]}<du>, 0<du>, {advance / 2}<du>)"
+        $"Glyph(Face.Blackboard, {id}, {advance}f<du>, {blackboardTops.[id]}f<du>, \
+            {blackboardBottoms.[id]}f<du>, 0f<du>, {advance / 2}f<du>)"
 
     let mapped = font.GetGlyphs(ReadOnlySpan allCodepoints)
     let byCodepoint =
@@ -129,7 +129,7 @@ let main(args: string array): int =
     let holes = Set.ofList Named.alphabetHoles
     /// An unassigned slot keeps the alphabet indexable and is reported as no letter at all.
     let letter(codepoint: int) =
-        if holes.Contains codepoint then "Glyph(0, 0<du>, 0<du>, 0<du>, 0<du>, 0<du>)"
+        if holes.Contains codepoint then "Glyph(0, 0f<du>, 0f<du>, 0f<du>, 0f<du>, 0f<du>)"
         else glyph (resolve codepoint)
 
     let exceptions = dict Named.alphabetExceptions
@@ -179,7 +179,7 @@ let main(args: string array): int =
         | Some construction ->
             let sizes =
                 construction.Variants
-                |> Array.map (fun v -> $"StretchSize({glyph v.Glyph}, {v.Advance}<du>)")
+                |> Array.map (fun v -> $"StretchSize({glyph v.Glyph}, {v.Advance}f<du>)")
             let parts =
                 match construction.Assembly with
                 | ValueNone -> Array.empty
@@ -187,8 +187,8 @@ let main(args: string array): int =
                     assembly.Parts
                     |> Array.map (fun p ->
                         let extender = if p.IsExtender then "true" else "false"
-                        $"AssemblyPart({glyph p.Glyph}, {p.StartConnector}<du>, \
-                            {p.EndConnector}<du>, {p.FullAdvance}<du>, {extender})")
+                        $"AssemblyPart({glyph p.Glyph}, {p.StartConnector}f<du>, \
+                            {p.EndConnector}f<du>, {p.FullAdvance}f<du>, {extender})")
             id, sizes, parts
 
     let writeStretchy(moduleName: string, summary: string, entries: (string * int * string) list) =

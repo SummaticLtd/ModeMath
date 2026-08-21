@@ -20,8 +20,8 @@ type Style(size: MathSize, cramped: bool) =
     member _.ScaleFactor =
         match size with
         | MathSize.Display | MathSize.Text -> 1f
-        | MathSize.Script -> float32 MathConstants.ScriptPercentScaleDown / 100f
-        | MathSize.ScriptScript -> float32 MathConstants.ScriptScriptPercentScaleDown / 100f
+        | MathSize.Script -> MathConstants.ScriptPercentScaleDown / 100f
+        | MathSize.ScriptScript -> MathConstants.ScriptScriptPercentScaleDown / 100f
 
     member _.Cramp = Style(size, true)
 
@@ -224,7 +224,7 @@ module private Spacing =
 
 /// Lays out an MA at a base font size in points.
 type Layout(fontSize: float32<px>) =
-    let scale(style: Style) = fontSize * style.ScaleFactor / design MathConstants.UnitsPerEm
+    let scale(style: Style) = fontSize * style.ScaleFactor / MathConstants.UnitsPerEm
     let pointSize(style: Style) = fontSize * style.ScaleFactor
 
     /// An atom of the given width, reaching as far as the parts it draws.
@@ -254,7 +254,7 @@ type Layout(fontSize: float32<px>) =
     let single(glyph: Glyph, style: Style, make: PlacedGlyph -> PlacedMA) =
         let s = scale style
         let pma = make(PlacedGlyph(glyph, pointSize style, 0f<px>, 0f<px>))
-        atomOf(pma, design (glyph.Advance + glyph.ItalicCorrection) * s, design glyph.ItalicCorrection * s)
+        atomOf(pma, (glyph.Advance + glyph.ItalicCorrection) * s, glyph.ItalicCorrection * s)
 
     /// A large operator's italic correction measures its lean rather than ink past its advance, so it
     /// does not widen the mark, though scripts and limits are still placed by it.
@@ -263,16 +263,16 @@ type Layout(fontSize: float32<px>) =
         PlacedGlyphs(
             ImmutableArray.Create(PlacedGlyph(glyph, pointSize style, 0f<px>, 0f<px>)),
             Extent(
-                design glyph.Advance * s,
-                design glyph.Top * s,
-                -(design glyph.Bottom) * s,
-                design glyph.ItalicCorrection * s))
+                glyph.Advance * s,
+                glyph.Top * s,
+                -glyph.Bottom * s,
+                glyph.ItalicCorrection * s))
 
     /// A glyph with its ink resting on the origin, so that callers place it by its bottom.
     let bottomAnchored(glyph: Glyph, style: Style) =
         let s = scale style
-        let placed = PlacedGlyph(glyph, pointSize style, 0f<px>, -(design glyph.Bottom) * s)
-        markOf(ImmutableArray.Create placed, design glyph.Advance * s)
+        let placed = PlacedGlyph(glyph, pointSize style, 0f<px>, -glyph.Bottom * s)
+        markOf(ImmutableArray.Create placed, glyph.Advance * s)
 
     /// Upright letters, as function names are set: one mark, so no italic correction trails them.
     let upright(text: string, style: Style) =
@@ -282,7 +282,7 @@ type Layout(fontSize: float32<px>) =
         for c in text do
             let glyph = required(Conventions.uprightGlyph c, $"the character {c}")
             glyphs.Add(PlacedGlyph(glyph, pointSize style, x, 0f<px>))
-            x <- x + design glyph.Advance * s
+            x <- x + glyph.Advance * s
         markOf(glyphs.ToImmutable(), x)
 
     let spacing(left: AtomClass, right: AtomClass, style: Style) =
@@ -304,32 +304,32 @@ type Layout(fontSize: float32<px>) =
         match above with
         | ValueSome extent ->
             let start =
-                design (
+                (
                     if style.Cramped then MathConstants.SuperscriptShiftUpCramped
                     else MathConstants.SuperscriptShiftUp)
                 * s
             up <-
                 max
-                    (max start (b.Ascent - design MathConstants.SuperscriptBaselineDropMax * s))
-                    (extent.Descent + design MathConstants.SuperscriptBottomMin * s)
+                    (max start (b.Ascent - MathConstants.SuperscriptBaselineDropMax * s))
+                    (extent.Descent + MathConstants.SuperscriptBottomMin * s)
         | ValueNone -> ()
         match below with
         | ValueSome extent ->
             down <-
                 max
                     (max
-                        (design MathConstants.SubscriptShiftDown * s)
-                        (b.Descent + design MathConstants.SubscriptBaselineDropMin * s))
-                    (extent.Ascent - design MathConstants.SubscriptTopMax * s)
+                        (MathConstants.SubscriptShiftDown * s)
+                        (b.Descent + MathConstants.SubscriptBaselineDropMin * s))
+                    (extent.Ascent - MathConstants.SubscriptTopMax * s)
         | ValueNone -> ()
         match above, below with
         | ValueSome over, ValueSome under ->
-            let gapMin = design MathConstants.SubSuperscriptGapMin * s
+            let gapMin = MathConstants.SubSuperscriptGapMin * s
             let gap = (up - over.Descent) - (under.Ascent - down)
             if gap < gapMin then
                 down <- down + gapMin - gap
                 let shortfall =
-                    design MathConstants.SuperscriptBottomMaxWithSubscript * s - (up - over.Descent)
+                    MathConstants.SuperscriptBottomMaxWithSubscript * s - (up - over.Descent)
                 if shortfall > 0f<px> then
                     up <- up + shortfall
                     down <- down - shortfall
@@ -346,7 +346,7 @@ type Layout(fontSize: float32<px>) =
         let after =
             match above, below with
             | ValueNone, ValueNone -> 0f<px>
-            | ValueSome _, _ | _, ValueSome _ -> design MathConstants.SpaceAfterScript * s
+            | ValueSome _, _ | _, ValueSome _ -> MathConstants.SpaceAfterScript * s
         struct (up, down, subscriptX, width + after)
 
     member private t.Row(elements: ImmutableArray<MA>, style: Style) =
@@ -382,10 +382,10 @@ type Layout(fontSize: float32<px>) =
         let n = t.Of(numerator, style.Numerator)
         let d = t.Of(denominator, style.Denominator)
         let s = scale style
-        let axis = design MathConstants.AxisHeight * s
-        let thickness = design MathConstants.FractionRuleThickness * s
-        let value(displayStyle: int<du>, textStyle: int<du>) =
-            design (if style.IsDisplay then displayStyle else textStyle) * s
+        let axis = MathConstants.AxisHeight * s
+        let thickness = MathConstants.FractionRuleThickness * s
+        let value(displayStyle: float32<du>, textStyle: float32<du>) =
+            (if style.IsDisplay then displayStyle else textStyle) * s
         let numeratorGap =
             value(MathConstants.FractionNumDisplayStyleGapMin, MathConstants.FractionNumeratorGapMin)
         let denominatorGap =
@@ -484,16 +484,16 @@ type Layout(fontSize: float32<px>) =
             |> ValueOption.map (fun placed ->
                 let rise =
                     max
-                        (design MathConstants.UpperLimitBaselineRiseMin * s)
-                        (design MathConstants.UpperLimitGapMin * s + placed.Descent)
+                        (MathConstants.UpperLimitBaselineRiseMin * s)
+                        (MathConstants.UpperLimitGapMin * s + placed.Descent)
                 placed.At(centre + half - placed.Width / 2f, operator.Ascent + rise))
         let lower =
             below
             |> ValueOption.map (fun placed ->
                 let drop =
                     max
-                        (design MathConstants.LowerLimitBaselineDropMin * s)
-                        (design MathConstants.LowerLimitGapMin * s + placed.Ascent)
+                        (MathConstants.LowerLimitBaselineDropMin * s)
+                        (MathConstants.LowerLimitGapMin * s + placed.Ascent)
                 placed.At(centre - half - placed.Width / 2f, -(operator.Descent + drop)))
         // A limit wider than the operator overhangs on both sides, so the whole atom shifts right.
         let leftmost(placed: Placed voption) =
@@ -519,7 +519,7 @@ type Layout(fontSize: float32<px>) =
         let mutable i = 0
         while chosen.IsNone && i < stretchy.SizeCount do
             let size = stretchy.Size i
-            if design size.Advance * s >= minHeight then chosen <- ValueSome size.Glyph
+            if size.Advance * s >= minHeight then chosen <- ValueSome size.Glyph
             i <- i + 1
         match chosen with
         | ValueSome size -> bottomAnchored(size, style)
@@ -530,9 +530,9 @@ type Layout(fontSize: float32<px>) =
 
     member private _.Assembly(stretchy: StretchyGlyph, style: Style, minHeight: float32<px>) =
         let s = scale style
-        let overlap = design MathConstants.MinConnectorOverlap * s
+        let overlap = MathConstants.MinConnectorOverlap * s
         let parts = Array.init stretchy.PartCount stretchy.Part
-        let advance(part: AssemblyPart) = design part.FullAdvance * s
+        let advance(part: AssemblyPart) = part.FullAdvance * s
         let extenders = parts |> Array.filter (fun part -> part.IsExtender)
         // Each further round of extenders lengthens the assembly by this much, overlaps allowed for.
         let round = (extenders |> Array.sumBy advance) - overlap * float32 extenders.Length
@@ -551,9 +551,9 @@ type Layout(fontSize: float32<px>) =
         let mutable width = 0f<px>
         for part in items do
             let glyph = part.Glyph
-            glyphs.Add(PlacedGlyph(glyph, pointSize style, 0f<px>, y - (design glyph.Bottom) * s))
-            width <- max width (design glyph.Advance * s)
-            y <- y + design part.FullAdvance * s - overlap
+            glyphs.Add(PlacedGlyph(glyph, pointSize style, 0f<px>, y - (glyph.Bottom) * s))
+            width <- max width (glyph.Advance * s)
+            y <- y + part.FullAdvance * s - overlap
         markOf(glyphs.ToImmutable(), width)
 
     /// One side of a bracketed formula, which \left. leaves out altogether.
@@ -566,7 +566,7 @@ type Layout(fontSize: float32<px>) =
     member private t.Brackets(brackets: Brackets, inner: MA, completion: BracketCompletion, style: Style) =
         let content = t.Of(inner, style)
         let s = scale style
-        let axis = design MathConstants.AxisHeight * s
+        let axis = MathConstants.AxisHeight * s
         let reach = 2f * max (content.Ascent - axis) (content.Descent + axis)
         // TeX lets a delimiter fall a little short rather than jump to the next size up.
         let needed = max (reach * 0.901f) (reach - 0.5f * fontSize * style.ScaleFactor)
@@ -587,9 +587,9 @@ type Layout(fontSize: float32<px>) =
     member private t.Radical(degree: MA voption, radicand: MA, style: Style) =
         let x = t.Of(radicand, style.Cramp)
         let s = scale style
-        let thickness = design MathConstants.RadicalRuleThickness * s
+        let thickness = MathConstants.RadicalRuleThickness * s
         let gap =
-            design (
+            (
                 if style.IsDisplay then MathConstants.RadicalDisplayStyleVerticalGap
                 else MathConstants.RadicalVerticalGap)
             * s
@@ -600,8 +600,8 @@ type Layout(fontSize: float32<px>) =
         let ruleTop = x.Ascent + clearance + thickness
         let bottom = ruleTop - surd.Ascent
         let index = degree |> ValueOption.map (fun ma -> t.Of(ma, Style(MathSize.ScriptScript, style.Cramped)))
-        let before = design MathConstants.RadicalKernBeforeDegree * s
-        let after = design MathConstants.RadicalKernAfterDegree * s
+        let before = MathConstants.RadicalKernBeforeDegree * s
+        let after = MathConstants.RadicalKernAfterDegree * s
         let indexWidth =
             match index with
             | ValueSome placed -> placed.Width
@@ -617,16 +617,16 @@ type Layout(fontSize: float32<px>) =
         let pma =
             match index with
             | ValueSome placed ->
-                let raise = float32 MathConstants.RadicalDegreeBottomRaisePercent / 100f * surd.Ascent
+                let raise = MathConstants.RadicalDegreeBottomRaisePercent / 100f * surd.Ascent
                 let degreeY = bottom + raise + placed.Descent
                 PlacedMA.RootN(placed.At(surdX - indexWidth - after, degreeY), placedSurd, bar, radicand)
             | ValueNone -> PlacedMA.Sqrt(placedSurd, bar, radicand)
-        paddedAtom(pma, barX + x.Width, design MathConstants.RadicalExtraAscender * s, 0f<px>)
+        paddedAtom(pma, barX + x.Width, MathConstants.RadicalExtraAscender * s, 0f<px>)
 
     /// Where an accent sits over an atom: its glyph's attachment, or the middle of one drawn from more.
     member private _.Attachment(placed: Placed, style: Style) =
         match placed.Pma.SingleGlyph with
-        | ValueSome glyph -> glyph.X + design glyph.Glyph.TopAccentAttachment * scale style
+        | ValueSome glyph -> glyph.X + glyph.Glyph.TopAccentAttachment * scale style
         | ValueNone -> placed.Width / 2f
 
     /// The accent rises clear of a base taller than the height the font draws its accents for.
@@ -638,35 +638,35 @@ type Layout(fontSize: float32<px>) =
             PlacedGlyph(
                 glyph,
                 pointSize style,
-                t.Attachment(b, style) - design glyph.TopAccentAttachment * s,
-                max 0f<px> (b.Ascent - design MathConstants.AccentBaseHeight * s))
+                t.Attachment(b, style) - glyph.TopAccentAttachment * s,
+                max 0f<px> (b.Ascent - MathConstants.AccentBaseHeight * s))
         atomOf(PlacedMA.Accented(accent, mark, b), b.Width, b.ItalicCorrection)
 
     /// A rule over the atom, clear of its ink by the gap the font names.
     member private t.Overline(x: MA, style: Style) =
         let b = t.Of(x, style.Cramp)
         let s = scale style
-        let thickness = design MathConstants.OverbarRuleThickness * s
-        let gap = design MathConstants.OverbarVerticalGap * s
+        let thickness = MathConstants.OverbarRuleThickness * s
+        let gap = MathConstants.OverbarVerticalGap * s
         let pma = PlacedMA.Overline(PlacedRule(b.Width, thickness, 0f<px>, b.Ascent + gap), b)
-        paddedAtom(pma, b.Width, design MathConstants.OverbarExtraAscender * s, 0f<px>)
+        paddedAtom(pma, b.Width, MathConstants.OverbarExtraAscender * s, 0f<px>)
 
     /// A rule under the atom, clear of its ink by the gap the font names.
     member private t.Underline(x: MA, style: Style) =
         let b = t.Of(x, style)
         let s = scale style
-        let thickness = design MathConstants.UnderbarRuleThickness * s
-        let gap = design MathConstants.UnderbarVerticalGap * s
+        let thickness = MathConstants.UnderbarRuleThickness * s
+        let gap = MathConstants.UnderbarVerticalGap * s
         let pma = PlacedMA.Underline(b, PlacedRule(b.Width, thickness, 0f<px>, -(b.Descent + gap + thickness)))
-        paddedAtom(pma, b.Width, 0f<px>, design MathConstants.UnderbarExtraDescender * s)
+        paddedAtom(pma, b.Width, 0f<px>, MathConstants.UnderbarExtraDescender * s)
 
     /// A fraction with no rule, where only the gap keeps the two apart.
     member private t.Stack(top: MA, bottom: MA, style: Style) =
         let above = t.Of(top, style.Numerator)
         let below = t.Of(bottom, style.Denominator)
         let s = scale style
-        let value(displayStyle: int<du>, textStyle: int<du>) =
-            design (if style.IsDisplay then displayStyle else textStyle) * s
+        let value(displayStyle: float32<du>, textStyle: float32<du>) =
+            (if style.IsDisplay then displayStyle else textStyle) * s
         let mutable up = value(MathConstants.StackTopDisplayStyleShiftUp, MathConstants.StackTopShiftUp)
         let mutable down =
             value(MathConstants.StackBottomDisplayStyleShiftDown, MathConstants.StackBottomShiftDown)
@@ -703,7 +703,7 @@ type Layout(fontSize: float32<px>) =
             lefts.[col] <- right
             right <- right + widths.[col] + gap
         let width = max 0f<px> (right - gap)
-        let leading = design MathConstants.MathLeading * s
+        let leading = MathConstants.MathLeading * s
         let baselines = Array.zeroCreate<float32<px>> placed.Rows
         let mutable y = 0f<px>
         for row in 0 .. placed.Rows - 1 do
@@ -713,7 +713,7 @@ type Layout(fontSize: float32<px>) =
         let height =
             if placed.Rows = 0 then 0f<px> else furthest(placed.Rows - 1, fun cell -> cell.Descent) - y
         // The grid is centred on the axis, as a fraction of the same height would be.
-        let rise = height / 2f + design MathConstants.AxisHeight * s
+        let rise = height / 2f + MathConstants.AxisHeight * s
         let laid =
             placed
             |> ImmA2D.mapi (fun row col cell ->
