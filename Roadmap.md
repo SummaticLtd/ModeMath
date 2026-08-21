@@ -4,7 +4,7 @@ Editing and display work. `examples/` shows what renders today.
 
 ## 1. An editor over PlacedCurs
 
-`PlacedCurs.Nearest` takes a point to a cursor and `Layout.Of` draws one, so what is left is to put
+`PlacedCurs.Nearest` takes a point to a cursor and `Layout.Of` lays one out, so what is left is to put
 the editing operations on the laid-out cursor rather than the structural one: an edit goes
 `ToMACurs`, edits, and lays out again, and a move goes the same way without laying out. Then the
 caller holds a `PlacedCurs` and a `Layout`, and never names a `MACurs`.

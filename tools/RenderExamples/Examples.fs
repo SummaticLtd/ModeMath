@@ -432,7 +432,7 @@ let implemented = [
     "ModeMathEmptySlots", frac(MA.Empty, MA.Empty)
 ]
 
-/// The same, with the cursor somewhere in each. Rows and fractions only until the spike is finished.
+/// The same, with the cursor somewhere in each.
 let cursored =
     let formula = (row [ c 'a'; frac(s "b+1", c 'c'); c 'd' ]).Flatten
     let positions = MACurs.Positions formula |> List.ofSeq
