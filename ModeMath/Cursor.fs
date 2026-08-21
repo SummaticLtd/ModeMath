@@ -525,7 +525,7 @@ type internal MACurs =
         | _ -> ValueNone
 
     /// Replaces the atom before the cursor with one built from it, or from an empty slot if there is none.
-    /// Before means the last atom of the row the cursor stands in, and a slot the cursor fills has none.
+    /// There is none where the cursor starts the row it stands in, or fills an empty slot on its own.
     member t.ReplaceBefore(build: MA -> MACurs): MACurs =
         match t with
         | CursorOrEmpty -> build MA.Empty
