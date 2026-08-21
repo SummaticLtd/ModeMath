@@ -1,8 +1,29 @@
 namespace ModeMath
 
-/// A glyph of the math font, measured in design units from the origin on the baseline, y upwards.
+/// A font file the library draws from, which a glyph id means nothing without.
+type Face =
+    | Math = 0
+    /// AMS Capital Blackboard Bold, whose doubled stems Latin Modern has no shapes for.
+    | Blackboard = 1
+
+/// A glyph of a face, measured in design units from the origin on the baseline, y upwards.
 [<Struct>]
-type Glyph internal (id: int, advance: int, top: int, bottom: int, italicCorrection: int) =
+type Glyph
+    internal
+    (
+        face: Face,
+        id: int,
+        advance: int,
+        top: int,
+        bottom: int,
+        italicCorrection: int,
+        topAccentAttachment: int
+    ) =
+    /// A glyph of the math face, which everything but blackboard bold is set in.
+    internal new(id: int, advance: int, top: int, bottom: int, italicCorrection: int, topAccentAttachment: int) =
+        Glyph(Face.Math, id, advance, top, bottom, italicCorrection, topAccentAttachment)
+    /// The file the id indexes, which the painter needs to draw it.
+    member _.Face = face
     /// Index in the embedded font file, which is what the painter draws.
     member _.Id = id
     /// How far the pen moves along the line after drawing the glyph.
@@ -13,6 +34,8 @@ type Glyph internal (id: int, advance: int, top: int, bottom: int, italicCorrect
     member _.Bottom = bottom
     /// How far the glyph leans past its advance, zero where it does not lean.
     member _.ItalicCorrection = italicCorrection
+    /// The x an accent above aligns with, the advance's midpoint where the font names none.
+    member _.TopAccentAttachment = topAccentAttachment
 
 /// A codepoint the font maps, with the glyph that draws it.
 [<Struct>]

@@ -8,30 +8,36 @@ A point to a `MICurs`, built by descending the display tree and the `MA` togethe
 
 ## 2. Remaining mathematics
 
-All display-only. The cursor treats each as one unit, stepping over it and deleting it whole, so none needs a `MICurs` case.
+All display-only. The cursor treats each as one unit, stepping over it and deleting it whole, so none
+needs a `MICurs` case.
 
 Ordered by use in the SummaticApp content library.
 
 | Addition | LaTeX |
 |---|---|
-| `Styled` | `\mathrm`, `\mathbf`, `\mathbb`, `\it` |
+| `Styled` | `\mathrm`, `\mathbf`, `\it` |
 | `Coloured` | `\color`, `\red`, `\blue` and the rest |
 | Relations and arrows | `\leq`, `\Rightarrow`, `\approx`, `\in`, `\to` |
 | `Text` | `\text` |
-| Accents and overline | `\vec`, `\hat`, `\bar`, `\overline`, `\tilde`, `\dot` |
-| Tables | `pmatrix`, `eqnarray`, `cases`, `vmatrix`, `array` |
 | Binary operators | `\ast`, `\cap`, `\pm`, `\cup`, `\div` |
 | Spacing | `\quad`, `\qquad` |
-| Fraction with no rule | `\binom`, `\choose` |
+| Marks that stretch | `\widehat`, `\overbrace`, `\underbrace` |
+| Accents below | `\underdot` |
+| The double bar | `\Vert`, and the outer pair of a `Vmatrix` |
 | Open-ended function names | `\operatorname`, `\det`, `\arg` |
 
 Relations and binary operators carry a TeX atom class, which sets the spacing around them.
 
-`MA.Char` already covers `\infty`, `\partial`, `\circ`, `\emptyset`, `\therefore`, `\mid` and the ellipses.
+`MA.Char` already covers `\infty`, `\partial`, `\circ`, `\emptyset`, `\therefore`, `\mid` and the
+ellipses, and `\mathbb` is done: `MA.Blackboard` reaches all 26 capitals and `ℂ ℍ ℕ ℙ ℚ ℝ ℤ` are drawn
+from the same face.
+
+The marks that stretch need the `MATH` table's horizontal constructions, which MathTableGen parses but
+does not yet emit.
 
 ## 3. Units of measure
 
-A `Display` carries every length as a bare `float32`, so points, ems and font units are one type and
+A `Placed` carries every length as a bare `float32`, so points, ems and font units are one type and
 nothing catches mixing them. `Summatic.FSUtils` supplies the conversions and typed maxima to give them
 units.
 

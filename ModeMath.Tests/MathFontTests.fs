@@ -24,18 +24,17 @@ let private upright(c: char) =
 let private data =
     TestList(
         "Data",
-        [   Test.Sync(
+        [   Test.CasesSync(
                 "theEmbeddedFontIsTheOneTheMetricsCameFrom",
-                fun () ->
-                    use stream = MathFont.OpenFontFile()
+                [   "math", (Face.Math, FontFile.byteLength, FontFile.sha256)
+                    "blackboard", (Face.Blackboard, FontFile.blackboardByteLength, FontFile.blackboardSha256) ],
+                fun (face, byteLength, sha256) ->
+                    use stream = MathFont.OpenFontFile face
                     use copy = new MemoryStream()
                     stream.CopyTo copy
                     let bytes = copy.ToArray()
-                    Assert.Equal(FontFile.byteLength, bytes.Length, "font byte length")
-                    Assert.Equal(
-                        FontFile.sha256,
-                        Convert.ToHexStringLower(SHA256.HashData bytes),
-                        "font SHA-256")
+                    Assert.Equal(byteLength, bytes.Length, $"{face} byte length")
+                    Assert.Equal(sha256, Convert.ToHexStringLower(SHA256.HashData bytes), $"{face} SHA-256")
             )
             Test.Sync(
                 "theRepertoireIsSortedAndUnique",
@@ -109,7 +108,8 @@ let private named =
                     "italic greek", [ for c in 'α' .. 'ω' -> c ], Letters.italic
                     "italic shapes", [ '∂'; 'ϵ'; 'ϑ'; 'ϰ'; 'ϕ'; 'ϱ'; 'ϖ' ], Letters.italic
                     "bold latin small", [ 'a' .. 'z' ], Letters.bold
-                    "bold latin capital", [ 'A' .. 'Z' ], Letters.bold ]
+                    "bold latin capital", [ 'A' .. 'Z' ], Letters.bold
+                    "blackboard capital", [ 'A' .. 'Z' ], Letters.blackboard ]
                 |> List.map (fun (name, letters, alphabet) -> name, (name, letters, alphabet)),
                 fun (name, letters, alphabet) ->
                     for c in letters do
@@ -135,6 +135,28 @@ let private named =
                         match Letters.italic c with
                         | ValueSome italic -> Assert.True(italic.Id <> (upright c).Id, $"italic {c} is upright")
                         | ValueNone -> Assert.Fail $"no italic {c}"
+            )
+            Test.Sync(
+                "everyBlackboardCapitalComesFromTheBlackboardFace",
+                fun () ->
+                    for letter in 'A' .. 'Z' do
+                        match Letters.blackboard letter with
+                        | ValueSome glyph ->
+                            Assert.Equal(Face.Blackboard, glyph.Face, $"the face of {letter}")
+                            Assert.True(glyph.Advance > 0, $"{letter} has no advance")
+                        | ValueNone -> Assert.Fail $"no blackboard {letter}"
+            )
+            Test.Sync(
+                "accentsAreCombiningMarksDrawnLeftOfTheOrigin",
+                fun () ->
+                    for name, accent in
+                        [   "hat", Accents.hat; "tilde", Accents.tilde; "bar", Accents.bar
+                            "vec", Accents.vec; "dot", Accents.dot; "doubleDot", Accents.doubleDot
+                            "check", Accents.check; "acute", Accents.acute; "grave", Accents.grave
+                            "breve", Accents.breve ] do
+                        Assert.Equal(0, accent.Advance, $"{name} takes an advance")
+                        Assert.True(accent.TopAccentAttachment < 0, $"{name} attaches right of its origin")
+                        Assert.True(accent.Top > 0, $"{name} draws no ink above the baseline")
             )
             Test.Sync(
                 "theMinusSignIsNotTheHyphen",

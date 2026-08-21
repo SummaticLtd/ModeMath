@@ -42,6 +42,21 @@ let bigOperators =
         "intersection", 0x22C2, "The n-ary intersection sign."
     ]
 
+/// Accents, which are combining marks: no advance, and ink drawn to the left of the origin.
+let accents =
+    [
+        "hat", 0x0302, "The circumflex of \\hat."
+        "tilde", 0x0303, "The tilde of \\tilde."
+        "bar", 0x0304, "The macron of \\bar."
+        "vec", 0x20D7, "The right arrow of \\vec."
+        "dot", 0x0307, "The single dot of \\dot, a first derivative in time."
+        "doubleDot", 0x0308, "The double dot of \\ddot, a second derivative in time."
+        "check", 0x030C, "The caron of \\check."
+        "acute", 0x0301, "The acute of \\acute."
+        "grave", 0x0300, "The grave of \\grave."
+        "breve", 0x0306, "The breve of \\breve."
+    ]
+
 let radicals =
     [ "surd", 0x221A, "The tick and bar of a root, which grows to cover the radicand." ]
 
