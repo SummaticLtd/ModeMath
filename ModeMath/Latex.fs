@@ -1,19 +1,17 @@
 namespace ModeMath
 
 open System
+open System.Collections.Generic
 open System.Collections.Immutable
 open System.Drawing
 open FSUtils
 
 /// Why a LaTeX string could not be read, and where in it the reader stopped.
 [<Struct>]
-type LatexError =
-    {
-        Message: string
-        Position: int
-    }
-
-    override t.ToString() = $"{t.Message}, at character {t.Position}"
+type LatexError(message: string, position: int) =
+    member _.Message = message
+    member _.Position = position
+    override _.ToString() = $"{message}, at character {position}"
 
 module internal Latexing =
 
@@ -66,8 +64,7 @@ module internal Latexing =
             | '_' -> take Token.Sub
             | '&' -> take Token.Cell
             | '$' -> fail("a formula is read in math mode already", start)
-            | c when Char.IsWhiteSpace c -> ()
-            | c -> take(Token.Char c)
+            | _ -> if not(Char.IsWhiteSpace c) then take(Token.Char c)
         tokens.ToImmutable()
 
     let private greek =
@@ -154,14 +151,20 @@ module internal Latexing =
 
     let commands =
         [
-            for name, c in greek @ marks -> name, Standing.Symbol c
-            for name, f in functions -> name, Standing.Function f
-            for name, op in bigOps -> name, Standing.BigOp op
-            for name, accent in accents -> name, Standing.Accent accent
-            for name, mark in spanning -> name, Standing.Spanning mark
-            for name, space in spaces -> name, Standing.Space space
+            for name, c in greek @ marks do
+                yield KeyValuePair(name, Standing.Symbol c)
+            for name, f in functions do
+                yield KeyValuePair(name, Standing.Function f)
+            for name, op in bigOps do
+                yield KeyValuePair(name, Standing.BigOp op)
+            for name, accent in accents do
+                yield KeyValuePair(name, Standing.Accent accent)
+            for name, mark in spanning do
+                yield KeyValuePair(name, Standing.Spanning mark)
+            for name, space in spaces do
+                yield KeyValuePair(name, Standing.Space space)
         ]
-        |> readOnlyDict
+        |> ImmutableDictionary.CreateRange
 
     /// A formula with its letters set in another alphabet, and whatever that alphabet lacks left alone.
     let rec private set(build: char -> MA voption, ma: MA) =
@@ -347,14 +350,14 @@ module internal Latexing =
                 MA.Coloured(colour, t.Argument())
             | "{" | "}" | "%" | "#" | "&" | "_" | "$" -> MA.Char name.[0]
             | _ ->
-                match commands.TryGetValue name with
-                | true, Standing.Symbol c -> MA.Char c
-                | true, Standing.Function f -> MA.Function f
-                | true, Standing.BigOp op -> MA.BigOp(op, ValueNone, ValueNone)
-                | true, Standing.Space space -> MA.Space space
-                | true, Standing.Accent accent -> MA.Accented(accent, t.Argument())
-                | true, Standing.Spanning mark -> MA.Spanned(mark, t.Argument())
-                | _ -> fail($"{name} is no command this reads", position)
+                match commands |> ImmutableDictionary.tryFind name with
+                | ValueSome(Standing.Symbol c) -> MA.Char c
+                | ValueSome(Standing.Function f) -> MA.Function f
+                | ValueSome(Standing.BigOp op) -> MA.BigOp(op, ValueNone, ValueNone)
+                | ValueSome(Standing.Space space) -> MA.Space space
+                | ValueSome(Standing.Accent accent) -> MA.Accented(accent, t.Argument())
+                | ValueSome(Standing.Spanning mark) -> MA.Spanned(mark, t.Argument())
+                | ValueNone -> fail($"{name} is no command this reads", position)
 
         /// The degree a root is taken to, which square brackets hold rather than braces.
         member private t.Degree() =
@@ -464,5 +467,5 @@ type Latex =
             let formula = reader.Formula().Flatten
             match reader.Unread with
             | ValueNone -> Ok formula
-            | ValueSome position -> Error { Message = "the formula ends before the string does"; Position = position }
-        with Latexing.Rejected(message, position) -> Error { Message = message; Position = position }
+            | ValueSome position -> Error(LatexError("the formula ends before the string does", position))
+        with Latexing.Rejected(message, position) -> Error(LatexError(message, position))
