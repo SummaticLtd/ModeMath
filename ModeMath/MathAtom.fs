@@ -153,7 +153,7 @@ type MA =
     /// A grid of cells, whose columns take the alignments in turn, repeating. None centres them all.
     | Table of cells: ImmA2D<MA> * alignments: ImmutableArray<Alignment>
     | Spanned of mark: Spanning * x: MA
-    /// A formula in a colour. TODO: Color is 24 bytes and a pointer for four bytes of RGBA.
+    /// A formula in a colour. TODO: Argb<byte> once .NET 11 lands; Color is 24 bytes and a pointer.
     | Coloured of colour: Color * x: MA
     /// Words set upright among the mathematics, as \text does.
     | Text of string

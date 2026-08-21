@@ -32,8 +32,13 @@ from the same face. `MA.Text` covers `\mathrm` over a word as well as `\text`.
 
 `MA.Coloured` carries a `System.Drawing.Color`, as CSharpMath's `Colored` does. It is 24 bytes for
 what is four bytes of RGBA, and one of its four fields is a string reference, so every colour in a
-formula is a pointer the collector tracks. `SKColor` is four bytes but would put SkiaSharp in the
-semantic model, and `Summatic.Drawing` is not published.
+formula is a pointer the collector tracks.
+
+`System.Numerics.Colors.Argb<byte>` replaces it: blittable, four bytes, and in the shared framework
+rather than a rendering library. It was [merged for .NET 11](https://github.com/dotnet/runtime/pull/124663)
+in March 2026, after the .NET 10 this targets shipped, so the swap waits on moving up. The same change
+gives `Color` conversions either way, which leaves it a change of field type and two conversions at
+the painter's edge.
 
 ## Tracked separately
 
