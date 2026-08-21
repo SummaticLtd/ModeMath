@@ -897,6 +897,29 @@ let private cursors =
                             nearly(bare.Descent, placed.Descent, $"descent at {curs}")
             )
             Test.Sync(
+                "whatACursoredFormulaCoversHoldsBothTheFormulaAndTheCursor",
+                fun () ->
+                    // A caret stands taller than a letter, so a caller sizing to the formula clips it.
+                    for formula in cursored |> List.map flat do
+                        let placed = laid formula
+                        for curs in positions formula do
+                            let cursored = layout.Of curs
+                            let bounds = cursored.Bounds
+                            let caret = cursored.Caret
+                            let holds(from: float32<px>, until: float32<px>, low: float32<px>, high: float32<px>) =
+                                Assert.True(
+                                    from - 0.01f<px> <= low && high <= until + 0.01f<px>,
+                                    $"{low} to {high} was not inside {from} to {until} at {curs}")
+                            holds(bounds.X, bounds.X + bounds.Width, caret.X, caret.X + caret.Width)
+                            holds(bounds.Y, bounds.Y + bounds.Thickness, caret.Y, caret.Y + caret.Thickness)
+                            holds(bounds.X, bounds.X + bounds.Width, 0f<px>, placed.Width)
+                            holds(
+                                bounds.Y,
+                                bounds.Y + bounds.Thickness,
+                                -placed.Descent,
+                                placed.Ascent)
+            )
+            Test.Sync(
                 "theCursorMovesRightwardsAsItIsStepped",
                 fun () ->
                     let formula = MA.String "abc" |> flat

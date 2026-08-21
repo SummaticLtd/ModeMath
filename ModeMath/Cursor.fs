@@ -296,6 +296,17 @@ type MACurs =
         | MA.RootN(n, x) -> RootNMain(n, MACurs.AtEnd x) |> ValueSome
         | MA.Sqrt x -> Sqrt(MACurs.AtEnd x) |> ValueSome
 
+    /// The end of the slot this stands in, where an atom filling it on its own keeps no row to
+    /// step out into. ValueNone where the cursor is already there.
+    member private t.OutRight: MACurs voption =
+        let atEnd = MACurs.AtEnd t.ToMA
+        if atEnd = t then ValueNone else ValueSome atEnd
+
+    /// The start of the slot this stands in, which the same goes for.
+    member private t.OutLeft: MACurs voption =
+        let atStart = MACurs.AtStart t.ToMA
+        if atStart = t then ValueNone else ValueSome atStart
+
     /// Moves the cursor one place right without leaving this MACurs. ValueNone if it is already at the right-hand end.
     member private t.MoveRightWithin: MACurs voption =
         match t with
@@ -315,33 +326,37 @@ type MACurs =
                         | ValueNone -> MACurs.MakeRow(before.Add next, CursorOrEmpty, rest) |> ValueSome
                 | _ -> MACurs.MakeRow(before.AddRange inner.ToMA.Elements, CursorOrEmpty, after) |> ValueSome
         | ScriptMainSuper(main, super, sub) ->
-            match main.MoveRightWithin with
+            match main.Rightwards with
             | ValueSome main -> ScriptMainSuper(main, super, sub) |> ValueSome
             | ValueNone -> ScriptSuper(main.ToMA, MACurs.AtStart super, sub) |> ValueSome
         | ScriptMainSub(main, sub) ->
-            match main.MoveRightWithin with
+            match main.Rightwards with
             | ValueSome main -> ScriptMainSub(main, sub) |> ValueSome
             | ValueNone -> ScriptSub(main.ToMA, ValueNone, MACurs.AtStart sub) |> ValueSome
         | ScriptSuper(main, super, sub) ->
-            match super.MoveRightWithin with
+            match super.Rightwards with
             | ValueSome super -> ScriptSuper(main, super, sub) |> ValueSome
             | ValueNone ->
                 sub |> ValueOption.map (fun sub -> ScriptSub(main, ValueSome super.ToMA, MACurs.AtStart sub))
         | ScriptSub(main, super, sub) ->
-            sub.MoveRightWithin |> ValueOption.map (fun sub -> ScriptSub(main, super, sub))
+            sub.Rightwards |> ValueOption.map (fun sub -> ScriptSub(main, super, sub))
         | FracNum(n, d) ->
-            match n.MoveRightWithin with
+            match n.Rightwards with
             | ValueSome n -> FracNum(n, d) |> ValueSome
             | ValueNone -> FracDen(n.ToMA, MACurs.AtStart d) |> ValueSome
-        | FracDen(n, d) -> d.MoveRightWithin |> ValueOption.map (fun d -> FracDen(n, d))
+        | FracDen(n, d) -> d.Rightwards |> ValueOption.map (fun d -> FracDen(n, d))
         | Bracketed(b, inner, bc) ->
-            inner.MoveRightWithin |> ValueOption.map (fun inner -> Bracketed(b, inner, bc))
+            inner.Rightwards |> ValueOption.map (fun inner -> Bracketed(b, inner, bc))
         | RootNDegree(n, x) ->
-            match n.MoveRightWithin with
+            match n.Rightwards with
             | ValueSome n -> RootNDegree(n, x) |> ValueSome
             | ValueNone -> RootNMain(n.ToMA, MACurs.AtStart x) |> ValueSome
-        | RootNMain(n, x) -> x.MoveRightWithin |> ValueOption.map (fun x -> RootNMain(n, x))
-        | Sqrt x -> x.MoveRightWithin |> ValueOption.map (fun x -> Sqrt x)
+        | RootNMain(n, x) -> x.Rightwards |> ValueOption.map (fun x -> RootNMain(n, x))
+        | Sqrt x -> x.Rightwards |> ValueOption.map (fun x -> Sqrt x)
+
+    /// Rightwards inside a slot, which is one place along and then the end of the slot itself.
+    member private t.Rightwards =
+        t.MoveRightWithin |> ValueOption.orElseWith (fun () -> t.OutRight)
 
     /// Moves the cursor one place left without leaving this MACurs. ValueNone if it is already at the left-hand end.
     member private t.MoveLeftWithin: MACurs voption =
@@ -362,33 +377,37 @@ type MACurs =
                         | ValueNone -> MACurs.MakeRow(rest, CursorOrEmpty, after.Insert(0, previous)) |> ValueSome
                 | _ -> MACurs.MakeRow(before, CursorOrEmpty, inner.ToMA.Elements.AddRange after) |> ValueSome
         | ScriptMainSuper(main, super, sub) ->
-            main.MoveLeftWithin |> ValueOption.map (fun main -> ScriptMainSuper(main, super, sub))
+            main.Leftwards |> ValueOption.map (fun main -> ScriptMainSuper(main, super, sub))
         | ScriptMainSub(main, sub) ->
-            main.MoveLeftWithin |> ValueOption.map (fun main -> ScriptMainSub(main, sub))
+            main.Leftwards |> ValueOption.map (fun main -> ScriptMainSub(main, sub))
         | ScriptSuper(main, super, sub) ->
-            match super.MoveLeftWithin with
+            match super.Leftwards with
             | ValueSome super -> ScriptSuper(main, super, sub) |> ValueSome
             | ValueNone -> ScriptMainSuper(MACurs.AtEnd main, super.ToMA, sub) |> ValueSome
         | ScriptSub(main, super, sub) ->
-            match sub.MoveLeftWithin with
+            match sub.Leftwards with
             | ValueSome sub -> ScriptSub(main, super, sub) |> ValueSome
             | ValueNone ->
                 match super with
                 | ValueSome super -> ScriptSuper(main, MACurs.AtEnd super, ValueSome sub.ToMA) |> ValueSome
                 | ValueNone -> ScriptMainSub(MACurs.AtEnd main, sub.ToMA) |> ValueSome
-        | FracNum(n, d) -> n.MoveLeftWithin |> ValueOption.map (fun n -> FracNum(n, d))
+        | FracNum(n, d) -> n.Leftwards |> ValueOption.map (fun n -> FracNum(n, d))
         | FracDen(n, d) ->
-            match d.MoveLeftWithin with
+            match d.Leftwards with
             | ValueSome d -> FracDen(n, d) |> ValueSome
             | ValueNone -> FracNum(MACurs.AtEnd n, d.ToMA) |> ValueSome
         | Bracketed(b, inner, bc) ->
-            inner.MoveLeftWithin |> ValueOption.map (fun inner -> Bracketed(b, inner, bc))
-        | RootNDegree(n, x) -> n.MoveLeftWithin |> ValueOption.map (fun n -> RootNDegree(n, x))
+            inner.Leftwards |> ValueOption.map (fun inner -> Bracketed(b, inner, bc))
+        | RootNDegree(n, x) -> n.Leftwards |> ValueOption.map (fun n -> RootNDegree(n, x))
         | RootNMain(n, x) ->
-            match x.MoveLeftWithin with
+            match x.Leftwards with
             | ValueSome x -> RootNMain(n, x) |> ValueSome
             | ValueNone -> RootNDegree(MACurs.AtEnd n, x.ToMA) |> ValueSome
-        | Sqrt x -> x.MoveLeftWithin |> ValueOption.map (fun x -> Sqrt x)
+        | Sqrt x -> x.Leftwards |> ValueOption.map (fun x -> Sqrt x)
+
+    /// Leftwards inside a slot, which is one place back and then the start of the slot itself.
+    member private t.Leftwards =
+        t.MoveLeftWithin |> ValueOption.orElseWith (fun () -> t.OutLeft)
 
     /// Moves the cursor one place right, leaving the outermost atom if needed. ValueNone at the end of the formula.
     member t.Right: MACurs voption =

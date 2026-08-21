@@ -40,6 +40,9 @@ let private walkLeft(ma: MA) =
 
 let private sum = MA.BigOp(BigOperator.Sum, ValueSome(MA.String "n=1"), ValueSome(MA.Char 'm'))
 
+let private bracketed(x: MA) =
+    MA.Bracketed(Brackets.Matching Bracket.Normal, x, BracketCompletion.Completed)
+
 let private sampleFormulas =
     [
         MA.Char 'a'
@@ -53,6 +56,12 @@ let private sampleFormulas =
         MA.Bracketed(Brackets.Matching Bracket.Normal, MA.String "ab", BracketCompletion.Completed)
         sum
         MA.Row(arr [ MA.Char 'a'; sum; MA.Char 'b' ])
+        // Slots an atom fills on its own, which keep no row for the cursor to step out into.
+        MA.Frac(MA.Char 'a', bracketed(MA.Char 'z'))
+        MA.Sqrt(bracketed(MA.Char 'z'))
+        bracketed(bracketed(MA.Char 'z'))
+        MA.ScriptSuper(MA.Char 'x', frac, ValueSome(bracketed(MA.Char 'z')))
+        MA.RootN(frac, bracketed(MA.Char 'z'))
     ]
 
 let private editing =

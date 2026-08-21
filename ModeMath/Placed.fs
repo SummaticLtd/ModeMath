@@ -315,6 +315,18 @@ and [<Struct>] PlacedCurs(placed: Placed, curs: PlacedMACurs) =
     /// The atom itself, which is laid out the same whatever the cursor in it is doing.
     member _.Placed = placed
     member _.Curs = curs
+    /// What the formula and the cursor in it cover together, which is more than the formula alone
+    /// since a caret stands as tall as the box an empty slot shows.
+    member t.Bounds: PlacedRule =
+        let caret = t.Caret
+        let left = min 0f<px> caret.X
+        let bottom = min -placed.Descent caret.Y
+        PlacedRule(
+            max placed.Width (caret.X + caret.Width) - left,
+            max placed.Ascent (caret.Y + caret.Thickness) - bottom,
+            left,
+            bottom)
+
     /// Where the cursor is, in pixels from this atom's origin.
     member t.Caret: PlacedRule =
         let below(child: PlacedCurs) =

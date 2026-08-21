@@ -28,14 +28,20 @@ let private render(display: Placed, painter: Painter, path: string) =
     width, height
 
 let private renderCursor(curs: PlacedCurs, painter: Painter, path: string) =
-    let display = curs.Placed
-    let width = wholePixels(display.Width + 2f * padding)
-    let height = wholePixels(display.Height + 2f * padding)
+    // The cursor stands taller than the formula, so the bitmap is sized to hold both.
+    let bounds = curs.Bounds
+    let width = wholePixels(bounds.Width + 2f * padding)
+    let height = wholePixels(bounds.Thickness + 2f * padding)
     use bitmap = new SKBitmap(width, height)
     use canvas = new SKCanvas(bitmap)
     canvas.Clear SKColors.White
     use paint = new SKPaint(Color = SKColors.Black, IsAntialias = true)
-    painter.Draw(curs, canvas, padding, padding + display.Ascent, paint)
+    painter.Draw(
+        curs,
+        canvas,
+        padding - bounds.X,
+        padding + bounds.Y + bounds.Thickness,
+        paint)
     use image = SKImage.FromBitmap bitmap
     use data = image.Encode(SKEncodedImageFormat.Png, 100)
     use file = File.Create path

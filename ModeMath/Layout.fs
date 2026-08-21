@@ -285,6 +285,24 @@ type Layout(fontSize: float32<px>) =
             0f<px>,
             0f<px>)
 
+    /// The parts of an assembly in the order they are laid, the extenders repeated as often as it
+    /// takes to reach the length, up to a cap no formula reaches.
+    let assembled(stretchy: StretchyGlyph, overlap: float32<px>, s: float32<px/du>, length: float32<px>) =
+        let parts = Array.init stretchy.PartCount stretchy.Part
+        let advance(part: AssemblyPart) = part.FullAdvance * s
+        let extenders = parts |> Array.filter (fun part -> part.IsExtender)
+        // Each further round of extenders lengthens the assembly by this much, overlaps allowed for.
+        let round = (extenders |> Array.sumBy advance) - overlap * float32 extenders.Length
+        let shortest =
+            (parts |> Array.filter (fun part -> not part.IsExtender) |> Array.sumBy advance)
+            - overlap * float32 (parts.Length - extenders.Length - 1)
+        let repeats =
+            if extenders.Length = 0 || round <= 0f<px> then 0
+            else min 256 (max 0 (int (ceil ((length - shortest) / round))))
+        [| for part in parts do
+            for _ in 1 .. (if part.IsExtender then repeats else 1) do
+                yield part |]
+
     let markOf(glyphs: ImmutableArray<PlacedGlyph>, width: float32<px>) =
         let ascent = ImmArray.maxWithSafe(glyphs, 0f<px>, fun g -> g.Top)
         let descent = -ImmArray.minWithSafe(glyphs, 0f<px>, fun g -> g.Bottom)
@@ -600,25 +618,10 @@ type Layout(fontSize: float32<px>) =
     member private _.Assembly(stretchy: StretchyGlyph, style: Style, minHeight: float32<px>) =
         let s = scale style
         let overlap = MathConstants.MinConnectorOverlap * s
-        let parts = Array.init stretchy.PartCount stretchy.Part
-        let advance(part: AssemblyPart) = part.FullAdvance * s
-        let extenders = parts |> Array.filter (fun part -> part.IsExtender)
-        // Each further round of extenders lengthens the assembly by this much, overlaps allowed for.
-        let round = (extenders |> Array.sumBy advance) - overlap * float32 extenders.Length
-        let shortest =
-            (parts |> Array.filter (fun part -> not part.IsExtender) |> Array.sumBy advance)
-            - overlap * float32 (parts.Length - extenders.Length - 1)
-        let repeats =
-            if extenders.Length = 0 || round <= 0f<px> then 0
-            else min 256 (max 0 (int (ceil ((minHeight - shortest) / round))))
-        let items = ResizeArray<AssemblyPart>()
-        for part in parts do
-            for _ in 1 .. (if part.IsExtender then repeats else 1) do
-                items.Add part
         let glyphs = ImmutableArray.CreateBuilder<PlacedGlyph>()
         let mutable y = 0f<px>
         let mutable width = 0f<px>
-        for part in items do
+        for part in assembled(stretchy, overlap, s, minHeight) do
             let glyph = part.Glyph
             glyphs.Add(PlacedGlyph(glyph, emSize style, 0f<px>, y - glyph.Bottom * s))
             width <- max width (glyph.Advance * s)
@@ -730,25 +733,11 @@ type Layout(fontSize: float32<px>) =
     member private _.Spread(stretchy: StretchyGlyph, style: Style, minWidth: float32<px>) =
         let s = scale style
         let overlap = MathConstants.MinConnectorOverlap * s
-        let parts = Array.init stretchy.PartCount stretchy.Part
-        let advance(part: AssemblyPart) = part.FullAdvance * s
-        let extenders = parts |> Array.filter (fun part -> part.IsExtender)
-        let round = (extenders |> Array.sumBy advance) - overlap * float32 extenders.Length
-        let shortest =
-            (parts |> Array.filter (fun part -> not part.IsExtender) |> Array.sumBy advance)
-            - overlap * float32 (parts.Length - extenders.Length - 1)
-        let repeats =
-            if extenders.Length = 0 || round <= 0f<px> then 0
-            else min 256 (max 0 (int (ceil ((minWidth - shortest) / round))))
-        let items = ResizeArray<AssemblyPart>()
-        for part in parts do
-            for _ in 1 .. (if part.IsExtender then repeats else 1) do
-                items.Add part
         let glyphs = ImmutableArray.CreateBuilder<PlacedGlyph>()
         let mutable x = 0f<px>
-        for part in items do
+        for part in assembled(stretchy, overlap, s, minWidth) do
             glyphs.Add(PlacedGlyph(part.Glyph, emSize style, x, 0f<px>))
-            x <- x + advance part - overlap
+            x <- x + part.FullAdvance * s - overlap
         markOf(glyphs.ToImmutable(), x + overlap)
 
     /// Where an accent sits over an atom: its glyph's attachment, or the middle of one drawn from more.
