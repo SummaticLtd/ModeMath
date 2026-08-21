@@ -22,6 +22,14 @@
 
   <ItemGroup>
     <EmbeddedResource Include="..\fonts\latinmodern-math.otf" LogicalName="ModeMath.latinmodern-math.otf" />
+    <EmbeddedResource
+      Include="..\fonts\AMS-Capital-Blackboard-Bold.otf"
+      LogicalName="ModeMath.AMS-Capital-Blackboard-Bold.otf" />
+    <!-- Both licences require every copy of a face to carry them, so they travel inside the assembly. -->
+    <EmbeddedResource
+      Include="..\fonts\GUST-FONT-LICENSE.txt"
+      LogicalName="ModeMath.GUST-FONT-LICENSE.txt" />
+    <EmbeddedResource Include="..\fonts\AMSFONTS-OFL.txt" LogicalName="ModeMath.AMSFONTS-OFL.txt" />
   </ItemGroup>
 
 </Project>

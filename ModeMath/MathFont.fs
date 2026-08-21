@@ -27,6 +27,22 @@ module Letters =
         elif c >= 'A' && c <= 'Z' then Alphabet.at(Alphabets.boldCapital, int c - int 'A')
         else ValueNone
 
+    /// Blackboard bold A to Z, which comes from the second face.
+    let blackboard(c: char) =
+        if c >= 'A' && c <= 'Z' then Alphabet.at(Alphabets.blackboardCapital, int c - int 'A')
+        else ValueNone
+
+    /// The blackboard bold capitals Unicode keeps among the letterlike symbols, not in its alphabet.
+    let private letterlike =
+        [| 'C', 0x2102; 'H', 0x210D; 'N', 0x2115; 'P', 0x2119; 'Q', 0x211A; 'R', 0x211D; 'Z', 0x2124 |]
+
+    /// Blackboard bold for a letterlike symbol, as a formula holds one. ValueNone where c is not one.
+    let letterlikeBlackboard(c: char) =
+        let mutable found = ValueNone
+        for letter, codepoint in letterlike do
+            if codepoint = int c then found <- blackboard letter
+        found
+
     /// Upright, in which function names and capital Greek are set.
     let upright(c: char) =
         if c >= 'a' && c <= 'z' then Alphabet.at(Alphabets.uprightSmall, int c - int 'a')
@@ -56,6 +72,18 @@ type MathFont =
             else high <- middle - 1
         found
 
-    /// The font file the metrics were generated from, whose glyph ids Glyph.Id refers to.
-    static member OpenFontFile(): Stream =
-        typeof<Glyph>.Assembly.GetManifestResourceStream "ModeMath.latinmodern-math.otf"
+    /// The file a face was generated from, whose glyph ids Glyph.Id refers to.
+    static member OpenFontFile(face: Face): Stream =
+        let name =
+            match face with
+            | Face.Math -> "ModeMath.latinmodern-math.otf"
+            | Face.Blackboard -> "ModeMath.AMS-Capital-Blackboard-Bold.otf"
+        typeof<Glyph>.Assembly.GetManifestResourceStream name
+
+    /// The licence a face is redistributed under, which every copy of it has to carry.
+    static member OpenLicenceFile(face: Face): Stream =
+        let name =
+            match face with
+            | Face.Math -> "ModeMath.GUST-FONT-LICENSE.txt"
+            | Face.Blackboard -> "ModeMath.AMSFONTS-OFL.txt"
+        typeof<Glyph>.Assembly.GetManifestResourceStream name

@@ -1,6 +1,8 @@
 module ModeMath.Tests.LayoutTests
 
+open System
 open System.Collections.Immutable
+open FSUtils
 open SimpleTests
 open ModeMath
 
@@ -8,6 +10,24 @@ let private layout = Layout 20f
 let private laid(ma: MA) = layout.Of ma
 let private row(elements: MA list) = MA.Row(elements.ToImmutableArray())
 let private c(character: char) = MA.Char character
+
+let private grid(cells: MA list list, alignments: Alignment list) =
+    MA.Table(ImmA2D.fromJagged cells, alignments.ToImmutableArray())
+
+/// The design units of the font at the size the tests lay out.
+let private units = 20f / float32 MathConstants.UnitsPerEm
+
+/// The rules an atom draws itself, which is one for a fraction and none for a stack.
+let private rules(placed: Placed) =
+    [ for part in placed.Parts do
+        match part with
+        | Part.Rule(rule, _) -> yield rule
+        | Part.Glyph _ | Part.Child _ -> () ]
+
+let private glyphOf(placed: Placed) =
+    match placed.Pma.SingleGlyph with
+    | ValueSome glyph -> glyph
+    | ValueNone -> failwith $"not one glyph: {placed.Pma}"
 
 let private nearly(expected: float32, actual: float32, message: string) =
     Assert.True(abs (expected - actual) < 0.01f, $"{message}: expected {expected} but was {actual}")
@@ -171,6 +191,13 @@ let private repertoire =
                         "a character outside the repertoire must not lay out as nothing")
             )
             Test.CasesSync(
+                "everyFunctionNameCanBeSet",
+                [ for f in Enum.GetValues<MathFunction>() -> string f, f ],
+                fun f ->
+                    // Not every name is letters: the indicator is 1 and the factorial is !.
+                    Assert.True((laid(MA.Function f)).Width > 0f, $"{f} is set as nothing")
+            )
+            Test.CasesSync(
                 "everyClassifiedCharacterCanBeDrawn",
                 [   "relations", Conventions.relations
                     "binaries", Conventions.binaries
@@ -312,11 +339,238 @@ let private brackets =
                     Assert.Equal(round, glyphIds right, "and closes with the round one's")
             )
             Test.Sync(
+                "anAbsentBracketDrawsNothingAtAll",
+                fun () ->
+                    let inner = MA.Frac(c 'a', c 'b')
+                    let open_ =
+                        laid(MA.Bracketed(Brackets(Bracket.None, Bracket.Line), inner, BracketCompletion.Completed))
+                    let left, right = sides open_
+                    Assert.Equal(([]: int list), glyphIds left, "the absent side drew a delimiter")
+                    Assert.True((glyphIds right).Length > 0, "the bar was not drawn")
+                    nearly((laid inner).Width + right.Width, open_.Width, "the absent side took width")
+            )
+            Test.Sync(
                 "matchingGivesBothSidesTheSameShape",
                 fun () ->
                     let pair = Brackets.Matching Bracket.Curly
                     Assert.Equal(Bracket.Curly, pair.Left)
                     Assert.Equal(Bracket.Curly, pair.Right)
+            )
+        ]
+    )
+
+/// The accent and the base it was placed over.
+let private accented(placed: Placed) =
+    match placed.Pma with
+    | PlacedMA.Accented(_, mark, x) -> mark, x
+    | other -> failwith $"not an accented atom: {other}"
+
+let private cellsOf(placed: Placed) =
+    match placed.Pma with
+    | PlacedMA.Table(cells, _) -> cells
+    | other -> failwith $"not a table: {other}"
+
+let private marks =
+    TestList(
+        "Marks",
+        [   Test.Sync(
+                "anAccentRisesAboveItsBaseWithoutWideningIt",
+                fun () ->
+                    let bare = laid(c 'x')
+                    let hatted = laid(MA.Accented(Accent.Hat, c 'x'))
+                    nearly(bare.Width, hatted.Width, "an accent takes no width of its own")
+                    Assert.True(hatted.Ascent > bare.Ascent, "the accent does not rise above the base")
+            )
+            Test.Sync(
+                "anAccentSitsOverThePointItsBaseAttachesAt",
+                fun () ->
+                    // Italic d attaches well right of its middle, so a midpoint would place the hat wrong.
+                    let d =
+                        match Letters.italic 'd' with
+                        | ValueSome glyph -> glyph
+                        | ValueNone -> failwith "the font has no italic d"
+                    let mark, _ = accented(laid(MA.Accented(Accent.Hat, c 'd')))
+                    let expected = float32 (d.TopAccentAttachment - Accents.hat.TopAccentAttachment) * units
+                    nearly(expected, mark.X, "the accent is not placed by the attachments")
+                    Assert.True(
+                        d.TopAccentAttachment > d.Advance / 2,
+                        "the test proves nothing if the attachment is the midpoint")
+            )
+            Test.Sync(
+                "anAccentClearsABaseTallerThanAccentsAreDrawnFor",
+                fun () ->
+                    let over(x: MA) = fst (accented(laid(MA.Accented(Accent.Hat, x))))
+                    Assert.True(
+                        (over(c 'b')).Y > (over(c 'x')).Y,
+                        "the accent does not rise for the taller of the two letters")
+                    nearly(0f, (over(c '.')).Y, "a base shorter than the accent base height lifts nothing")
+                    nearly(
+                        (laid(c 'b')).Ascent - float32 MathConstants.AccentBaseHeight * units,
+                        (over(c 'b')).Y,
+                        "a taller base lifts the accent by more than its excess")
+            )
+            Test.CasesSync(
+                "everyAccentIsDrawn",
+                [   Accent.Hat; Accent.Tilde; Accent.Bar; Accent.Vec; Accent.Dot
+                    Accent.DoubleDot; Accent.Check; Accent.Acute; Accent.Grave; Accent.Breve ]
+                |> List.map (fun accent -> string accent, accent),
+                fun accent ->
+                    let mark, _ = accented(laid(MA.Accented(accent, c 'x')))
+                    Assert.True(mark.Top > mark.Bottom, $"{accent} draws no ink")
+            )
+            Test.Sync(
+                "anOverlineRulesTheFullWidthAboveTheAtom",
+                fun () ->
+                    let bare = laid(MA.String "ab")
+                    let ruled = laid(MA.Overline(MA.String "ab"))
+                    nearly(bare.Width, ruled.Width, "an overline takes no width of its own")
+                    Assert.True(ruled.Ascent > bare.Ascent, "the rule does not rise above the atom")
+                    nearly(bare.Descent, ruled.Descent, "the rule reaches below the atom")
+                    match rules ruled with
+                    | [ rule ] ->
+                        nearly(bare.Width, rule.Width, "the rule does not span the atom")
+                        Assert.True(rule.Y > bare.Ascent, "the rule is not clear of the ink")
+                    | drawn -> Assert.Fail $"an overline draws {drawn.Length} rules"
+            )
+            Test.Sync(
+                "anUnderlineRulesTheFullWidthBelowTheAtom",
+                fun () ->
+                    let bare = laid(MA.String "ab")
+                    let ruled = laid(MA.Underline(MA.String "ab"))
+                    nearly(bare.Width, ruled.Width, "an underline takes no width of its own")
+                    nearly(bare.Ascent, ruled.Ascent, "the rule reaches above the atom")
+                    Assert.True(ruled.Descent > bare.Descent, "the rule does not fall below the atom")
+                    match rules ruled with
+                    | [ rule ] ->
+                        nearly(bare.Width, rule.Width, "the rule does not span the atom")
+                        Assert.True(rule.Y + rule.Thickness < -bare.Descent, "the rule is not clear of the ink")
+                    | drawn -> Assert.Fail $"an underline draws {drawn.Length} rules"
+            )
+        ]
+    )
+
+let private stacks =
+    TestList(
+        "Stacks",
+        [   Test.Sync(
+                "aStackIsAFractionWithoutTheRule",
+                fun () ->
+                    let stacked = laid(MA.Stack(c 'a', c 'b'))
+                    let divided = laid(MA.Frac(c 'a', c 'b'))
+                    Assert.Equal(0, (rules stacked).Length, "a stack draws a rule")
+                    Assert.Equal(1, (rules divided).Length, "a fraction draws no rule")
+                    nearly(divided.Width, stacked.Width, "the two are set to the same width")
+            )
+            Test.Sync(
+                "aStackKeepsItsPartsApart",
+                fun () ->
+                    let stacked = laid(MA.Stack(c 'a', c 'b'))
+                    match stacked.Pma with
+                    | PlacedMA.Stack(top, bottom) ->
+                        Assert.True(
+                            top.Y - top.Descent > bottom.Y + bottom.Ascent,
+                            "the two parts overlap")
+                    | other -> Assert.Fail $"not a stack: {other}"
+            )
+            Test.Sync(
+                "aBinomialIsAStackInRoundBrackets",
+                fun () ->
+                    match (laid(MA.Binom(c '6', c 'x'))).Pma with
+                    | PlacedMA.Bracketed(brackets, _, inner, _, _) ->
+                        Assert.Equal(Bracket.Normal, brackets.Left, "left bracket")
+                        Assert.Equal(Bracket.Normal, brackets.Right, "right bracket")
+                        match inner.Pma with
+                        | PlacedMA.Stack _ -> ()
+                        | other -> Assert.Fail $"the brackets hold {other}"
+                    | other -> Assert.Fail $"not bracketed: {other}"
+            )
+        ]
+    )
+
+let private tables =
+    TestList(
+        "Tables",
+        [   Test.Sync(
+                "aColumnIsAsWideAsItsWidestCellAndAnEmFollowsIt",
+                fun () ->
+                    let wide = MA.String "abc"
+                    let table = laid(grid([ [ c 'x'; c 'y' ]; [ wide; c 'z' ] ], []))
+                    let expected = (laid wide).Width + 20f + max (laid(c 'y')).Width (laid(c 'z')).Width
+                    nearly(expected, table.Width, "the columns are not set by their widest cells")
+            )
+            Test.CasesSync(
+                "alignmentDecidesWhereANarrowCellSitsInItsColumn",
+                [   "left", (Alignment.Left, 0f)
+                    "centre", (Alignment.Centre, 0.5f)
+                    "right", (Alignment.Right, 1f) ],
+                fun (alignment, fraction) ->
+                    let wide = MA.String "abc"
+                    let table = laid(grid([ [ c 'x' ]; [ wide ] ], [ alignment ]))
+                    let narrow = (cellsOf table).[0, 0]
+                    let slack = (laid wide).Width - (laid(c 'x')).Width
+                    nearly(slack * fraction, narrow.X, $"{alignment} puts the cell in the wrong place")
+            )
+            Test.Sync(
+                "alignmentsAreTakenAgainOnceTheyRunOut",
+                fun () ->
+                    let alignments = ImmutableArray.Create(Alignment.Right, Alignment.Left)
+                    Assert.Equal(Alignment.Right, MA.AlignmentOf(alignments, 0), "column 0")
+                    Assert.Equal(Alignment.Left, MA.AlignmentOf(alignments, 1), "column 1")
+                    Assert.Equal(Alignment.Right, MA.AlignmentOf(alignments, 2), "column 2")
+                    Assert.Equal(
+                        Alignment.Centre,
+                        MA.AlignmentOf(ImmutableArray<Alignment>.Empty, 3),
+                        "a table naming no alignment centres its columns")
+            )
+            Test.Sync(
+                "rowsAreStackedAndTheGridIsCentredOnTheAxis",
+                fun () ->
+                    let one = laid(grid([ [ c 'x' ] ], []))
+                    let two = laid(grid([ [ c 'x' ]; [ c 'x' ] ], []))
+                    Assert.True(two.Height > one.Height, "a second row adds no height")
+                    let axis = float32 MathConstants.AxisHeight * units
+                    nearly(axis, (two.Ascent - two.Descent) / 2f, "the grid is not centred on the axis")
+            )
+            Test.Sync(
+                "anEmptyCellStillHoldsItsPlaceInTheGrid",
+                fun () ->
+                    let sparse = laid(grid([ [ c 'x'; MA.Empty ]; [ MA.Empty; c 'y' ] ], []))
+                    let cells = cellsOf sparse
+                    Assert.Equal(2, cells.Rows, "rows")
+                    Assert.Equal(2, cells.Cols, "columns")
+                    Assert.True(cells.[0, 1].X > cells.[0, 0].X, "the empty cell is not in the second column")
+            )
+        ]
+    )
+
+let private blackboard =
+    TestList(
+        "Blackboard",
+        [   Test.Sync(
+                "aBlackboardCapitalIsDrawnFromTheSecondFace",
+                fun () ->
+                    let letter = glyphOf(laid(MA.Blackboard 'F'))
+                    Assert.Equal(Face.Blackboard, letter.Glyph.Face, "face")
+                    Assert.True(letter.Glyph.Advance > 0, "the glyph has no advance")
+            )
+            Test.CasesSync(
+                "aLetterlikeSymbolIsTheSameLetterOfTheSameFace",
+                [ 'C', 'ℂ'; 'H', 'ℍ'; 'N', 'ℕ'; 'P', 'ℙ'; 'Q', 'ℚ'; 'R', 'ℝ'; 'Z', 'ℤ' ]
+                |> List.map (fun (letter, symbol) -> string symbol, (letter, symbol)),
+                fun (letter, symbol) ->
+                    let fromAlphabet = glyphOf(laid(MA.Blackboard letter))
+                    let fromCharacter = glyphOf(laid(c symbol))
+                    Assert.Equal(Face.Blackboard, fromCharacter.Glyph.Face, $"{symbol} comes from the math face")
+                    Assert.Equal(fromAlphabet.Glyph.Id, fromCharacter.Glyph.Id, $"{symbol} is not a blackboard {letter}")
+            )
+            Test.Sync(
+                "anOrdinaryCapitalIsStillItalic",
+                fun () ->
+                    let italic = glyphOf(laid(c 'N'))
+                    Assert.Equal(Face.Math, italic.Glyph.Face, "face")
+                    Assert.True(
+                        italic.Glyph.Id <> (glyphOf(laid(MA.Blackboard 'N'))).Glyph.Id,
+                        "N is drawn as a blackboard bold capital")
             )
         ]
     )
@@ -341,6 +595,15 @@ let private everyKind =
         MA.RootN(c '3', c 'x')
         MA.BigOp(BigOperator.Sum, ValueSome(c 'n'), ValueSome(c 'm'))
         MA.BigOp(BigOperator.Integral, ValueSome(c '0'), ValueNone)
+        MA.Blackboard 'R'
+        MA.Accented(Accent.Vec, c 'v')
+        MA.Overline(MA.String "ab")
+        MA.Underline(MA.String "ab")
+        MA.Stack(c '6', c 'x')
+        MA.Binom(c '6', c 'x')
+        grid([ [ c 'a'; c 'b' ]; [ c 'c'; MA.Empty ] ], [ Alignment.Right; Alignment.Left ])
+        MA.Matrix(ImmA2D.fromJagged [ [ c 'a'; c 'b' ] ])
+        MA.Cases(ImmA2D.fromJagged [ [ c 'a'; c 'b' ] ])
         row [ c 'a'; MA.Frac(c 'b', c 'c'); MA.Sqrt(c 'd') ]
     ]
 
@@ -360,4 +623,6 @@ let private roundTrip =
     )
 
 let tests =
-    TestFolder("Layout", [ measurement; structures; repertoire; bigOperators; brackets; roundTrip ])
+    TestFolder(
+        "Layout",
+        [ measurement; structures; repertoire; bigOperators; brackets; marks; stacks; tables; blackboard; roundTrip ])

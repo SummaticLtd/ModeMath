@@ -1,4 +1,4 @@
-﻿namespace ModeMath
+namespace ModeMath
 
 open System.Collections.Immutable
 open FSUtils
@@ -49,6 +49,25 @@ type BigOperator =
     /// Set in upright letters rather than drawn from a glyph.
     | Limit = 7
 
+/// A mark set over an atom, which does not change what the atom is.
+type Accent =
+    | Hat = 0
+    | Tilde = 1
+    | Bar = 2
+    | Vec = 3
+    | Dot = 4
+    | DoubleDot = 5
+    | Check = 6
+    | Acute = 7
+    | Grave = 8
+    | Breve = 9
+
+/// Where a table's cells sit in the column they share.
+type Alignment =
+    | Centre = 0
+    | Left = 1
+    | Right = 2
+
 /// A bracket shape, side-agnostic: Normal draws ( on the left and ) on the right.
 type Bracket =
     | Normal = 0
@@ -56,6 +75,8 @@ type Bracket =
     | Square = 2
     | Curly = 3
     | Angle = 4
+    /// Nothing at all, as \left. leaves a side of a formula open.
+    | None = 5
 
 /// The pair a formula is bracketed with, which need not match: [0, 1) is a square left and a round right.
 [<Struct>]
@@ -81,6 +102,8 @@ type MA =
     | Row of ImmutableArray<MA>
     | Char of char
     | BoldVar of char
+    /// A blackboard bold capital, which the second face draws.
+    | Blackboard of char
     | Cdot
     /// Upright d, for derivatives
     | UprightD
@@ -96,6 +119,13 @@ type MA =
     | Sqrt of x: MA
     /// A large operator with its limits, which are scripts in every style but display.
     | BigOp of op: BigOperator * lower: MA voption * upper: MA voption
+    | Accented of accent: Accent * x: MA
+    | Overline of x: MA
+    | Underline of x: MA
+    /// A fraction with no rule between its parts, which brackets turn into a binomial coefficient.
+    | Stack of top: MA * bottom: MA
+    /// A grid of cells, whose columns take the alignments in turn, repeating. None centres them all.
+    | Table of cells: ImmA2D<MA> * alignments: ImmutableArray<Alignment>
 
     static member Empty = Row ImmutableArray<MA>.Empty
     static member Row2(a: MA, b: MA) = Row(ImmutableArray.Create(a, b))
@@ -106,6 +136,23 @@ type MA =
         Bracketed(Brackets.Matching bracket, x, BracketCompletion.Completed)
 
     static member RoundBracket(x: MA) = MA.Paired(Bracket.Normal, x)
+
+    /// A binomial coefficient: a stack in round brackets, as \binom sets one.
+    static member Binom(top: MA, bottom: MA) = MA.RoundBracket(Stack(top, bottom))
+
+    /// A grid with every column centred, as a matrix is set.
+    static member Matrix(cells: ImmA2D<MA>) = Table(cells, ImmutableArray<Alignment>.Empty)
+
+    /// A left-aligned grid behind an opening brace, as a definition by cases is set.
+    static member Cases(cells: ImmA2D<MA>) =
+        Bracketed(
+            Brackets(Bracket.Curly, Bracket.None),
+            Table(cells, ImmutableArray.Create Alignment.Left),
+            BracketCompletion.Completed)
+
+    /// Where the cells of a column sit, columns past the end of the alignments taking them again.
+    static member AlignmentOf(alignments: ImmutableArray<Alignment>, column: int) =
+        if alignments.IsEmpty then Alignment.Centre else alignments.[column % alignments.Length]
 
     member t.IsEmpty =
         match t with
@@ -133,7 +180,7 @@ type MA =
     member t.Flatten: MA =
         match t with
         | Row l -> MA.FlattenElements l |> MA.OfElements
-        | Char _ | BoldVar _ | Cdot | UprightD | Function _ | Operator _ -> t
+        | Char _ | BoldVar _ | Blackboard _ | Cdot | UprightD | Function _ | Operator _ -> t
         | ScriptSuper(main, super, sub) ->
             ScriptSuper(main.Flatten, super.Flatten, sub |> ValueOption.map (fun s -> s.Flatten))
         | ScriptSub(main, sub) -> ScriptSub(main.Flatten, sub.Flatten)
@@ -146,6 +193,11 @@ type MA =
                 op,
                 lower |> ValueOption.map (fun l -> l.Flatten),
                 upper |> ValueOption.map (fun u -> u.Flatten))
+        | Accented(accent, x) -> Accented(accent, x.Flatten)
+        | Overline x -> Overline x.Flatten
+        | Underline x -> Underline x.Flatten
+        | Stack(top, bottom) -> Stack(top.Flatten, bottom.Flatten)
+        | Table(cells, alignments) -> Table(cells |> ImmA2D.map (fun cell -> cell.Flatten), alignments)
 
     override t.ToString() =
         let props(name: string, xs: obj seq) =
@@ -154,6 +206,7 @@ type MA =
         | Row l -> props("Row", l |> Seq.map box)
         | Char c -> string c
         | BoldVar c -> props("BoldVar", [ box c ])
+        | Blackboard c -> props("Blackboard", [ box c ])
         | Cdot -> "Cdot"
         | UprightD -> "UprightD"
         | ScriptSuper(main, super, sub) -> props("ScriptSuper", [ main; super; sub ])
@@ -165,6 +218,15 @@ type MA =
         | RootN(n, x) -> props("RootN", [ n; x ])
         | Sqrt x -> props("Sqrt", [ x ])
         | BigOp(op, lower, upper) -> props("BigOp", [ box op; box lower; box upper ])
+        | Accented(accent, x) -> props("Accented", [ box accent; box x ])
+        | Overline x -> props("Overline", [ x ])
+        | Underline x -> props("Underline", [ x ])
+        | Stack(top, bottom) -> props("Stack", [ top; bottom ])
+        | Table(cells, alignments) ->
+            let row(r: int) = box (props("Row", seq { for c in 0 .. cells.Cols - 1 -> box cells.[r, c] }))
+            props(
+                "Table",
+                Seq.append (seq { for r in 0 .. cells.Rows - 1 -> row r }) (alignments |> Seq.map box))
 
 type Direction =
     | Up = 0

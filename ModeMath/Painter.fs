@@ -5,25 +5,33 @@ open System.Collections.Generic
 open SkiaSharp
 open FSUtils
 
-/// Draws a Display onto an SKCanvas, whose y grows downwards where a Display's grows upwards.
-type Painter(typeface: SKTypeface) =
-    let fonts = Dictionary<float32, SKFont>()
+/// Draws a Placed onto an SKCanvas, whose y grows downwards where a Placed's grows upwards.
+type Painter(math: SKTypeface, blackboard: SKTypeface) =
+    let fonts = Dictionary<struct (Face * float32), SKFont>()
 
-    let font(size: float32) =
-        match fonts |> Dictionary.tryFind size with
+    let typeface(face: Face) =
+        match face with
+        | Face.Math -> math
+        | Face.Blackboard -> blackboard
+
+    let font(face: Face, size: float32) =
+        let key = struct (face, size)
+        match fonts |> Dictionary.tryFind key with
         | ValueSome found -> found
         | ValueNone ->
-            let created = new SKFont(typeface, size)
+            let created = new SKFont(typeface face, size)
             created.Hinting <- SKFontHinting.None
             created.Subpixel <- true
             created.Edging <- SKFontEdging.SubpixelAntialias
-            fonts.[size] <- created
+            fonts.[key] <- created
             created
 
-    /// A painter over the font the metrics were generated from.
+    /// A painter over the files the metrics were generated from.
     static member Embedded() =
-        use stream = MathFont.OpenFontFile()
-        new Painter(SKTypeface.FromStream stream)
+        let opened(face: Face) =
+            use stream = MathFont.OpenFontFile face
+            SKTypeface.FromStream stream
+        new Painter(opened Face.Math, opened Face.Blackboard)
 
     /// Draws what is only offered at a third of the given paint's opacity.
     member t.Draw(placed: Placed, canvas: SKCanvas, x: float32, baseline: float32, paint: SKPaint) =
@@ -42,7 +50,7 @@ type Painter(typeface: SKTypeface) =
                     SKTextBlob.Create(
                         ReadOnlySpan<byte> id,
                         SKTextEncoding.GlyphId,
-                        font glyph.Size,
+                        font(glyph.Glyph.Face, glyph.Size),
                         SKPoint(x + glyph.X, baseline - glyph.Y))
                 canvas.DrawText(blob, 0f, 0f, paint ink)
             | Part.Rule(rule, ink) ->
@@ -57,4 +65,5 @@ type Painter(typeface: SKTypeface) =
             for font in fonts.Values do
                 font.Dispose()
             fonts.Clear()
-            typeface.Dispose()
+            math.Dispose()
+            blackboard.Dispose()

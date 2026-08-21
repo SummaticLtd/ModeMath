@@ -58,6 +58,7 @@ type PlacedMA =
     | Row of ImmutableArray<Placed>
     | Char of char * PlacedGlyph
     | BoldVar of char * PlacedGlyph
+    | Blackboard of char * PlacedGlyph
     | Cdot of PlacedGlyph
     | UprightD of PlacedGlyph
     | ScriptSuper of main: Placed * super: Placed * sub: Placed voption
@@ -69,6 +70,11 @@ type PlacedMA =
     | RootN of degree: Placed * surd: PlacedGlyphs * bar: PlacedRule * radicand: Placed
     | Sqrt of surd: PlacedGlyphs * bar: PlacedRule * radicand: Placed
     | BigOp of BigOperator * operator: PlacedGlyphs * lower: Placed voption * upper: Placed voption
+    | Accented of accent: Accent * mark: PlacedGlyph * x: Placed
+    | Overline of rule: PlacedRule * x: Placed
+    | Underline of x: Placed * rule: PlacedRule
+    | Stack of top: Placed * bottom: Placed
+    | Table of cells: ImmA2D<Placed> * alignments: ImmutableArray<Alignment>
 
 /// A laid-out MA at an offset from its parent's origin, holding what it draws so that painting a
 /// second time builds nothing.
@@ -107,8 +113,8 @@ type PlacedMA with
             | ValueNone -> ()
         match t with
         | PlacedMA.Row children -> for c in children do child c
-        | PlacedMA.Char(_, g) | PlacedMA.BoldVar(_, g) | PlacedMA.Cdot g | PlacedMA.UprightD g
-        | PlacedMA.Operator(_, g) -> glyph g
+        | PlacedMA.Char(_, g) | PlacedMA.BoldVar(_, g) | PlacedMA.Blackboard(_, g) | PlacedMA.Cdot g
+        | PlacedMA.UprightD g | PlacedMA.Operator(_, g) -> glyph g
         | PlacedMA.ScriptSuper(main, super, sub) ->
             child main
             child super
@@ -139,7 +145,30 @@ type PlacedMA with
             marks(operator, Ink.Solid)
             optional lower
             optional upper
+        | PlacedMA.Accented(_, mark, x) ->
+            child x
+            glyph mark
+        | PlacedMA.Overline(bar, x) ->
+            child x
+            rule bar
+        | PlacedMA.Underline(x, bar) ->
+            child x
+            rule bar
+        | PlacedMA.Stack(top, bottom) ->
+            child top
+            child bottom
+        | PlacedMA.Table(cells, _) -> for cell in cells.Elements do child cell
         b.ToImmutable()
+
+    /// The glyph this atom draws, where it draws exactly one and nothing besides.
+    member t.SingleGlyph: PlacedGlyph voption =
+        match t with
+        | PlacedMA.Char(_, g) | PlacedMA.BoldVar(_, g) | PlacedMA.Blackboard(_, g) | PlacedMA.Cdot g
+        | PlacedMA.UprightD g | PlacedMA.Operator(_, g) -> ValueSome g
+        | PlacedMA.Row _ | PlacedMA.ScriptSuper _ | PlacedMA.ScriptSub _ | PlacedMA.Frac _
+        | PlacedMA.Function _ | PlacedMA.Bracketed _ | PlacedMA.RootN _ | PlacedMA.Sqrt _
+        | PlacedMA.BigOp _ | PlacedMA.Accented _ | PlacedMA.Overline _ | PlacedMA.Underline _
+        | PlacedMA.Stack _ | PlacedMA.Table _ -> ValueNone
 
     /// The MA this was laid out from, which a cursor position is expressed against.
     member t.ToMA: MA =
@@ -147,6 +176,7 @@ type PlacedMA with
         | PlacedMA.Row children -> MA.Row(children |> ImmArray.map (fun c -> c.Pma.ToMA))
         | PlacedMA.Char(c, _) -> MA.Char c
         | PlacedMA.BoldVar(c, _) -> MA.BoldVar c
+        | PlacedMA.Blackboard(c, _) -> MA.Blackboard c
         | PlacedMA.Cdot _ -> MA.Cdot
         | PlacedMA.UprightD _ -> MA.UprightD
         | PlacedMA.ScriptSuper(main, super, sub) ->
@@ -164,6 +194,12 @@ type PlacedMA with
                 op,
                 lower |> ValueOption.map (fun l -> l.Pma.ToMA),
                 upper |> ValueOption.map (fun u -> u.Pma.ToMA))
+        | PlacedMA.Accented(accent, _, x) -> MA.Accented(accent, x.Pma.ToMA)
+        | PlacedMA.Overline(_, x) -> MA.Overline x.Pma.ToMA
+        | PlacedMA.Underline(x, _) -> MA.Underline x.Pma.ToMA
+        | PlacedMA.Stack(top, bottom) -> MA.Stack(top.Pma.ToMA, bottom.Pma.ToMA)
+        | PlacedMA.Table(cells, alignments) ->
+            MA.Table(cells |> ImmA2D.map (fun cell -> cell.Pma.ToMA), alignments)
 
 type Extent with
     /// Covering everything drawn, which is placed relative to the atom's own origin.

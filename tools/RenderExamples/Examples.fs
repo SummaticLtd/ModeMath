@@ -1,6 +1,7 @@
 module RenderExamples.Examples
 
 open System.Collections.Immutable
+open FSUtils
 open ModeMath
 
 let private row(elements: MA list) = MA.Row(elements.ToImmutableArray())
@@ -26,6 +27,18 @@ let private bigOp(o: BigOperator) = MA.BigOp(o, ValueNone, ValueNone)
 let private bigOpSub(o: BigOperator, lower: MA) = MA.BigOp(o, ValueSome lower, ValueNone)
 let private bigOpSup(o: BigOperator, upper: MA) = MA.BigOp(o, ValueNone, ValueSome upper)
 let private bigOpSubSup(o: BigOperator, lower: MA, upper: MA) = MA.BigOp(o, ValueSome lower, ValueSome upper)
+let private acc(accent: Accent, x: MA) = MA.Accented(accent, x)
+let private bb(letter: char) = MA.Blackboard letter
+let private overline(x: MA) = MA.Overline x
+let private underline(x: MA) = MA.Underline x
+let private binom(top: MA, bottom: MA) = MA.Binom(top, bottom)
+let private matrix(cells: MA list list) = MA.Matrix(ImmA2D.fromJagged cells)
+let private cases(cells: MA list list) = MA.Cases(ImmA2D.fromJagged cells)
+let private grid(cells: MA list list, alignments: Alignment list) =
+    MA.Table(ImmA2D.fromJagged cells, alignments.ToImmutableArray())
+/// The right-hand side of an evaluated integral: an open left side and a bar carrying the limits.
+let private evaluatedAt(x: MA, lower: MA, upper: MA) =
+    supsub(pair(Bracket.None, Bracket.Line, x), upper, lower)
 
 /// 1 + e^(-2pi) / (1 + e^(-4pi) / (...)), the right-hand side of Ramanujan's identity.
 let private continuedFraction(depth: int) =
@@ -231,7 +244,69 @@ let implemented = [
     ]
     "TwoSin", row [ c '2'; fn MathFunction.Sin ]
 
+    "AccentOver", acc(Accent.Acute, c 'x')
+    "AccentOverF", acc(Accent.Hat, c 'f')
+    "Choose", binom(c '6', c 'x')
+    "Matrix", paren(matrix [ [ c 'a'; c 'b' ]; [ c 'c'; c 'd' ] ])
+    "BMartix",
+    square(
+        matrix
+            [ [ sub(c 'x', s "11"); sub(c 'x', s "12"); c '.'; c '.'; sub(c 'x', s "1n") ] ])
+    "Overline", overline(s "Overline")
+    "Underline", underline(s "Underline")
+    "SimpleShortProof",
+    grid(
+        [
+            [ row [ c '∵'; c 'x'; c '+'; c '3'; op Operator.Equals; c '5' ] ]
+            [ row [ c '∴'; c 'x'; op Operator.Equals; c '2' ] ]
+        ],
+        [ Alignment.Left ])
+    "Taylor",
+    grid(
+        [ [ sup(c 'e', c 'x')
+            op Operator.Equals
+            row [
+                bigOpSubSup(BigOperator.Sum, row [ c 'n'; op Operator.Equals; c '0' ], c '∞')
+                frac(sup(c 'x', c 'n'), row [ c 'n'; fn MathFunction.Fact ])
+            ] ] ],
+        [ Alignment.Right; Alignment.Centre; Alignment.Left ])
+    "VectorProjection",
+    row [
+        s "Pro"
+        sub(c 'j', acc(Accent.Vec, c 'v'))
+        acc(Accent.Vec, c 'u')
+        op Operator.Equals
+        bars(acc(Accent.Vec, c 'u'))
+        fn MathFunction.Cos
+        c 'θ'
+    ]
+
     "ModeMathAbsolute", row [ bars(row [ c 'x'; c '-'; c '1' ]); op Operator.Equals; c '3' ]
+    "ModeMathAccents",
+    row [
+        acc(Accent.Hat, c 'a')
+        acc(Accent.Tilde, c 'b')
+        acc(Accent.Bar, c 'c')
+        acc(Accent.Vec, c 'd')
+        acc(Accent.Dot, c 'e')
+        acc(Accent.DoubleDot, c 'f')
+        acc(Accent.Check, c 'g')
+        acc(Accent.Acute, c 'h')
+        acc(Accent.Grave, c 'i')
+        acc(Accent.Breve, c 'j')
+    ]
+    "ModeMathBlackboard",
+    row [ c 'ℕ'; c '⊂'; c 'ℤ'; c '⊂'; c 'ℚ'; c '⊂'; c 'ℝ'; c '⊂'; c 'ℂ'; c '⊂'; bb 'O' ]
+    "ModeMathCases",
+    row [
+        bars(c 'x')
+        op Operator.Equals
+        cases [
+            [ row [ c '-'; c 'x' ]; row [ c 'x'; c '<'; c '0' ] ]
+            [ c 'x'; row [ c 'x'; c '≥'; c '0' ] ]
+        ]
+    ]
+    "ModeMathEvaluatedAt", evaluatedAt(frac(sup(c 'x', c '2'), c '2'), c '1', c '2')
     "ModeMathBigOperators",
     row [
         bigOpSubSup(BigOperator.Product, row [ c 'k'; op Operator.Equals; c '1' ], c 'n')
@@ -250,33 +325,23 @@ let implemented = [
 
 /// Examples from the same folder that MA cannot express yet, with the roadmap item each waits on.
 let unimplemented = [
-    "Abs", @"|x|=\begin{cases} -x, & \text{ if } x < 0 \\ x, & \text{ if } x \geq 0 \end{cases}", "tables"
-    "AccentOver", @"\acute{x}", "accents"
-    "AccentOverF", @"\hat{f}", "accents"
-    "AccentOverMultiple", @"\widehat{ABcd}", "accents"
-    "AccentUnder", @"\threeunderdot{x}", "accents"
-    "AccentUnderThin", @"\threeunderdot{i}", "accents"
+    "Abs", @"|x|=\begin{cases} -x, & \text{ if } x < 0 \\ x, & \text{ if } x \geq 0 \end{cases}", "Text"
+    "AccentOverMultiple", @"\widehat{ABcd}", "horizontal stretch"
+    "AccentUnder", @"\threeunderdot{x}", "accents below"
+    "AccentUnderThin", @"\threeunderdot{i}", "accents below"
     "ArcsinSin", @"\arcsin(\sin x)=x\quad\mathrm{for}\quad|x|\le\frac\pi2", "spacing, Styled"
-    "BMartix", @"\begin{bmatrix} x_{11}&x_{12}&.&.&x_{1n} \end{bmatrix}", "tables"
-    "Cases", @"w \equiv \begin{cases} 0 & \text{for}\ c = d = 0 \end{cases}", "tables"
-    "Choose", @"{6 \choose x}", "fraction with no rule"
+    "Cases", @"w \equiv \begin{cases} 0 & \text{for}\ c = d = 0 \end{cases}", "Text"
     "Color", @"\color{#000088}a\color{#0000FF}b", "Coloured"
     "Cyrillic", @"А а\ Б б\ В в", "Text"
-    "EvalIntegral", @"\int_1^2 x\; dx=\left.\frac{x^2}{2}\right|_1^2", "delimiters, spacing"
+    "EvalIntegral", @"\int_1^2 x\; dx=\left.\frac{x^2}{2}\right|_1^2", "spacing"
     "FontStyles", @"\mathnormal F\mathrm F\mathbf F\mathcal F\mathtt F", "Styled"
     "Integral", @"\int_{0}^{\infty}e^x \,dx=\oint_0^{\Delta}5\Gamma", "spacing"
-    "ItalicAlignment", @"\colorbox{yellow}P\\\begin{array}{r}\colorbox{yellow}{PF}\end{array}", "tables"
+    "ItalicAlignment", @"\colorbox{yellow}P\\\begin{array}{r}\colorbox{yellow}{PF}\end{array}", "Coloured"
     "LineStyles", @"a \displaystyle a \textstyle a \scriptstyle a \scriptscriptstyle a", "style commands"
-    "Matrix", @"\begin{pmatrix}a & b\\ c & d\end{pmatrix}", "tables"
-    "Matrixception", @"\begin{Vmatrix}\begin{vmatrix}a&b\end{vmatrix}\end{Vmatrix}", "tables"
-    "Overline", @"\overline{Overline}", "overline"
+    "Matrixception", @"\begin{Vmatrix}\begin{vmatrix}a&b\end{vmatrix}\end{Vmatrix}", "double bar delimiter"
     "RaiseBox", @"a\raisebox{1mu}a\raisebox{2mu}a", "raisebox"
-    "SimpleShortProof", @"\begin{aligned}&\because x+3=5\\&\therefore x=2\end{aligned}", "tables"
-    "SolveEquations", @"\text{Solve } \begin{cases} y=x^2-x+3 \end{cases}", "tables, Text"
+    "SolveEquations", @"\text{Solve } \begin{cases} y=x^2-x+3 \end{cases}", "Text"
     "SomeLimit", @"\lim_{x\to\infty}\frac{e^2}{1-x}=\limsup_{\sigma}5", "limsup"
-    "Taylor", @"\begin{eqnarray} e^x &=& \sum_{n=0}^{\infty}\frac{x^n}{n!} \end{eqnarray}", "tables"
     "Underbrace", @"\underbrace{abcd}", "horizontal stretch"
     "UnderbraceSubscript", @"\underbrace{abcdefghklmnopqrst} _{eee}", "horizontal stretch"
-    "Underline", @"\underline{Underline}", "underline"
-    "VectorProjection", @"Proj_\vec{v}\vec{u}=|\vec u|\cos\theta", "accents"
 ]

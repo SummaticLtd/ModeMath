@@ -76,26 +76,55 @@ module internal Conventions =
         Letters.italic c
         |> ValueOption.orElseWith (fun () -> Letters.upright c)
         |> ValueOption.orElseWith (fun () -> Digits.glyph c)
+        |> ValueOption.orElseWith (fun () -> Letters.letterlikeBlackboard c)
         |> ValueOption.orElseWith (fun () ->
             if c = '-' then ValueSome Operators.minus else MathFont.OfChar c)
 
     let boldVariable(c: char) = Letters.bold c
 
+    /// Function names are set upright, though two are the indicator's 1 and the factorial's !.
+    let uprightGlyph(c: char) =
+        Letters.upright c
+        |> ValueOption.orElseWith (fun () -> Digits.glyph c)
+        |> ValueOption.orElseWith (fun () -> MathFont.OfChar c)
+
+    let blackboardVariable(c: char) = Letters.blackboard c
+
+    /// ValueNone where the side carries no bracket at all.
     let leftDelimiter(bracket: Bracket) =
         match bracket with
-        | Bracket.Normal -> Delimiters.roundLeft
-        | Bracket.Square -> Delimiters.squareLeft
-        | Bracket.Curly -> Delimiters.curlyLeft
-        | Bracket.Angle -> Delimiters.angleLeft
-        | Bracket.Line -> Delimiters.bar
+        | Bracket.Normal -> ValueSome Delimiters.roundLeft
+        | Bracket.Square -> ValueSome Delimiters.squareLeft
+        | Bracket.Curly -> ValueSome Delimiters.curlyLeft
+        | Bracket.Angle -> ValueSome Delimiters.angleLeft
+        | Bracket.Line -> ValueSome Delimiters.bar
+        | Bracket.None -> ValueNone
 
+    /// ValueNone where the side carries no bracket at all.
     let rightDelimiter(bracket: Bracket) =
         match bracket with
-        | Bracket.Normal -> Delimiters.roundRight
-        | Bracket.Square -> Delimiters.squareRight
-        | Bracket.Curly -> Delimiters.curlyRight
-        | Bracket.Angle -> Delimiters.angleRight
-        | Bracket.Line -> Delimiters.bar
+        | Bracket.Normal -> ValueSome Delimiters.roundRight
+        | Bracket.Square -> ValueSome Delimiters.squareRight
+        | Bracket.Curly -> ValueSome Delimiters.curlyRight
+        | Bracket.Angle -> ValueSome Delimiters.angleRight
+        | Bracket.Line -> ValueSome Delimiters.bar
+        | Bracket.None -> ValueNone
+
+    let accent(accent: Accent) =
+        match accent with
+        | Accent.Hat -> Accents.hat
+        | Accent.Tilde -> Accents.tilde
+        | Accent.Bar -> Accents.bar
+        | Accent.Vec -> Accents.vec
+        | Accent.Dot -> Accents.dot
+        | Accent.DoubleDot -> Accents.doubleDot
+        | Accent.Check -> Accents.check
+        | Accent.Acute -> Accents.acute
+        | Accent.Grave -> Accents.grave
+        | Accent.Breve -> Accents.breve
+
+    /// Eighteenths of an em between a table's columns, which is what TeX sets a matrix with.
+    let tableColumnGap = 18
 
     /// LaTeX keeps an integral's limits beside it; the rest take them above and below in display style.
     let takesLimits(op: BigOperator) =
@@ -157,11 +186,12 @@ module internal Conventions =
         | MA.Operator _ | MA.Cdot -> both AtomClass.Binary
         | MA.Function MathFunction.Fact -> both AtomClass.Close
         | MA.Function _ -> both AtomClass.Operator
-        | MA.Frac _ -> both AtomClass.Inner
+        | MA.Frac _ | MA.Stack _ | MA.Table _ -> both AtomClass.Inner
         | MA.Bracketed _ -> struct (AtomClass.Open, AtomClass.Close)
         | MA.ScriptSuper(main, _, _) | MA.ScriptSub(main, _) -> atomClasses main
         | MA.BigOp _ -> both AtomClass.Operator
-        | MA.Row _ | MA.BoldVar _ | MA.UprightD | MA.RootN _ | MA.Sqrt _ -> both AtomClass.Ordinary
+        | MA.Row _ | MA.BoldVar _ | MA.Blackboard _ | MA.UprightD | MA.RootN _ | MA.Sqrt _
+        | MA.Accented _ | MA.Overline _ | MA.Underline _ -> both AtomClass.Ordinary
 
 module private Spacing =
     /// Eighteenths of an em by left then right class, negated where only display and text styles space.
@@ -201,6 +231,12 @@ type Layout(fontSize: float32) =
     let atomOf(pma: PlacedMA, width: float32, italicCorrection: float32) =
         let parts = pma.Parts
         Placed(pma, parts, Extent.OfParts(width, italicCorrection, parts), 0f, 0f)
+
+    /// An atom reaching beyond what it draws, as the font asks above a bar and below an underbar.
+    let paddedAtom(pma: PlacedMA, width: float32, ascender: float32, descender: float32) =
+        let parts = pma.Parts
+        let body = Extent.OfParts(width, 0f, parts)
+        Placed(pma, parts, Extent(width, body.Ascent + ascender, body.Descent + descender, 0f), 0f, 0f)
 
     let markOf(glyphs: ImmutableArray<PlacedGlyph>, width: float32) =
         let ascent = ImmArray.maxWithSafe(glyphs, 0f, fun g -> g.Top)
@@ -243,7 +279,7 @@ type Layout(fontSize: float32) =
         let glyphs = ImmutableArray.CreateBuilder<PlacedGlyph>()
         let mutable x = 0f
         for c in text do
-            let glyph = required(Letters.upright c, $"the letter {c}")
+            let glyph = required(Conventions.uprightGlyph c, $"the character {c}")
             glyphs.Add(PlacedGlyph(glyph, pointSize style, x, 0f))
             x <- x + float32 glyph.Advance * s
         markOf(glyphs.ToImmutable(), x)
@@ -516,6 +552,12 @@ type Layout(fontSize: float32) =
             y <- y + float32 part.FullAdvance * s - overlap
         markOf(glyphs.ToImmutable(), width)
 
+    /// One side of a bracketed formula, which \left. leaves out altogether.
+    member private t.Delimiter(delimiter: StretchyGlyph voption, style: Style, minHeight: float32) =
+        match delimiter with
+        | ValueSome stretchy -> t.Stretched(stretchy, style, minHeight)
+        | ValueNone -> PlacedGlyphs(ImmutableArray.Empty, Extent(0f, 0f, 0f, 0f))
+
     member private t.Brackets(brackets: Brackets, inner: MA, completion: BracketCompletion, style: Style) =
         let content = t.Of(inner, style)
         let s = scale style
@@ -523,8 +565,8 @@ type Layout(fontSize: float32) =
         let reach = 2f * max (content.Ascent - axis) (content.Descent + axis)
         // TeX lets a delimiter fall a little short rather than jump to the next size up.
         let needed = max (reach * 0.901f) (reach - 0.5f * fontSize * style.ScaleFactor)
-        let left = t.Stretched(Conventions.leftDelimiter brackets.Left, style, needed)
-        let right = t.Stretched(Conventions.rightDelimiter brackets.Right, style, needed)
+        let left = t.Delimiter(Conventions.leftDelimiter brackets.Left, style, needed)
+        let right = t.Delimiter(Conventions.rightDelimiter brackets.Right, style, needed)
         let onAxis(mark: PlacedGlyphs, x: float32) = mark.At(x, axis - mark.Ascent / 2f)
         let contentX = left.Width
         let rightX = contentX + content.Width
@@ -574,11 +616,109 @@ type Layout(fontSize: float32) =
                 let degreeY = bottom + raise + placed.Descent
                 PlacedMA.RootN(placed.At(surdX - indexWidth - after, degreeY), placedSurd, bar, radicand)
             | ValueNone -> PlacedMA.Sqrt(placedSurd, bar, radicand)
-        let width = barX + x.Width
-        let parts = pma.Parts
-        let body = Extent.OfParts(width, 0f, parts)
-        let extra = float32 MathConstants.RadicalExtraAscender * s
-        Placed(pma, parts, Extent(width, body.Ascent + extra, body.Descent, 0f), 0f, 0f)
+        paddedAtom(pma, barX + x.Width, float32 MathConstants.RadicalExtraAscender * s, 0f)
+
+    /// Where an accent sits over an atom: its glyph's attachment, or the middle of one drawn from more.
+    member private _.Attachment(placed: Placed, style: Style) =
+        match placed.Pma.SingleGlyph with
+        | ValueSome glyph -> glyph.X + float32 glyph.Glyph.TopAccentAttachment * scale style
+        | ValueNone -> placed.Width / 2f
+
+    /// The accent rises clear of a base taller than the height the font draws its accents for.
+    member private t.Accented(accent: Accent, x: MA, style: Style) =
+        let b = t.Of(x, style.Cramp)
+        let s = scale style
+        let glyph = Conventions.accent accent
+        let mark =
+            PlacedGlyph(
+                glyph,
+                pointSize style,
+                t.Attachment(b, style) - float32 glyph.TopAccentAttachment * s,
+                max 0f (b.Ascent - float32 MathConstants.AccentBaseHeight * s))
+        atomOf(PlacedMA.Accented(accent, mark, b), b.Width, b.ItalicCorrection)
+
+    /// A rule over the atom, clear of its ink by the gap the font names.
+    member private t.Overline(x: MA, style: Style) =
+        let b = t.Of(x, style.Cramp)
+        let s = scale style
+        let thickness = float32 MathConstants.OverbarRuleThickness * s
+        let gap = float32 MathConstants.OverbarVerticalGap * s
+        let pma = PlacedMA.Overline(PlacedRule(b.Width, thickness, 0f, b.Ascent + gap), b)
+        paddedAtom(pma, b.Width, float32 MathConstants.OverbarExtraAscender * s, 0f)
+
+    /// A rule under the atom, clear of its ink by the gap the font names.
+    member private t.Underline(x: MA, style: Style) =
+        let b = t.Of(x, style)
+        let s = scale style
+        let thickness = float32 MathConstants.UnderbarRuleThickness * s
+        let gap = float32 MathConstants.UnderbarVerticalGap * s
+        let pma = PlacedMA.Underline(b, PlacedRule(b.Width, thickness, 0f, -(b.Descent + gap + thickness)))
+        paddedAtom(pma, b.Width, 0f, float32 MathConstants.UnderbarExtraDescender * s)
+
+    /// A fraction with no rule, where only the gap keeps the two apart.
+    member private t.Stack(top: MA, bottom: MA, style: Style) =
+        let above = t.Of(top, style.Numerator)
+        let below = t.Of(bottom, style.Denominator)
+        let s = scale style
+        let value(displayStyle: int, textStyle: int) =
+            float32 (if style.IsDisplay then displayStyle else textStyle) * s
+        let mutable up = value(MathConstants.StackTopDisplayStyleShiftUp, MathConstants.StackTopShiftUp)
+        let mutable down =
+            value(MathConstants.StackBottomDisplayStyleShiftDown, MathConstants.StackBottomShiftDown)
+        let gapMin = value(MathConstants.StackDisplayStyleGapMin, MathConstants.StackGapMin)
+        let gap = (up - above.Descent) - (below.Ascent - down)
+        if gap < gapMin then
+            up <- up + (gapMin - gap) / 2f
+            down <- down + (gapMin - gap) / 2f
+        let width = max above.Width below.Width
+        let pma =
+            PlacedMA.Stack(
+                above.At((width - above.Width) / 2f, up),
+                below.At((width - below.Width) / 2f, -down))
+        atomOf(pma, width, 0f)
+
+    /// A grid centred on the axis, its rows a line's leading apart and its columns an em apart.
+    member private t.Table(cells: ImmA2D<MA>, alignments: ImmutableArray<Alignment>, style: Style) =
+        let s = scale style
+        let placed = cells |> ImmA2D.map (fun cell -> t.Of(cell, style))
+        /// How far the tallest, deepest or widest cell of a row reaches.
+        let furthest(row: int, reach: Placed -> float32) =
+            let mutable value = 0f
+            for col in 0 .. placed.Cols - 1 do
+                value <- max value (reach placed.[row, col])
+            value
+        let widths = Array.zeroCreate<float32> placed.Cols
+        for row in 0 .. placed.Rows - 1 do
+            for col in 0 .. placed.Cols - 1 do
+                widths.[col] <- max widths.[col] placed.[row, col].Width
+        let gap = float32 Conventions.tableColumnGap * fontSize * style.ScaleFactor / 18f
+        let lefts = Array.zeroCreate<float32> placed.Cols
+        let mutable right = 0f
+        for col in 0 .. placed.Cols - 1 do
+            lefts.[col] <- right
+            right <- right + widths.[col] + gap
+        let width = max 0f (right - gap)
+        let leading = float32 MathConstants.MathLeading * s
+        let baselines = Array.zeroCreate<float32> placed.Rows
+        let mutable y = 0f
+        for row in 0 .. placed.Rows - 1 do
+            if row > 0 then y <- y - furthest(row - 1, fun cell -> cell.Descent) - leading
+            y <- y - furthest(row, fun cell -> cell.Ascent)
+            baselines.[row] <- y
+        let height =
+            if placed.Rows = 0 then 0f else furthest(placed.Rows - 1, fun cell -> cell.Descent) - y
+        // The grid is centred on the axis, as a fraction of the same height would be.
+        let rise = height / 2f + float32 MathConstants.AxisHeight * s
+        let laid =
+            placed
+            |> ImmA2D.mapi (fun row col cell ->
+                let offset =
+                    match MA.AlignmentOf(alignments, col) with
+                    | Alignment.Centre -> (widths.[col] - cell.Width) / 2f
+                    | Alignment.Left -> 0f
+                    | Alignment.Right -> widths.[col] - cell.Width
+                cell.At(lefts.[col] + offset, baselines.[row] + rise))
+        atomOf(PlacedMA.Table(laid, alignments), width, 0f)
 
     member private t.Of(ma: MA, style: Style): Placed =
         match ma with
@@ -590,6 +730,11 @@ type Layout(fontSize: float32) =
                 required(Conventions.boldVariable c, $"a bold {c}"),
                 style,
                 fun g -> PlacedMA.BoldVar(c, g))
+        | MA.Blackboard c ->
+            single(
+                required(Conventions.blackboardVariable c, $"a blackboard bold {c}"),
+                style,
+                fun g -> PlacedMA.Blackboard(c, g))
         | MA.Cdot -> single(Operators.cdot, style, PlacedMA.Cdot)
         | MA.UprightD -> single(Symbols.uprightD, style, PlacedMA.UprightD)
         | MA.Function f ->
@@ -603,6 +748,11 @@ type Layout(fontSize: float32) =
         | MA.Bracketed(brackets, inner, completion) -> t.Brackets(brackets, inner, completion, style)
         | MA.Sqrt x -> t.Radical(ValueNone, x, style)
         | MA.RootN(n, x) -> t.Radical(ValueSome n, x, style)
+        | MA.Accented(accent, x) -> t.Accented(accent, x, style)
+        | MA.Overline x -> t.Overline(x, style)
+        | MA.Underline x -> t.Underline(x, style)
+        | MA.Stack(top, bottom) -> t.Stack(top, bottom, style)
+        | MA.Table(cells, alignments) -> t.Table(cells, alignments, style)
 
     /// Laid out on a line of its own, where fractions and radicals are given their full height.
     member t.Of(ma: MA) = t.Of(ma, MathSize.Display)
