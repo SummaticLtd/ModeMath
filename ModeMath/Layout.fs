@@ -163,14 +163,6 @@ module internal Conventions =
         | BigOperator.Sum | BigOperator.Product | BigOperator.Coproduct
         | BigOperator.Union | BigOperator.Intersection | BigOperator.Limit -> true
 
-    let operator(o: Operator) =
-        match o with
-        | Operator.Times -> Operators.times
-        | Operator.Plus -> Operators.plus
-        | Operator.Minus -> Operators.minus
-        | Operator.Divide -> Operators.divide
-        | Operator.Equals -> Operators.equals
-
     let functionName(f: MathFunction) =
         match f with
         | MathFunction.Sin -> "sin"
@@ -212,8 +204,6 @@ module internal Conventions =
         let both(atomClass: AtomClass) = ValueSome(struct (atomClass, atomClass))
         match ma with
         | MA.Char c -> both(charClass c)
-        | MA.Operator Operator.Equals -> both AtomClass.Relation
-        | MA.Operator _ | MA.Cdot -> both AtomClass.Binary
         | MA.Function MathFunction.Fact -> both AtomClass.Close
         | MA.Function _ -> both AtomClass.Operator
         | MA.Frac _ | MA.Stack _ | MA.Table _ -> both AtomClass.Inner
@@ -877,12 +867,10 @@ type Layout(fontSize: float32<px>) =
                 required(Conventions.blackboardVariable c, $"a blackboard bold {c}"),
                 style,
                 fun g -> PlacedMA.Blackboard(c, g))
-        | MA.Cdot -> single(Operators.cdot, style, PlacedMA.Cdot)
         | MA.UprightD -> single(Symbols.uprightD, style, PlacedMA.UprightD)
         | MA.Function f ->
             let letters = upright(Conventions.functionName f, style)
             atomOf(PlacedMA.Function(f, letters), letters.Width, 0f<px>, style)
-        | MA.Operator o -> single(Conventions.operator o, style, fun g -> PlacedMA.Operator(o, g))
         | MA.Frac(numerator, denominator) -> t.Fraction(numerator, denominator, style)
         | MA.ScriptSuper(main, super, sub) -> t.ScriptSuper(main, super, sub, style)
         | MA.ScriptSub(main, sub) -> t.ScriptSub(main, sub, style)

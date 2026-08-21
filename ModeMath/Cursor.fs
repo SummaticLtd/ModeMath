@@ -133,8 +133,8 @@ type internal MACurs =
             | BracketCompletion.Left | BracketCompletion.Completed ->
                 Bracketed(b, MACurs.AtEnd inner, BracketCompletion.Left) |> ValueSome
             | BracketCompletion.Right -> MACurs.AtEnd inner |> ValueSome
-        | MA.Char _ | MA.BoldVar _ | MA.Blackboard _ | MA.Cdot | MA.UprightD | MA.Function _
-        | MA.Operator _ | MA.ScriptSuper _ | MA.ScriptSub _ | MA.Frac _ | MA.RootN _ | MA.Sqrt _
+        | MA.Char _ | MA.BoldVar _ | MA.Blackboard _ | MA.UprightD | MA.Function _
+        | MA.ScriptSuper _ | MA.ScriptSub _ | MA.Frac _ | MA.RootN _ | MA.Sqrt _
         | MA.BigOp _ | MA.Accented _ | MA.Spanned _ | MA.Overline _ | MA.Underline _ | MA.Stack _
         | MA.Table _ | MA.Text _ | MA.Space _ | MA.Coloured _ ->
             ValueSome CursorOrEmpty
@@ -218,8 +218,8 @@ type internal MACurs =
             | BracketCompletion.Right | BracketCompletion.Completed ->
                 Bracketed(b, MACurs.AtStart inner, BracketCompletion.Right) |> ValueSome
             | BracketCompletion.Left -> MACurs.AtStart inner |> ValueSome
-        | MA.Char _ | MA.BoldVar _ | MA.Blackboard _ | MA.Cdot | MA.UprightD | MA.Function _
-        | MA.Operator _ | MA.ScriptSuper _ | MA.ScriptSub _ | MA.Frac _ | MA.RootN _ | MA.Sqrt _
+        | MA.Char _ | MA.BoldVar _ | MA.Blackboard _ | MA.UprightD | MA.Function _
+        | MA.ScriptSuper _ | MA.ScriptSub _ | MA.Frac _ | MA.RootN _ | MA.Sqrt _
         | MA.BigOp _ | MA.Accented _ | MA.Spanned _ | MA.Overline _ | MA.Underline _ | MA.Stack _
         | MA.Table _ | MA.Text _ | MA.Space _ | MA.Coloured _ ->
             ValueSome CursorOrEmpty
@@ -288,8 +288,8 @@ type internal MACurs =
     /// Cursor at the start of an MA's first editable part. ValueNone if it has none.
     static member private EnterFromLeft(ma: MA): MACurs voption =
         match ma with
-        | MA.Row _ | MA.Char _ | MA.BoldVar _ | MA.Blackboard _ | MA.Cdot | MA.UprightD
-        | MA.Function _ | MA.Operator _ | MA.BigOp _ | MA.Accented _ | MA.Spanned _ | MA.Overline _
+        | MA.Row _ | MA.Char _ | MA.BoldVar _ | MA.Blackboard _ | MA.UprightD
+        | MA.Function _ | MA.BigOp _ | MA.Accented _ | MA.Spanned _ | MA.Overline _
         | MA.Underline _ | MA.Stack _ | MA.Table _ | MA.Text _ | MA.Space _ | MA.Coloured _ ->
             ValueNone
         | MA.ScriptSuper(main, super, sub) -> ScriptMainSuper(MACurs.AtStart main, super, sub) |> ValueSome
@@ -302,8 +302,8 @@ type internal MACurs =
     /// Cursor at the end of an MA's last editable part. ValueNone if it has none.
     static member private EnterFromRight(ma: MA): MACurs voption =
         match ma with
-        | MA.Row _ | MA.Char _ | MA.BoldVar _ | MA.Blackboard _ | MA.Cdot | MA.UprightD
-        | MA.Function _ | MA.Operator _ | MA.BigOp _ | MA.Accented _ | MA.Spanned _ | MA.Overline _
+        | MA.Row _ | MA.Char _ | MA.BoldVar _ | MA.Blackboard _ | MA.UprightD
+        | MA.Function _ | MA.BigOp _ | MA.Accented _ | MA.Spanned _ | MA.Overline _
         | MA.Underline _ | MA.Stack _ | MA.Table _ | MA.Text _ | MA.Space _ | MA.Coloured _ ->
             ValueNone
         | MA.ScriptSuper(main, super, sub) ->

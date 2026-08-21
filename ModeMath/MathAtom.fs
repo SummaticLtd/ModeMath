@@ -31,13 +31,6 @@ type MathFunction =
     | Gamma = 23
     | Sign = 24
 
-type Operator =
-    | Times = 0
-    | Plus = 1
-    | Minus = 2
-    | Divide = 3
-    | Equals = 4
-
 /// Operators large enough to carry limits, which sit above and below them in display style.
 type BigOperator =
     | Sum = 0
@@ -130,7 +123,6 @@ type MA =
     | BoldVar of char
     /// A blackboard bold capital, which the second face draws.
     | Blackboard of char
-    | Cdot
     /// Upright d, for derivatives
     | UprightD
     /// A script containing a superscript, which may also have a subscript.
@@ -139,7 +131,6 @@ type MA =
     | ScriptSub of main: MA * sub: MA
     | Frac of numerator: MA * denominator: MA
     | Function of MathFunction
-    | Operator of Operator
     | Bracketed of Brackets * MA * BracketCompletion
     | RootN of n: MA * x: MA
     | Sqrt of x: MA
@@ -212,8 +203,7 @@ type MA =
     member t.Flatten: MA =
         match t with
         | Row l -> MA.FlattenElements l |> MA.OfElements
-        | Char _ | BoldVar _ | Blackboard _ | Cdot | UprightD | Function _ | Operator _
-        | Text _ | Space _ -> t
+        | Char _ | BoldVar _ | Blackboard _ | UprightD | Function _ | Text _ | Space _ -> t
         | ScriptSuper(main, super, sub) ->
             ScriptSuper(main.Flatten, super.Flatten, sub |> ValueOption.map (fun s -> s.Flatten))
         | ScriptSub(main, sub) -> ScriptSub(main.Flatten, sub.Flatten)
@@ -245,13 +235,11 @@ type MA =
         | Blackboard c -> props("Blackboard", [ box c ])
         | Text text -> props("Text", [ box text ])
         | Space space -> props("Space", [ box space ])
-        | Cdot -> "Cdot"
         | UprightD -> "UprightD"
         | ScriptSuper(main, super, sub) -> props("ScriptSuper", [ main; super; sub ])
         | ScriptSub(main, sub) -> props("ScriptSub", [ main; sub ])
         | Frac(n, d) -> props("Frac", [ n; d ])
         | Function f -> props("Fn", [ box f ])
-        | Operator o -> props("Op", [ box o ])
         | Bracketed(b, ma, bc) -> props("Bracketed", [ box b; box ma; box bc ])
         | RootN(n, x) -> props("RootN", [ n; x ])
         | Sqrt x -> props("Sqrt", [ x ])
