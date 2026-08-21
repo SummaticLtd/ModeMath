@@ -9,6 +9,9 @@ open ModeMath
 
 let private layout = Layout 20f<px>
 let private laid(ma: MA) = layout.Of ma
+
+/// The tree an editor holds, which shows the box in an empty slot that a displayed one does not.
+let private edited(ma: MA) = (layout.Of(MACurs.AtStart ma)).Placed
 let private row(elements: MA list) = MA.Row(elements.ToImmutableArray())
 let private c(character: char) = MA.Char character
 
@@ -45,14 +48,33 @@ let private measurement =
                     Assert.True(x.Descent >= 0f<px>, "descent")
             )
             Test.Sync(
-                "anEmptySlotShowsTheBoxAFormulaCouldBeWrittenIn",
+                "anEmptyFormulaDisplayedDrawsNothingAtAll",
                 fun () ->
                     let empty = laid MA.Empty
-                    Assert.True(empty.Width > 0f<px>, "width")
-                    Assert.True(empty.Height > 0f<px>, "height")
-                    match empty.Pma with
+                    Assert.Equal(0f<px>, empty.Width, "width")
+                    Assert.Equal(0f<px>, empty.Height, "height")
+            )
+            Test.Sync(
+                "anEmptySlotShowsTheBoxAFormulaCouldBeWrittenInOnlyWhileItIsEdited",
+                fun () ->
+                    let numerator(placed: Placed) =
+                        match placed.Pma with
+                        | PlacedMA.Frac(numerator, _, _) -> numerator
+                        | other -> failwith $"not a fraction: {other}"
+                    let formula = MA.Frac(MA.Empty, c 'c')
+                    let shown = numerator(laid formula)
+                    let box = numerator(edited formula)
+                    Assert.Equal(0f<px>, shown.Width, "an empty slot displayed drew something")
+                    Assert.True(box.Width > 0f<px>, "an empty slot being edited drew nothing")
+                    match box.Pma with
                     | PlacedMA.Placeholder _ -> ()
-                    | other -> failwith $"an empty slot drew {other}"
+                    | other -> failwith $"an empty slot being edited drew {other}"
+            )
+            Test.Sync(
+                "anEmptyFormulaBeingEditedIsNoSlotAndShowsNoBox",
+                fun () ->
+                    let placed = edited MA.Empty
+                    Assert.Equal(0f<px>, placed.Width, "an empty formula drew a box to hold itself")
             )
             Test.Sync(
                 "aRowOfOrdinariesIsAsWideAsItsPartsLessTheLeansTheySetUnder",
@@ -890,10 +912,10 @@ let private cursors =
                             Assert.Equal(curs, (layout.Of curs).ToMACurs, $"in {formula}")
             )
             Test.Sync(
-                "aCursorIsDrawnOverAFormulaLaidOutWithoutIt",
+                "aCursorIsDrawnOverAFormulaLaidOutTheSameWhereverItStands",
                 fun () ->
                     for formula in cursored |> List.map flat do
-                        let bare = laid formula
+                        let bare = edited formula
                         for curs in positions formula do
                             let placed = (layout.Of curs).Placed
                             nearly(bare.Width, placed.Width, $"width at {curs}")
@@ -905,7 +927,7 @@ let private cursors =
                 fun () ->
                     // A caret stands taller than a letter, so a caller sizing to the formula clips it.
                     for formula in cursored |> List.map flat do
-                        let placed = laid formula
+                        let placed = edited formula
                         for curs in positions formula do
                             let cursored = layout.Of curs
                             let bounds = cursored.Bounds
@@ -937,7 +959,7 @@ let private cursors =
                 fun () ->
                     let slot = MA.Frac(MA.Empty, c 'c') |> flat
                     let placeholder =
-                        match (laid slot).Pma with
+                        match (edited slot).Pma with
                         | PlacedMA.Frac(numerator, _, _) -> numerator
                         | other -> failwith $"not a fraction: {other}"
                     let caret = (layout.Of (positions slot).[1]).Caret
@@ -965,7 +987,7 @@ let private cursors =
                             let y = caret.Y + caret.Thickness / 2f
                             // Carets overlap, as before x does with before x squared, so a click
                             // cannot always tell which was meant. It must land on one holding it.
-                            let found = (PlacedCurs.Nearest(laid formula, x, y)).Caret
+                            let found = (PlacedCurs.Nearest(edited formula, x, y)).Caret
                             Assert.True(
                                 found.X - 0.01f<px> <= x && x <= found.X + found.Width + 0.01f<px>
                                 && found.Y - 0.01f<px> <= y && y <= found.Y + found.Thickness + 0.01f<px>,
@@ -976,7 +998,7 @@ let private cursors =
                 fun () ->
                     // Stepping right is what a position is, so a click must not invent one besides.
                     for formula in cursored |> List.map flat do
-                        let placed = laid formula
+                        let placed = edited formula
                         let reachable = positions formula
                         for step in 0 .. 20 do
                             let across = float32 step / 20f
@@ -993,7 +1015,7 @@ let private cursors =
                 "aPointFarBelowFindsAPositionInTheDenominator",
                 fun () ->
                     let formula = MA.Frac(c 'b', c 'd') |> flat
-                    let placed = laid formula
+                    let placed = edited formula
                     let found = (PlacedCurs.Nearest(placed, placed.Width / 2f, -placed.Descent)).ToMACurs
                     match found with
                     | MACurs.FracDen _ -> ()

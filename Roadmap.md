@@ -18,17 +18,16 @@ bracket or script. What is left:
 
 `Latex.Read` reads a math-mode string into an `MA`. Writing one back out is still to come.
 
-It reads 97.8% of the 17,220 distinct formulas in the SummaticApp content library, and lays out
-97.1%. What it turns down, by how often the library asks for it:
+It reads 98.0% of the 17,220 distinct formulas in the SummaticApp content library, and lays out
+97.4%. What it turns down, by how often the library asks for it:
 
 | Turned down | Uses | Why |
 |---|---|---|
 | Alignment markers outside any environment | 97 | A house convention rather than LaTeX |
-| A script on an empty base, as `*{^\circ}` writes | 49 | Would lay out as the editor's placeholder box |
 | `\overbar`, `\blue`, `\green`, `\gray` | 37 | House macros |
 | `\bf`, `\it` | 33 | Needs `Styled` |
 | `\arg`, `\det`, `\operatorname`, `\inf`, `\sup` | 60 | Needs open-ended function names |
-| `\circ`, `\triangle`, `\uparrow`, `\downarrow`, `\longrightarrow` | 65 | No glyph, see below |
+| `\circ`, `\triangle`, `\uparrow`, `\downarrow`, `\longrightarrow` | 74 | No glyph, see below |
 | `\choose` | 14 | The one infix command |
 
 ## TODO: glyphs the font data leaves out
@@ -36,11 +35,6 @@ It reads 97.8% of the 17,220 distinct formulas in the SummaticApp content librar
 `MathFont.OfChar` finds no glyph for `∘ ∣ ↑ ↓ △ ⟶ ⌈ ⌊ £ – µ`, and laying one out throws. The
 stretchy delimiters among them are in the font under another mechanism; the rest may be a gap in
 what `MathTableGen` emits.
-
-## TODO: the placeholder box outside the editor
-
-An empty slot lays out as □ so that the cursor has something to stand in. A formula displayed
-without a cursor shows the same box, where LaTeX shows nothing.
 
 ## 3. Remaining mathematics
 

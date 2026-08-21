@@ -270,7 +270,8 @@ module internal Latexing =
             | ValueSome(Token.Command name) ->
                 advance()
                 t.Named(name, position)
-            | ValueSome(Token.Super | Token.Sub) -> fail("a script with nothing before it", position)
+            // A script with nothing before it stands on an empty base, as {}^{14}C is written.
+            | ValueSome(Token.Super | Token.Sub) -> MA.Empty
             | ValueSome Token.Close -> fail("a closing brace with no opening one", position)
             | ValueSome Token.Cell -> fail("an & outside a table", position)
             | ValueSome Token.Break -> fail("a row break outside a table", position)

@@ -12,9 +12,11 @@ type MathSize =
 
 /// A size, with cramping, which stops superscripts rising to make room above.
 [<Struct>]
-type Style(size: MathSize, cramped: bool) =
+type Style(size: MathSize, cramped: bool, editing: bool) =
     member _.Size = size
     member _.Cramped = cramped
+    /// Whether a cursor stands somewhere in the formula, which is what shows an empty slot its box.
+    member _.Editing = editing
     member _.IsDisplay = size = MathSize.Display
 
     member _.ScaleFactor =
@@ -23,14 +25,14 @@ type Style(size: MathSize, cramped: bool) =
         | MathSize.Script -> MathConstants.ScriptPercentScaleDown / 100f
         | MathSize.ScriptScript -> MathConstants.ScriptScriptPercentScaleDown / 100f
 
-    member _.Cramp = Style(size, true)
+    member _.Cramp = Style(size, true, editing)
 
     member _.Superscript =
         let smaller =
             match size with
             | MathSize.Display | MathSize.Text -> MathSize.Script
             | MathSize.Script | MathSize.ScriptScript -> MathSize.ScriptScript
-        Style(smaller, cramped)
+        Style(smaller, cramped, editing)
 
     member t.Subscript = t.Superscript.Cramp
 
@@ -40,7 +42,7 @@ type Style(size: MathSize, cramped: bool) =
             | MathSize.Display -> MathSize.Text
             | MathSize.Text -> MathSize.Script
             | MathSize.Script | MathSize.ScriptScript -> MathSize.ScriptScript
-        Style(smaller, cramped)
+        Style(smaller, cramped, editing)
 
     member t.Denominator = t.Numerator.Cramp
 
@@ -413,7 +415,10 @@ type Layout(fontSize: float32<px>) =
         struct (up, down, subscriptX, width + after)
 
     member private t.Row(elements: ImmutableArray<MA>, style: Style) =
-        if elements.IsEmpty then single(Slot.box, style, PlacedMA.Placeholder)
+        if elements.IsEmpty then
+            // A slot shows its box while there is a cursor to put in it, and nothing at all otherwise.
+            if style.Editing then single(Slot.box, style, PlacedMA.Placeholder)
+            else atomOf(PlacedMA.Row ImmutableArray<Placed>.Empty, 0f<px>, 0f<px>, style)
         else
             let classes = Array.init elements.Length (fun i -> Conventions.atomClasses elements.[i])
             // A space is a gap rather than an atom, so an operator binds straight through it.
@@ -661,7 +666,7 @@ type Layout(fontSize: float32<px>) =
         let clearance = gap + max 0f<px> (surd.Ascent - needed) / 2f
         let ruleTop = x.Ascent + clearance + thickness
         let bottom = ruleTop - surd.Ascent
-        let index = degree |> ValueOption.map (fun ma -> t.Of(ma, Style(MathSize.ScriptScript, style.Cramped)))
+        let index = degree |> ValueOption.map (fun ma -> t.Of(ma, Style(MathSize.ScriptScript, style.Cramped, style.Editing)))
         let before = MathConstants.RadicalKernBeforeDegree * s
         let after = MathConstants.RadicalKernAfterDegree * s
         let indexWidth =
@@ -896,12 +901,14 @@ type Layout(fontSize: float32<px>) =
     /// Laid out on a line of its own, where fractions and radicals are given their full height.
     member t.Of(ma: MA) = t.Of(ma, MathSize.Display)
 
-    member t.Of(ma: MA, size: MathSize) = t.Of(ma.Flatten, Style(size, false))
+    member t.Of(ma: MA, size: MathSize) = t.Of(ma.Flatten, Style(size, false, false))
 
     /// Laid out with a cursor in it, which is drawn over the formula rather than among it.
     member internal t.Of(curs: MACurs) = t.Of(curs, MathSize.Display)
 
     member internal t.Of(curs: MACurs, size: MathSize) =
         let flat = curs.Flatten
-        PlacedCurs.Of(flat, t.Of(flat.ToMA, Style(size, false)))
+        let ma = flat.ToMA
+        // An empty formula is no slot but the whole of it, and stands as the cursor alone.
+        PlacedCurs.Of(flat, t.Of(ma, Style(size, false, not ma.IsEmpty)))
 

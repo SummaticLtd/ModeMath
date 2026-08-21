@@ -63,6 +63,9 @@ let private reading =
                     "x_i^2", MA.ScriptSuper(c 'x', c '2', ValueSome(c 'i'))
                     "x^{10}", MA.ScriptSuper(c 'x', MA.String "10", ValueNone)
                     "ab^2", row [ c 'a'; MA.ScriptSuper(c 'b', c '2', ValueNone) ]
+                    // A script with nothing before it stands on an empty base, which draws nothing.
+                    "{}^{14}C", row [ MA.ScriptSuper(MA.Empty, MA.String "14", ValueNone); c 'C' ]
+                    "^2", MA.ScriptSuper(MA.Empty, c '2', ValueNone)
                 ]
             )
             Test.Sync(
@@ -172,7 +175,6 @@ let private reading =
                     "\\begin{matrix}a\\end{cases}"
                     "\\begin{smallmatrix}a\\end{smallmatrix}"
                     "\\color{fuchsias}{x}"
-                    "^2"
                     "\\"
                 ]
             )
