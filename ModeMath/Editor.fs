@@ -8,6 +8,9 @@ type Editor(layout: Layout, cursor: PlacedCurs) =
     /// A formula opened for editing with the cursor at its left-hand end.
     new(layout: Layout, formula: MA) = Editor(layout, layout.Of(MACurs.AtStart formula))
 
+    /// The same, with the cursor at its right-hand end.
+    static member AtEnd(layout: Layout, formula: MA) = Editor(layout, layout.Of(MACurs.AtEnd formula))
+
     /// Everything drawn, which is the same whatever the cursor is doing.
     member _.Placed = cursor.Placed
 
@@ -51,15 +54,26 @@ type Editor(layout: Layout, cursor: PlacedCurs) =
     member _.InsertBracket(brackets: Brackets) =
         over(cursor.ToMACurs.AddMACurs(MACurs.Bracketed(brackets, MACurs.CursorOrEmpty, BracketCompletion.Completed)))
 
-    /// A superscript on the atom before the cursor, which then stands in it.
+    /// A superscript on the atom before the cursor, which then stands in it. An atom already
+    /// carrying one keeps it and is entered rather than being set under a second.
     member _.InsertSuperscript =
         over(cursor.ToMACurs.ReplaceBefore(fun main ->
-            MACurs.ScriptSuper(main, MACurs.CursorOrEmpty, ValueNone)))
+            match main with
+            | MA.ScriptSuper(main, super, sub) -> MACurs.ScriptSuper(main, MACurs.AtEnd super, sub)
+            | MA.ScriptSub(main, sub) -> MACurs.ScriptSuper(main, MACurs.CursorOrEmpty, ValueSome sub)
+            | main -> MACurs.ScriptSuper(main, MACurs.CursorOrEmpty, ValueNone)))
 
-    /// A subscript on the atom before the cursor, which then stands in it.
+    /// A subscript on the atom before the cursor, which then stands in it. An atom already carrying
+    /// one keeps it and is entered rather than being set over a second.
     member _.InsertSubscript =
         over(cursor.ToMACurs.ReplaceBefore(fun main ->
-            MACurs.ScriptSub(main, ValueNone, MACurs.CursorOrEmpty)))
+            match main with
+            | MA.ScriptSuper(main, super, ValueSome sub) ->
+                MACurs.ScriptSub(main, ValueSome super, MACurs.AtEnd sub)
+            | MA.ScriptSuper(main, super, ValueNone) ->
+                MACurs.ScriptSub(main, ValueSome super, MACurs.CursorOrEmpty)
+            | MA.ScriptSub(main, sub) -> MACurs.ScriptSub(main, ValueNone, MACurs.AtEnd sub)
+            | main -> MACurs.ScriptSub(main, ValueNone, MACurs.CursorOrEmpty)))
 
     /// ValueNone where there is nothing to the left to delete, so that a caller can pass the key on.
     member _.BackSpace =

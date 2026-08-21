@@ -58,6 +58,30 @@ let private editing =
                         (editor.Type '2').Formula)
             )
             Test.Sync(
+                "aSubscriptJoinsTheSuperscriptTheAtomAlreadyCarries",
+                fun () ->
+                    let squared = Editor.AtEnd(layout, MA.ScriptSuper(MA.Char 'x', MA.Char '2', ValueNone))
+                    Assert.Equal(
+                        MA.ScriptSuper(MA.Char 'x', MA.Char '2', ValueSome(MA.Char 'i')),
+                        (squared.InsertSubscript.Type 'i').Formula)
+            )
+            Test.Sync(
+                "aSuperscriptJoinsTheSubscriptTheAtomAlreadyCarries",
+                fun () ->
+                    let indexed = Editor.AtEnd(layout, MA.ScriptSub(MA.Char 'x', MA.Char 'i'))
+                    Assert.Equal(
+                        MA.ScriptSuper(MA.Char 'x', MA.Char '2', ValueSome(MA.Char 'i')),
+                        (indexed.InsertSuperscript.Type '2').Formula)
+            )
+            Test.Sync(
+                "aSecondSuperscriptGoesIntoTheOneAlreadyThere",
+                fun () ->
+                    let squared = Editor.AtEnd(layout, MA.ScriptSuper(MA.Char 'x', MA.Char '2', ValueNone))
+                    Assert.Equal(
+                        MA.ScriptSuper(MA.Char 'x', MA.String "23", ValueNone),
+                        (squared.InsertSuperscript.Type '3').Formula)
+            )
+            Test.Sync(
                 "aScriptWithNothingBeforeItIsSetOnAnEmptySlot",
                 fun () ->
                     let editor = (opened MA.Empty).InsertSuperscript
