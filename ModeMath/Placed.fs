@@ -4,6 +4,13 @@ open System.Collections.Immutable
 open System.Drawing
 open FSUtils
 
+/// The box an empty slot shows, which sizes the cursor as well as filling the slot.
+module internal Slot =
+    let box =
+        match MathFont.OfChar '□' with
+        | ValueSome glyph -> glyph
+        | ValueNone -> failwith "the font cannot draw an empty slot"
+
 /// Whether something is part of the formula or only offered, such as an unclosed bracket's partner.
 type Ink =
     | Solid = 0
@@ -89,8 +96,6 @@ type PlacedMA =
     | Space of Space
     /// An empty slot, which shows the box a formula could be written in.
     | Placeholder of PlacedGlyph
-    /// Where the cursor is: a bar between atoms, or the box of the empty slot it fills.
-    | Cursor of PlacedRule
 
 /// A laid-out MA at an offset from its parent's origin, holding what it draws so that painting a
 /// second time builds nothing.
@@ -99,12 +104,15 @@ and [<Struct>] Placed
         pma: PlacedMA,
         parts: ImmutableArray<Part>,
         extent: Extent,
+        emSize: float32<px>,
         x: float32<px>,
         y: float32<px>
     ) =
     member _.Pma = pma
     member _.Parts = parts
     member _.Extent = extent
+    /// The pixels to the em this atom was set at, which is smaller inside a script or a fraction.
+    member _.EmSize = emSize
     member _.X = x
     member _.Y = y
     member _.Width = extent.Width
@@ -113,7 +121,7 @@ and [<Struct>] Placed
     member _.ItalicCorrection = extent.ItalicCorrection
     member _.Height = extent.Height
     /// The same atom, moved to an offset its parent has chosen for it.
-    member _.At(x: float32<px>, y: float32<px>) = Placed(pma, parts, extent, x, y)
+    member _.At(x: float32<px>, y: float32<px>) = Placed(pma, parts, extent, emSize, x, y)
 
 /// One thing drawn, so that a painter need know nothing of the atom that drew it.
 and [<RequireQualifiedAccess>] Part =
@@ -122,8 +130,6 @@ and [<RequireQualifiedAccess>] Part =
     | Child of Placed
     /// A child drawn in a colour of its own, which the one around it goes back to afterwards.
     | Painted of colour: Color * child: Placed
-    /// The cursor, drawn and measured as a rule, and told apart so a caret can be found.
-    | Caret of PlacedRule
 
 type PlacedMA with
     /// Everything this atom draws, in the order it is drawn. Built once, and kept by the Placed that
@@ -192,7 +198,6 @@ type PlacedMA with
         | PlacedMA.Text(_, letters) -> marks(letters, Ink.Solid)
         | PlacedMA.Space _ -> ()
         | PlacedMA.Placeholder box -> glyph box
-        | PlacedMA.Cursor caret -> b.Add(Part.Caret caret)
         b.ToImmutable()
 
     /// The glyph this atom draws, where it draws exactly one and nothing besides.
@@ -204,8 +209,7 @@ type PlacedMA with
         | PlacedMA.Function _ | PlacedMA.Bracketed _ | PlacedMA.RootN _ | PlacedMA.Sqrt _
         | PlacedMA.BigOp _ | PlacedMA.Accented _ | PlacedMA.Spanned _ | PlacedMA.Overline _
         | PlacedMA.Underline _ | PlacedMA.Stack _ | PlacedMA.Table _ | PlacedMA.Text _
-        | PlacedMA.Space _ | PlacedMA.Coloured _ | PlacedMA.Placeholder _ | PlacedMA.Cursor _ ->
-            ValueNone
+        | PlacedMA.Space _ | PlacedMA.Coloured _ | PlacedMA.Placeholder _ -> ValueNone
 
     /// The MA this was laid out from, which a cursor position is expressed against.
     member t.ToMA: MA =
@@ -241,7 +245,7 @@ type PlacedMA with
         | PlacedMA.Coloured(colour, x) -> MA.Coloured(colour, x.Pma.ToMA)
         | PlacedMA.Text(text, _) -> MA.Text text
         | PlacedMA.Space space -> MA.Space space
-        | PlacedMA.Placeholder _ | PlacedMA.Cursor _ -> MA.Empty
+        | PlacedMA.Placeholder _ -> MA.Empty
 
 type Extent with
     /// Covering everything drawn, which is placed relative to the atom's own origin.
@@ -250,36 +254,190 @@ type Extent with
         let top(part: Part) =
             match part with
             | Part.Child c | Part.Painted(_, c) -> c.Y + c.Extent.Ascent
-            | Part.Rule(r, _) | Part.Caret r -> r.Y + r.Thickness
+            | Part.Rule(r, _) -> r.Y + r.Thickness
             | Part.Glyph(g, _) -> g.Top
         let bottom(part: Part) =
             match part with
             | Part.Child c | Part.Painted(_, c) -> c.Y - c.Extent.Descent
-            | Part.Rule(r, _) | Part.Caret r -> r.Y
+            | Part.Rule(r, _) -> r.Y
             | Part.Glyph(g, _) -> g.Bottom
         let ascent = ImmArray.maxWithSafe(parts, 0f<px>, top)
         let descent = -ImmArray.minWithSafe(parts, 0f<px>, bottom)
         Extent(width, ascent, descent, italicCorrection)
 
-type Placed with
-    /// Where the cursor is, in pixels from this atom's origin. ValueNone where it holds none.
-    member internal t.Caret: PlacedRule voption =
-        let rec find(placed: Placed, x: float32<px>, y: float32<px>) =
-            let mutable found = ValueNone
-            for part in placed.Parts do
-                if found.IsNone then
-                    match part with
-                    | Part.Caret caret ->
-                        found <- ValueSome(PlacedRule(caret.Width, caret.Thickness, x + caret.X, y + caret.Y))
-                    | Part.Child child | Part.Painted(_, child) ->
-                        found <- find(child, x + child.X, y + child.Y)
-                    | Part.Glyph _ | Part.Rule _ -> ()
-            found
-        find(t, 0f<px>, 0f<px>)
 
-/// A cursored formula laid out: everything it draws, and where in it the cursor came to rest.
-[<Struct>]
-type PlacedMACurs(placed: Placed, caret: PlacedRule) =
+/// A cursor in a laid-out formula, which mirrors MACurs case for case.
+[<RequireQualifiedAccess>]
+type PlacedMACurs =
+    /// Filling the box an empty slot shows.
+    | Fills of caret: PlacedRule
+    /// Standing between the atoms of a row, which is where a caret is drawn as a bar.
+    | Between of before: ImmutableArray<Placed> * caret: PlacedRule * after: ImmutableArray<Placed>
+    /// Inside one atom of a row.
+    | Within of before: ImmutableArray<Placed> * PlacedCurs * after: ImmutableArray<Placed>
+    | ScriptMainSuper of main: PlacedCurs * super: Placed * sub: Placed voption
+    | ScriptMainSub of main: PlacedCurs * sub: Placed
+    | ScriptSuper of main: Placed * super: PlacedCurs * sub: Placed voption
+    | ScriptSub of main: Placed * super: Placed voption * sub: PlacedCurs
+    | FracNum of n: PlacedCurs * d: Placed
+    | FracDen of n: Placed * d: PlacedCurs
+    | Bracketed of Brackets * PlacedCurs * completion: BracketCompletion
+    | RootNDegree of n: PlacedCurs * x: Placed
+    | RootNMain of n: Placed * x: PlacedCurs
+    | Sqrt of x: PlacedCurs
+
+/// The atom a cursor stands in, laid out, with the way down to the cursor inside it.
+and [<Struct>] PlacedCurs(placed: Placed, curs: PlacedMACurs) =
+    /// The atom itself, which is laid out the same whatever the cursor in it is doing.
     member _.Placed = placed
-    /// In pixels from the formula's origin, so that what was clicked on is what is drawn.
-    member _.Caret = caret
+    member _.Curs = curs
+    /// Where the cursor is, in pixels from this atom's origin.
+    member t.Caret: PlacedRule =
+        let below(child: PlacedCurs) =
+            let caret = child.Caret
+            PlacedRule(caret.Width, caret.Thickness, child.Placed.X + caret.X, child.Placed.Y + caret.Y)
+        match curs with
+        | PlacedMACurs.Fills caret | PlacedMACurs.Between(_, caret, _) -> caret
+        | PlacedMACurs.Within(_, child, _)
+        | PlacedMACurs.ScriptMainSuper(child, _, _)
+        | PlacedMACurs.ScriptMainSub(child, _)
+        | PlacedMACurs.ScriptSuper(_, child, _)
+        | PlacedMACurs.ScriptSub(_, _, child)
+        | PlacedMACurs.FracNum(child, _)
+        | PlacedMACurs.FracDen(_, child)
+        | PlacedMACurs.Bracketed(_, child, _)
+        | PlacedMACurs.RootNDegree(child, _)
+        | PlacedMACurs.RootNMain(_, child)
+        | PlacedMACurs.Sqrt child -> below child
+
+type PlacedCurs with
+    /// The cursor this was placed from, which an edit is made against.
+    member t.ToMACurs: MACurs =
+        let ma(placed: Placed) = placed.Pma.ToMA
+        let each(placed: ImmutableArray<Placed>) = placed |> ImmArray.map ma
+        match t.Curs with
+        | PlacedMACurs.Fills _ -> MACurs.CursorOrEmpty
+        | PlacedMACurs.Between(before, _, after) ->
+            MACurs.MakeRow(each before, MACurs.CursorOrEmpty, each after)
+        | PlacedMACurs.Within(before, inner, after) ->
+            MACurs.MakeRow(each before, inner.ToMACurs, each after)
+        | PlacedMACurs.ScriptMainSuper(main, super, sub) ->
+            MACurs.ScriptMainSuper(main.ToMACurs, ma super, sub |> ValueOption.map ma)
+        | PlacedMACurs.ScriptMainSub(main, sub) -> MACurs.ScriptMainSub(main.ToMACurs, ma sub)
+        | PlacedMACurs.ScriptSuper(main, super, sub) ->
+            MACurs.ScriptSuper(ma main, super.ToMACurs, sub |> ValueOption.map ma)
+        | PlacedMACurs.ScriptSub(main, super, sub) ->
+            MACurs.ScriptSub(ma main, super |> ValueOption.map ma, sub.ToMACurs)
+        | PlacedMACurs.FracNum(n, d) -> MACurs.FracNum(n.ToMACurs, ma d)
+        | PlacedMACurs.FracDen(n, d) -> MACurs.FracDen(ma n, d.ToMACurs)
+        | PlacedMACurs.Bracketed(brackets, inner, completion) ->
+            MACurs.Bracketed(brackets, inner.ToMACurs, completion)
+        | PlacedMACurs.RootNDegree(n, x) -> MACurs.RootNDegree(n.ToMACurs, ma x)
+        | PlacedMACurs.RootNMain(n, x) -> MACurs.RootNMain(ma n, x.ToMACurs)
+        | PlacedMACurs.Sqrt x -> MACurs.Sqrt x.ToMACurs
+
+    /// The cursor put against a formula already laid out, which must be the formula it stands in.
+    static member Of(curs: MACurs, placed: Placed): PlacedCurs =
+        let scale = placed.EmSize / MathConstants.UnitsPerEm
+        /// A row of one atom is laid out as that atom, so an atom stands for the row holding it.
+        let children =
+            match placed.Pma with
+            | PlacedMA.Row children -> children
+            | _ -> ImmutableArray.Create(placed.At(0f<px>, 0f<px>))
+        /// Where the pen stood after the first count of them, which is where a caret goes.
+        let pen(count: int) =
+            if count < children.Length then children.[count].X
+            elif children.IsEmpty then 0f<px>
+            else
+                let last = children.[children.Length - 1]
+                last.X + last.Width - last.ItalicCorrection
+        let bar(count: int) =
+            let thickness = MathConstants.FractionRuleThickness * scale
+            PlacedRule(
+                thickness,
+                (Slot.box.Top - Slot.box.Bottom) * scale,
+                pen count - thickness / 2f,
+                Slot.box.Bottom * scale)
+        let first(count: int) = children.RemoveRange(count, children.Length - count)
+        let rest(count: int) = children.RemoveRange(0, count)
+        let wrong(kind: string) = failwith $"a cursor in a {kind} was placed over {placed.Pma}"
+        let scripts() =
+            match placed.Pma with
+            | PlacedMA.ScriptSuper(main, super, sub) -> struct (main, ValueSome super, sub)
+            | PlacedMA.ScriptSub(main, sub) -> struct (main, ValueNone, ValueSome sub)
+            | other -> wrong "script"
+        let script(part: Placed voption, kind: string) =
+            match part with
+            | ValueSome found -> found
+            | ValueNone -> wrong kind
+        match curs with
+        | MACurs.CursorOrEmpty ->
+            PlacedCurs(
+                placed,
+                PlacedMACurs.Fills(
+                    PlacedRule(placed.Width, placed.Ascent + placed.Descent, 0f<px>, -placed.Descent)))
+        | MACurs.Row(before, inner, after) ->
+            let count = before.Length
+            if inner.IsCursorOrEmpty then
+                PlacedCurs(
+                    placed,
+                    PlacedMACurs.Between(first count, bar count, rest count))
+            else
+                PlacedCurs(
+                    placed,
+                    PlacedMACurs.Within(
+                        first count,
+                        PlacedCurs.Of(inner, children.[count]),
+                        rest (count + 1)))
+        | MACurs.ScriptMainSuper(main, _, _) ->
+            let struct (b, super, sub) = scripts()
+            PlacedCurs(
+                placed,
+                PlacedMACurs.ScriptMainSuper(PlacedCurs.Of(main, b), script(super, "superscript"), sub))
+        | MACurs.ScriptMainSub(main, _) ->
+            let struct (b, _, sub) = scripts()
+            PlacedCurs(
+                placed,
+                PlacedMACurs.ScriptMainSub(PlacedCurs.Of(main, b), script(sub, "subscript")))
+        | MACurs.ScriptSuper(_, super, _) ->
+            let struct (b, above, sub) = scripts()
+            PlacedCurs(
+                placed,
+                PlacedMACurs.ScriptSuper(b, PlacedCurs.Of(super, script(above, "superscript")), sub))
+        | MACurs.ScriptSub(_, _, sub) ->
+            let struct (b, super, below) = scripts()
+            PlacedCurs(
+                placed,
+                PlacedMACurs.ScriptSub(b, super, PlacedCurs.Of(sub, script(below, "subscript"))))
+        | MACurs.FracNum(n, _) ->
+            match placed.Pma with
+            | PlacedMA.Frac(numerator, _, denominator) ->
+                PlacedCurs(placed, PlacedMACurs.FracNum(PlacedCurs.Of(n, numerator), denominator))
+            | other -> wrong "fraction"
+        | MACurs.FracDen(_, d) ->
+            match placed.Pma with
+            | PlacedMA.Frac(numerator, _, denominator) ->
+                PlacedCurs(placed, PlacedMACurs.FracDen(numerator, PlacedCurs.Of(d, denominator)))
+            | other -> wrong "fraction"
+        | MACurs.Bracketed(_, inner, _) ->
+            match placed.Pma with
+            | PlacedMA.Bracketed(brackets, _, held, _, completion) ->
+                PlacedCurs(
+                    placed,
+                    PlacedMACurs.Bracketed(brackets, PlacedCurs.Of(inner, held), completion))
+            | other -> wrong "bracket"
+        | MACurs.RootNDegree(n, _) ->
+            match placed.Pma with
+            | PlacedMA.RootN(degree, _, _, radicand) ->
+                PlacedCurs(placed, PlacedMACurs.RootNDegree(PlacedCurs.Of(n, degree), radicand))
+            | other -> wrong "root"
+        | MACurs.RootNMain(_, x) ->
+            match placed.Pma with
+            | PlacedMA.RootN(degree, _, _, radicand) ->
+                PlacedCurs(placed, PlacedMACurs.RootNMain(degree, PlacedCurs.Of(x, radicand)))
+            | other -> wrong "root"
+        | MACurs.Sqrt x ->
+            match placed.Pma with
+            | PlacedMA.Sqrt(_, _, radicand) ->
+                PlacedCurs(placed, PlacedMACurs.Sqrt(PlacedCurs.Of(x, radicand)))
+            | other -> wrong "square root"

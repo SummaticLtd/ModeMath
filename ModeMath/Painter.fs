@@ -43,6 +43,18 @@ type Painter(math: SKTypeface, blackboard: SKTypeface) =
         tentative.Color <- paint.Color.WithAlpha(byte (int paint.Color.Alpha / 3))
         t.Draw(placed, canvas, x, baseline, paint, tentative)
 
+    /// Draws a formula with its cursor, which is drawn over the formula rather than among it.
+    member t.Draw(curs: PlacedCurs, canvas: SKCanvas, x: float32<px>, baseline: float32<px>, paint: SKPaint) =
+        t.Draw(curs.Placed, canvas, x, baseline, paint)
+        let caret = curs.Caret
+        canvas.DrawRect(
+            SKRect.Create(
+                number(x + caret.X),
+                number(baseline - caret.Y - caret.Thickness),
+                number caret.Width,
+                number caret.Thickness),
+            paint)
+
     member t.Draw
         (
             placed: Placed,
@@ -72,14 +84,6 @@ type Painter(math: SKTypeface, blackboard: SKTypeface) =
                         number rule.Width,
                         number rule.Thickness),
                     paint ink)
-            | Part.Caret caret ->
-                canvas.DrawRect(
-                    SKRect.Create(
-                        number(x + caret.X),
-                        number(baseline - caret.Y - caret.Thickness),
-                        number caret.Width,
-                        number caret.Thickness),
-                    solid)
             | Part.Child child ->
                 t.Draw(child, canvas, x + child.X, baseline - child.Y, solid, tentative)
             | Part.Painted(colour, child) ->
