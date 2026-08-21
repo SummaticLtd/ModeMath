@@ -855,7 +855,11 @@ let private roundTrip =
 
 let private flat(ma: MA) = ma.Flatten
 
-let private positions(ma: MA) = MACurs.Positions ma |> List.ofSeq
+/// Bounded, so that a walk which never ends fails the test rather than hanging it.
+let private positions(ma: MA) =
+    let walked = MACurs.Positions ma |> Seq.truncate 1000 |> List.ofSeq
+    if walked.Length = 1000 then failwith "the walk did not end"
+    walked
 
 /// One formula for each atom a cursor can go inside, so that every PlacedMACurs case is reached.
 let private cursored = [

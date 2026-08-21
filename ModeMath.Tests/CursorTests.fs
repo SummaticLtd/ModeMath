@@ -28,7 +28,13 @@ let private n = MA.Char 'n'
 let private d = MA.Char 'd'
 let private frac = MA.Frac(n, d)
 
-let private walkRight(ma: MA) = MACurs.Positions ma |> List.ofSeq
+/// Bounded, so that a walk which never ends fails the test rather than hanging it.
+let private bounded(positions: MACurs seq) =
+    let walked = positions |> Seq.truncate 1000 |> List.ofSeq
+    if walked.Length = 1000 then failwith "the walk did not end"
+    walked
+
+let private walkRight(ma: MA) = bounded(MACurs.Positions ma)
 
 let private walkLeft(ma: MA) =
     let rec loop(acc: MACurs list, m: MACurs) =

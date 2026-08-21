@@ -372,21 +372,24 @@ type PlacedCurs with
         | PlacedMACurs.RootNMain(n, x) -> MACurs.RootNMain(ma n, x.ToMACurs)
         | PlacedMACurs.Sqrt x -> MACurs.Sqrt x.ToMACurs
 
+    /// The atoms of a slot. A row of one is laid out as that one, which stands for the row itself.
+    static member private Children(placed: Placed) =
+        match placed.Pma with
+        | PlacedMA.Row children -> children
+        | _ -> ImmutableArray.Create(placed.At(0f<px>, 0f<px>))
+
+    /// Where the pen stood after the first count of them, which is where a caret between them goes.
+    static member private Pen(children: ImmutableArray<Placed>, count: int) =
+        if count < children.Length then children.[count].X
+        elif children.IsEmpty then 0f<px>
+        else
+            let last = children.[children.Length - 1]
+            last.X + last.Width - last.ItalicCorrection
+
     /// The cursor put against a formula already laid out, which must be the formula it stands in.
     static member Of(curs: MACurs, placed: Placed): PlacedCurs =
-        /// A row of one atom is laid out as that atom, so an atom stands for the row holding it.
-        let children =
-            match placed.Pma with
-            | PlacedMA.Row children -> children
-            | _ -> ImmutableArray.Create(placed.At(0f<px>, 0f<px>))
-        /// Where the pen stood after the first count of them, which is where a caret goes.
-        let pen(count: int) =
-            if count < children.Length then children.[count].X
-            elif children.IsEmpty then 0f<px>
-            else
-                let last = children.[children.Length - 1]
-                last.X + last.Width - last.ItalicCorrection
-        let bar(count: int) = PlacedCurs.Bar(pen count, placed.EmSize)
+        let children = PlacedCurs.Children placed
+        let bar(count: int) = PlacedCurs.Bar(PlacedCurs.Pen(children, count), placed.EmSize)
         let first(count: int) = children.RemoveRange(count, children.Length - count)
         let rest(count: int) = children.RemoveRange(0, count)
         let wrong(kind: string) = failwith $"a cursor in a {kind} was placed over {placed.Pma}"
@@ -530,20 +533,10 @@ type PlacedCurs with
     static member private NearestIn(placed: Placed, x: float32<px>, y: float32<px>): MACurs =
         if placed.Pma.IsPlaceholder then MACurs.CursorOrEmpty else
 
-        /// A row of one atom is laid out as that atom, so an atom stands for the row holding it.
-        let children =
-            match placed.Pma with
-            | PlacedMA.Row children -> children
-            | _ -> ImmutableArray.Create(placed.At(0f<px>, 0f<px>))
+        let children = PlacedCurs.Children placed
         let ma(placed: Placed) = placed.Pma.ToMA
         let first(count: int) = children.RemoveRange(count, children.Length - count) |> ImmArray.map ma
         let rest(count: int) = children.RemoveRange(0, count) |> ImmArray.map ma
-        let pen(count: int) =
-            if count < children.Length then children.[count].X
-            elif children.IsEmpty then 0f<px>
-            else
-                let last = children.[children.Length - 1]
-                last.X + last.Width - last.ItalicCorrection
         let mutable best = MACurs.CursorOrEmpty
         let mutable closest = System.Single.MaxValue * 1f<px>
         let consider(distance: float32<px>, curs: MACurs) =
@@ -553,7 +546,7 @@ type PlacedCurs with
         for count in 0 .. children.Length do
             // A gap offers the bar it would draw, so a click high in a numerator is not drawn down
             // to the row the fraction sits in.
-            let bar = PlacedCurs.Bar(pen count, placed.EmSize)
+            let bar = PlacedCurs.Bar(PlacedCurs.Pen(children, count), placed.EmSize)
             let away =
                 PlacedCurs.Away(bar.X, bar.X + bar.Width, bar.Y, bar.Y + bar.Thickness, x, y)
             consider(away, MACurs.MakeRow(first count, MACurs.CursorOrEmpty, rest count))
