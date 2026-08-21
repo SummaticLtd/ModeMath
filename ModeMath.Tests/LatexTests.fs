@@ -121,7 +121,8 @@ let private reading =
                     "\\mathbf{v}", MA.BoldVar 'v'
                     "\\mathbb{R}", MA.Blackboard 'R'
                     "\\mathbf{ij}", row [ MA.BoldVar 'i'; MA.BoldVar 'j' ]
-                    "\\mathbf{v_1}", MA.ScriptSub(MA.BoldVar 'v', c '1')
+                    "\\mathbf{v_i}", MA.ScriptSub(MA.BoldVar 'v', MA.BoldVar 'i')
+                    "\\mathbf{\\frac{a}{b}}", MA.Frac(MA.BoldVar 'a', MA.BoldVar 'b')
                     // The alphabets hold no bold figures or Greek, so those are left as they are.
                     "\\mathbf{2θ}", row [ c '2'; c 'θ' ]
                 ]

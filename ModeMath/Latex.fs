@@ -168,12 +168,26 @@ module internal Latexing =
 
     /// A formula with its letters set in another alphabet, and whatever that alphabet lacks left alone.
     let rec private set(build: char -> MA voption, ma: MA) =
+        let inner(x: MA) = set(build, x)
+        let optional = ValueOption.map inner
         match ma with
-        | MA.Row elements -> MA.Row(elements |> ImmArray.map (fun element -> set(build, element)))
         | MA.Char c -> build c |> ValueOption.defaultValue ma
-        | MA.ScriptSuper(main, super, sub) -> MA.ScriptSuper(set(build, main), super, sub)
-        | MA.ScriptSub(main, sub) -> MA.ScriptSub(set(build, main), sub)
-        | _ -> ma
+        | MA.Row elements -> MA.Row(elements |> ImmArray.map inner)
+        | MA.ScriptSuper(main, super, sub) -> MA.ScriptSuper(inner main, inner super, optional sub)
+        | MA.ScriptSub(main, sub) -> MA.ScriptSub(inner main, inner sub)
+        | MA.Frac(n, d) -> MA.Frac(inner n, inner d)
+        | MA.Stack(top, bottom) -> MA.Stack(inner top, inner bottom)
+        | MA.Bracketed(brackets, x, completion) -> MA.Bracketed(brackets, inner x, completion)
+        | MA.RootN(n, x) -> MA.RootN(inner n, inner x)
+        | MA.Sqrt x -> MA.Sqrt(inner x)
+        | MA.BigOp(op, lower, upper) -> MA.BigOp(op, optional lower, optional upper)
+        | MA.Accented(accent, x) -> MA.Accented(accent, inner x)
+        | MA.Spanned(mark, x) -> MA.Spanned(mark, inner x)
+        | MA.Overline x -> MA.Overline(inner x)
+        | MA.Underline x -> MA.Underline(inner x)
+        | MA.Coloured(colour, x) -> MA.Coloured(colour, inner x)
+        | MA.Table(cells, alignments) -> MA.Table(cells |> ImmA2D.map inner, alignments)
+        | MA.BoldVar _ | MA.Blackboard _ | MA.UprightD | MA.Function _ | MA.Text _ | MA.Space _ -> ma
 
     let bold(ma: MA) =
         set((fun c -> if spells c then ValueSome(MA.BoldVar c) else ValueNone), ma)
