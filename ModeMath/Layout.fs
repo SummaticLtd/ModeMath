@@ -224,8 +224,8 @@ module private Spacing =
 
 /// Lays out an MA at a base font size, which is pixels to the em.
 type Layout(fontSize: float32<px>) =
-    let scale(style: Style) = fontSize * style.ScaleFactor / MathConstants.UnitsPerEm
     let emSize(style: Style) = fontSize * style.ScaleFactor
+    let scale(style: Style) = emSize style / MathConstants.UnitsPerEm
 
     /// An atom of the given width, reaching as far as the parts it draws.
     let atomOf(pma: PlacedMA, width: float32<px>, italicCorrection: float32<px>) =
@@ -291,7 +291,7 @@ type Layout(fontSize: float32<px>) =
             if entry >= 0 then entry
             elif style.Size = MathSize.Display || style.Size = MathSize.Text then -entry
             else 0
-        float32 eighteenths * fontSize * style.ScaleFactor / 18f
+        float32 eighteenths * emSize style / 18f
 
     let extentOf(placed: Placed voption) = placed |> ValueOption.map (fun p -> p.Extent)
 
@@ -551,7 +551,7 @@ type Layout(fontSize: float32<px>) =
         let mutable width = 0f<px>
         for part in items do
             let glyph = part.Glyph
-            glyphs.Add(PlacedGlyph(glyph, emSize style, 0f<px>, y - (glyph.Bottom) * s))
+            glyphs.Add(PlacedGlyph(glyph, emSize style, 0f<px>, y - glyph.Bottom * s))
             width <- max width (glyph.Advance * s)
             y <- y + part.FullAdvance * s - overlap
         markOf(glyphs.ToImmutable(), width)
@@ -569,7 +569,7 @@ type Layout(fontSize: float32<px>) =
         let axis = MathConstants.AxisHeight * s
         let reach = 2f * max (content.Ascent - axis) (content.Descent + axis)
         // TeX lets a delimiter fall a little short rather than jump to the next size up.
-        let needed = max (reach * 0.901f) (reach - 0.5f * fontSize * style.ScaleFactor)
+        let needed = max (reach * 0.901f) (reach - 0.5f * emSize style)
         let left = t.Delimiter(Conventions.leftDelimiter brackets.Left, style, needed)
         let right = t.Delimiter(Conventions.rightDelimiter brackets.Right, style, needed)
         let onAxis(mark: PlacedGlyphs, x: float32<px>) = mark.At(x, axis - mark.Ascent / 2f)
@@ -696,7 +696,7 @@ type Layout(fontSize: float32<px>) =
         for row in 0 .. placed.Rows - 1 do
             for col in 0 .. placed.Cols - 1 do
                 widths.[col] <- max widths.[col] placed.[row, col].Width
-        let gap = float32 Conventions.tableColumnGap * fontSize * style.ScaleFactor / 18f
+        let gap = float32 Conventions.tableColumnGap * emSize style / 18f
         let lefts = Array.zeroCreate<float32<px>> placed.Cols
         let mutable right = 0f<px>
         for col in 0 .. placed.Cols - 1 do
