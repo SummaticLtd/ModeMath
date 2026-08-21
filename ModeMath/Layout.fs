@@ -55,6 +55,12 @@ type AtomClass =
     | Punctuation = 6
     | Inner = 7
 
+/// How an accent is drawn: from the one glyph, or from a size of one that grows to cover its base.
+[<RequireQualifiedAccess>]
+type internal AccentMark =
+    | Fixed of Glyph
+    | Wide of StretchyGlyph
+
 module internal Conventions =
     let relations = set [
         '='; '<'; '>'; '≤'; '≥'; '≠'; '≈'; '≡'; '∈'; '∉'
@@ -112,19 +118,43 @@ module internal Conventions =
 
     let accent(accent: Accent) =
         match accent with
-        | Accent.Hat -> Accents.hat
-        | Accent.Tilde -> Accents.tilde
-        | Accent.Bar -> Accents.bar
-        | Accent.Vec -> Accents.vec
-        | Accent.Dot -> Accents.dot
-        | Accent.DoubleDot -> Accents.doubleDot
-        | Accent.Check -> Accents.check
-        | Accent.Acute -> Accents.acute
-        | Accent.Grave -> Accents.grave
-        | Accent.Breve -> Accents.breve
+        | Accent.Hat -> AccentMark.Fixed Accents.hat
+        | Accent.Tilde -> AccentMark.Fixed Accents.tilde
+        | Accent.Bar -> AccentMark.Fixed Accents.bar
+        | Accent.Vec -> AccentMark.Fixed Accents.vec
+        | Accent.Dot -> AccentMark.Fixed Accents.dot
+        | Accent.DoubleDot -> AccentMark.Fixed Accents.doubleDot
+        | Accent.Check -> AccentMark.Fixed Accents.check
+        | Accent.Acute -> AccentMark.Fixed Accents.acute
+        | Accent.Grave -> AccentMark.Fixed Accents.grave
+        | Accent.Breve -> AccentMark.Fixed Accents.breve
+        | Accent.WideHat -> AccentMark.Wide HorizontalMarks.wideHat
+        | Accent.WideTilde -> AccentMark.Wide HorizontalMarks.wideTilde
+
+    let spanning(mark: Spanning) =
+        match mark with
+        | Spanning.Overbrace -> HorizontalMarks.overbrace
+        | Spanning.Underbrace -> HorizontalMarks.underbrace
+        | Spanning.Overrightarrow -> HorizontalMarks.rightArrow
+
+    /// Whether the mark is set under what it spans rather than over it.
+    let spansBelow(mark: Spanning) =
+        match mark with
+        | Spanning.Underbrace -> true
+        | Spanning.Overbrace | Spanning.Overrightarrow -> false
 
     /// Eighteenths of an em between a table's columns, which is what TeX sets a matrix with.
     let tableColumnGap = 18
+
+    /// Eighteenths of an em a space is wide, which is how TeX measures its spacing commands.
+    let space(space: Space) =
+        match space with
+        | Space.Thin -> 3
+        | Space.Medium -> 4
+        | Space.Thick -> 5
+        | Space.NegativeThin -> -3
+        | Space.Quad -> 18
+        | Space.QQuad -> 36
 
     /// LaTeX keeps an integral's limits beside it; the rest take them above and below in display style.
     let takesLimits(op: BigOperator) =
@@ -177,9 +207,9 @@ module internal Conventions =
         elif punctuation.Contains c then AtomClass.Punctuation
         else AtomClass.Ordinary
 
-    /// The classes an atom presents to its left and right neighbours, which differ for a bracketed group.
-    let rec atomClasses(ma: MA): struct (AtomClass * AtomClass) =
-        let both(atomClass: AtomClass) = struct (atomClass, atomClass)
+    /// The classes an atom presents to its neighbours. ValueNone for a gap, which stands between none.
+    let rec atomClasses(ma: MA): struct (AtomClass * AtomClass) voption =
+        let both(atomClass: AtomClass) = ValueSome(struct (atomClass, atomClass))
         match ma with
         | MA.Char c -> both(charClass c)
         | MA.Operator Operator.Equals -> both AtomClass.Relation
@@ -187,11 +217,15 @@ module internal Conventions =
         | MA.Function MathFunction.Fact -> both AtomClass.Close
         | MA.Function _ -> both AtomClass.Operator
         | MA.Frac _ | MA.Stack _ | MA.Table _ -> both AtomClass.Inner
-        | MA.Bracketed _ -> struct (AtomClass.Open, AtomClass.Close)
+        | MA.Bracketed _ -> ValueSome(struct (AtomClass.Open, AtomClass.Close))
         | MA.ScriptSuper(main, _, _) | MA.ScriptSub(main, _) -> atomClasses main
+        // A colour changes how an atom is drawn, not what it binds to on either side.
+        | MA.Coloured(_, x) -> atomClasses x
         | MA.BigOp _ -> both AtomClass.Operator
         | MA.Row _ | MA.BoldVar _ | MA.Blackboard _ | MA.UprightD | MA.RootN _ | MA.Sqrt _
-        | MA.Accented _ | MA.Overline _ | MA.Underline _ -> both AtomClass.Ordinary
+        | MA.Accented _ | MA.Spanned _ | MA.Overline _ | MA.Underline _ | MA.Text _ ->
+            both AtomClass.Ordinary
+        | MA.Space _ -> ValueNone
 
 module private Spacing =
     /// Eighteenths of an em by left then right class, negated where only display and text styles space.
@@ -274,6 +308,9 @@ type Layout(fontSize: float32<px>) =
         let placed = PlacedGlyph(glyph, emSize style, 0f<px>, -glyph.Bottom * s)
         markOf(ImmutableArray.Create placed, glyph.Advance * s)
 
+    /// Eighteenths of an em as a width, which is what TeX's spacing table and commands are given in.
+    let eighteenths(count: int, style: Style) = float32 count * emSize style / 18f
+
     /// Upright letters, as function names are set: one mark, so no italic correction trails them.
     let upright(text: string, style: Style) =
         let s = scale style
@@ -287,13 +324,19 @@ type Layout(fontSize: float32<px>) =
 
     let spacing(left: AtomClass, right: AtomClass, style: Style) =
         let entry = Spacing.table.[int left * 8 + int right]
-        let eighteenths =
+        let count =
             if entry >= 0 then entry
             elif style.Size = MathSize.Display || style.Size = MathSize.Text then -entry
             else 0
-        float32 eighteenths * emSize style / 18f
+        eighteenths(count, style)
 
     let extentOf(placed: Placed voption) = placed |> ValueOption.map (fun p -> p.Extent)
+
+    /// The lowest ink of a mark, which its descent reads as none where the mark clears the baseline.
+    let inkBottom(mark: PlacedGlyphs) = ImmArray.minWithSafe(mark.Glyphs, mark.Ascent, fun g -> g.Bottom)
+
+    /// The highest ink of a mark, which its ascent reads as none where the mark hangs below it.
+    let inkTop(mark: PlacedGlyphs) = ImmArray.maxWithSafe(mark.Glyphs, -mark.Descent, fun g -> g.Top)
 
     /// How far the scripts beside a base sit above and below it, and how wide the three come to.
     let scriptPlacement(b: Extent, above: Extent voption, below: Extent voption, style: Style) =
@@ -351,25 +394,37 @@ type Layout(fontSize: float32<px>) =
 
     member private t.Row(elements: ImmutableArray<MA>, style: Style) =
         let classes = Array.init elements.Length (fun i -> Conventions.atomClasses elements.[i])
-        let facingLeft(i: int) = let struct (left, _) = classes.[i] in left
-        let facingRight(i: int) = let struct (_, right) = classes.[i] in right
-        let ordinary = struct (AtomClass.Ordinary, AtomClass.Ordinary)
+        // A space is a gap rather than an atom, so an operator binds straight through it.
+        let bound = [| for i in 0 .. elements.Length - 1 do if classes.[i].IsSome then yield i |]
+        let facingLeft(i: int) = let struct (left, _) = classes.[i].Value in left
+        let facingRight(i: int) = let struct (_, right) = classes.[i].Value in right
+        let ordinary = ValueSome(struct (AtomClass.Ordinary, AtomClass.Ordinary))
         // A binary atom with nothing to bind is ordinary, so each gap demotes whichever side it strands.
-        for i in 0 .. classes.Length - 1 do
-            let previous = if i = 0 then ValueNone else ValueSome(facingRight (i - 1))
+        for n in 0 .. bound.Length - 1 do
+            let i = bound.[n]
+            let previous = if n = 0 then ValueNone else ValueSome(facingRight bound.[n - 1])
             if facingLeft i = AtomClass.Binary && Spacing.isUnaryPosition previous then
                 classes.[i] <- ordinary
-            elif i > 0 && facingRight (i - 1) = AtomClass.Binary && Spacing.leavesNothingToBind(facingLeft i) then
-                classes.[i - 1] <- ordinary
-        // No gap follows the last atom, so a binary ending the row is stranded too.
-        if classes.Length > 0 && facingRight (classes.Length - 1) = AtomClass.Binary then
-            classes.[classes.Length - 1] <- ordinary
+            elif
+                n > 0
+                && facingRight bound.[n - 1] = AtomClass.Binary
+                && Spacing.leavesNothingToBind(facingLeft i)
+            then
+                classes.[bound.[n - 1]] <- ordinary
+        // No atom follows the last, so a binary ending the row is stranded too.
+        if bound.Length > 0 && facingRight bound.[bound.Length - 1] = AtomClass.Binary then
+            classes.[bound.[bound.Length - 1]] <- ordinary
         let children = ImmutableArray.CreateBuilder<Placed>()
         let mutable x = 0f<px>
         let mutable reach = 0f<px>
         let mutable italicCorrection = 0f<px>
+        let mutable previous = ValueNone
         for i in 0 .. elements.Length - 1 do
-            if i > 0 then x <- x + spacing(facingRight (i - 1), facingLeft i, style)
+            if classes.[i].IsSome then
+                match previous with
+                | ValueSome before -> x <- x + spacing(facingRight before, facingLeft i, style)
+                | ValueNone -> ()
+                previous <- ValueSome i
             let child = t.Of(elements.[i], style)
             children.Add(child.At(x, 0f<px>))
             // A lean is ink above the baseline, which the next atom sets under rather than after.
@@ -623,6 +678,65 @@ type Layout(fontSize: float32<px>) =
             | ValueNone -> PlacedMA.Sqrt(placedSurd, bar, radicand)
         paddedAtom(pma, barX + x.Width, MathConstants.RadicalExtraAscender * s, 0f<px>)
 
+    /// The size of a growing mark that covers the width, which is how \widehat takes to its base.
+    member private _.Widened(stretchy: StretchyGlyph, style: Style, minWidth: float32<px>) =
+        let s = scale style
+        let mutable chosen = ValueNone
+        let mutable i = 0
+        while chosen.IsNone && i < stretchy.SizeCount do
+            let size = stretchy.Size i
+            if size.Advance * s >= minWidth then chosen <- ValueSome size.Glyph
+            i <- i + 1
+        match chosen with
+        | ValueSome glyph -> glyph
+        | ValueNone when stretchy.SizeCount > 0 -> stretchy.Size(stretchy.SizeCount - 1).Glyph
+        | ValueNone -> stretchy.Glyph
+
+    /// A mark grown to span the width, drawn from its own origin rather than over a base's middle.
+    member private t.Spanning(stretchy: StretchyGlyph, style: Style, minWidth: float32<px>) =
+        let s = scale style
+        let sized(glyph: Glyph, width: float32<du>) =
+            markOf(ImmutableArray.Create(PlacedGlyph(glyph, emSize style, 0f<px>, 0f<px>)), width * s)
+        let mutable chosen = ValueNone
+        let mutable i = 0
+        while chosen.IsNone && i < stretchy.SizeCount do
+            let size = stretchy.Size i
+            // A combining form draws to the left of its origin, so only a spacing size can span.
+            if size.Glyph.Advance > 0f<du> && size.Advance * s >= minWidth then chosen <- ValueSome size
+            i <- i + 1
+        match chosen with
+        | ValueSome size -> sized(size.Glyph, size.Advance)
+        | ValueNone when stretchy.PartCount > 0 -> t.Spread(stretchy, style, minWidth)
+        | ValueNone when stretchy.SizeCount > 0 ->
+            let size = stretchy.Size(stretchy.SizeCount - 1)
+            sized(size.Glyph, size.Advance)
+        | ValueNone -> sized(stretchy.Glyph, stretchy.Glyph.Advance)
+
+    /// The parts laid along the line, repeating the extenders up to a cap no formula reaches.
+    member private _.Spread(stretchy: StretchyGlyph, style: Style, minWidth: float32<px>) =
+        let s = scale style
+        let overlap = MathConstants.MinConnectorOverlap * s
+        let parts = Array.init stretchy.PartCount stretchy.Part
+        let advance(part: AssemblyPart) = part.FullAdvance * s
+        let extenders = parts |> Array.filter (fun part -> part.IsExtender)
+        let round = (extenders |> Array.sumBy advance) - overlap * float32 extenders.Length
+        let shortest =
+            (parts |> Array.filter (fun part -> not part.IsExtender) |> Array.sumBy advance)
+            - overlap * float32 (parts.Length - extenders.Length - 1)
+        let repeats =
+            if extenders.Length = 0 || round <= 0f<px> then 0
+            else min 256 (max 0 (int (ceil ((minWidth - shortest) / round))))
+        let items = ResizeArray<AssemblyPart>()
+        for part in parts do
+            for _ in 1 .. (if part.IsExtender then repeats else 1) do
+                items.Add part
+        let glyphs = ImmutableArray.CreateBuilder<PlacedGlyph>()
+        let mutable x = 0f<px>
+        for part in items do
+            glyphs.Add(PlacedGlyph(part.Glyph, emSize style, x, 0f<px>))
+            x <- x + advance part - overlap
+        markOf(glyphs.ToImmutable(), x + overlap)
+
     /// Where an accent sits over an atom: its glyph's attachment, or the middle of one drawn from more.
     member private _.Attachment(placed: Placed, style: Style) =
         match placed.Pma.SingleGlyph with
@@ -633,7 +747,10 @@ type Layout(fontSize: float32<px>) =
     member private t.Accented(accent: Accent, x: MA, style: Style) =
         let b = t.Of(x, style.Cramp)
         let s = scale style
-        let glyph = Conventions.accent accent
+        let glyph =
+            match Conventions.accent accent with
+            | AccentMark.Fixed found -> found
+            | AccentMark.Wide stretchy -> t.Widened(stretchy, style, b.Width)
         let mark =
             PlacedGlyph(
                 glyph,
@@ -641,6 +758,23 @@ type Layout(fontSize: float32<px>) =
                 t.Attachment(b, style) - glyph.TopAccentAttachment * s,
                 max 0f<px> (b.Ascent - MathConstants.AccentBaseHeight * s))
         atomOf(PlacedMA.Accented(accent, mark, b), b.Width, b.ItalicCorrection)
+
+    /// A mark grown to span the atom, set clear of its ink above or below.
+    member private t.Spanned(spanning: Spanning, x: MA, style: Style) =
+        let below = Conventions.spansBelow spanning
+        let b = t.Of(x, (if below then style else style.Cramp))
+        let s = scale style
+        let mark = t.Spanning(Conventions.spanning spanning, style, b.Width)
+        let width = max b.Width mark.Width
+        let y =
+            if below then -(b.Descent + MathConstants.StretchStackGapBelowMin * s) - inkTop mark
+            else b.Ascent + MathConstants.StretchStackGapAboveMin * s - inkBottom mark
+        let pma =
+            PlacedMA.Spanned(
+                spanning,
+                mark.At((width - mark.Width) / 2f, y),
+                b.At((width - b.Width) / 2f, 0f<px>))
+        atomOf(pma, width, 0f<px>)
 
     /// A rule over the atom, clear of its ink by the gap the font names.
     member private t.Overline(x: MA, style: Style) =
@@ -696,7 +830,7 @@ type Layout(fontSize: float32<px>) =
         for row in 0 .. placed.Rows - 1 do
             for col in 0 .. placed.Cols - 1 do
                 widths.[col] <- max widths.[col] placed.[row, col].Width
-        let gap = float32 Conventions.tableColumnGap * emSize style / 18f
+        let gap = eighteenths(Conventions.tableColumnGap, style)
         let lefts = Array.zeroCreate<float32<px>> placed.Cols
         let mutable right = 0f<px>
         for col in 0 .. placed.Cols - 1 do
@@ -754,10 +888,19 @@ type Layout(fontSize: float32<px>) =
         | MA.Sqrt x -> t.Radical(ValueNone, x, style)
         | MA.RootN(n, x) -> t.Radical(ValueSome n, x, style)
         | MA.Accented(accent, x) -> t.Accented(accent, x, style)
+        | MA.Spanned(mark, x) -> t.Spanned(mark, x, style)
         | MA.Overline x -> t.Overline(x, style)
         | MA.Underline x -> t.Underline(x, style)
         | MA.Stack(top, bottom) -> t.Stack(top, bottom, style)
         | MA.Table(cells, alignments) -> t.Table(cells, alignments, style)
+        | MA.Text text ->
+            let letters = upright(text, style)
+            atomOf(PlacedMA.Text(text, letters), letters.Width, 0f<px>)
+        | MA.Space space ->
+            atomOf(PlacedMA.Space space, eighteenths(Conventions.space space, style), 0f<px>)
+        | MA.Coloured(colour, x) ->
+            let inner = t.Of(x, style)
+            atomOf(PlacedMA.Coloured(colour, inner), inner.Width, inner.ItalicCorrection)
 
     /// Laid out on a line of its own, where fractions and radicals are given their full height.
     member t.Of(ma: MA) = t.Of(ma, MathSize.Display)

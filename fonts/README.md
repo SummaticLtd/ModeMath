@@ -33,8 +33,8 @@ or assembly parts of a delimiter. The remaining 2041 are reachable only through 
 mainly `ssty`, which chooses optically heavier shapes at superscript size. ModeMath ignores `GSUB`, so
 it sets scripts in the ordinary shapes.
 
-`\widehat` and the wide braces are a separate gap. They grow along the `MATH` table's horizontal
-constructions, which MathTableGen parses but does not emit.
+`\widehat` and the wide braces grow along the `MATH` table's horizontal constructions, which are
+generated beside the vertical ones the delimiters stretch through.
 
 The font carries no `MathKernInfo`, so there is no height-dependent script kerning to bake and none is
 generated. MathTableGen fails rather than dropping it should a replacement font have any.

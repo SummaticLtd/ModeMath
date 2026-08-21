@@ -1,6 +1,7 @@
 module RenderExamples.Examples
 
 open System.Collections.Immutable
+open System.Drawing
 open FSUtils
 open ModeMath
 
@@ -28,6 +29,10 @@ let private bigOpSub(o: BigOperator, lower: MA) = MA.BigOp(o, ValueSome lower, V
 let private bigOpSup(o: BigOperator, upper: MA) = MA.BigOp(o, ValueNone, ValueSome upper)
 let private bigOpSubSup(o: BigOperator, lower: MA, upper: MA) = MA.BigOp(o, ValueSome lower, ValueSome upper)
 let private acc(accent: Accent, x: MA) = MA.Accented(accent, x)
+let private spanned(mark: Spanning, x: MA) = MA.Spanned(mark, x)
+let private text(words: string) = MA.Text words
+let private coloured(colour: Color, x: MA) = MA.Coloured(colour, x)
+let private space(width: Space) = MA.Space width
 let private bb(letter: char) = MA.Blackboard letter
 let private overline(x: MA) = MA.Overline x
 let private underline(x: MA) = MA.Underline x
@@ -68,6 +73,12 @@ let implemented = [
     "CapitalGreeks", s "ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ"
     "Greeks", s "αβγδεζηθικλμνξοπρςστυφχψω"
     "Numbers", s "1234567890"
+
+    "Color",
+    row [
+        coloured(Color.FromArgb(0x00, 0x00, 0x88), c 'a')
+        coloured(Color.FromArgb(0x00, 0x00, 0xFF), c 'b')
+    ]
 
     "Commands",
     row [
@@ -244,7 +255,75 @@ let implemented = [
     ]
     "TwoSin", row [ c '2'; fn MathFunction.Sin ]
 
+    "Abs",
+    row [
+        bars(c 'x')
+        op Operator.Equals
+        cases [
+            [ row [ c '-'; c 'x'; c ',' ]; row [ text " if "; c 'x'; c '<'; c '0' ] ]
+            [ row [ c 'x'; c ',' ]; row [ text " if "; c 'x'; c '≥'; c '0' ] ]
+        ]
+    ]
     "AccentOver", acc(Accent.Acute, c 'x')
+    "AccentOverMultiple", acc(Accent.WideHat, s "ABcd")
+    "ArcsinSin",
+    row [
+        fn MathFunction.Asin
+        paren(row [ fn MathFunction.Sin; c 'x' ])
+        op Operator.Equals
+        c 'x'
+        space Space.Quad
+        text "for"
+        space Space.Quad
+        bars(c 'x')
+        c '≤'
+        frac(c 'π', c '2')
+    ]
+    "Cases",
+    row [
+        c 'w'
+        c '≡'
+        cases
+            [ [ c '0'
+                row [
+                    text "for"
+                    space Space.Thin
+                    c 'c'
+                    op Operator.Equals
+                    c 'd'
+                    op Operator.Equals
+                    c '0'
+                ] ] ]
+    ]
+    "EvalIntegral",
+    row [
+        bigOpSubSup(BigOperator.Integral, c '1', c '2')
+        c 'x'
+        space Space.Thick
+        MA.UprightD
+        c 'x'
+        op Operator.Equals
+        evaluatedAt(frac(sup(c 'x', c '2'), c '2'), c '1', c '2')
+    ]
+    "Integral",
+    row [
+        bigOpSubSup(BigOperator.Integral, c '0', c '∞')
+        sup(c 'e', c 'x')
+        space Space.Thin
+        MA.UprightD
+        c 'x'
+        op Operator.Equals
+        bigOpSubSup(BigOperator.ContourIntegral, c '0', c 'Δ')
+        c '5'
+        fn MathFunction.Gamma
+    ]
+    "SolveEquations",
+    row [
+        text "Solve "
+        cases [ [ row [ c 'y'; op Operator.Equals; sup(c 'x', c '2'); c '-'; c 'x'; c '+'; c '3' ] ] ]
+    ]
+    "Underbrace", spanned(Spanning.Underbrace, s "abcd")
+    "UnderbraceSubscript", sub(spanned(Spanning.Underbrace, s "abcdefghklmnopqrst"), s "eee")
     "AccentOverF", acc(Accent.Hat, c 'f')
     "Choose", binom(c '6', c 'x')
     "Matrix", paren(matrix [ [ c 'a'; c 'b' ]; [ c 'c'; c 'd' ] ])
@@ -282,6 +361,35 @@ let implemented = [
     ]
 
     "ModeMathAbsolute", row [ bars(row [ c 'x'; c '-'; c '1' ]); op Operator.Equals; c '3' ]
+    "ModeMathColoured",
+    row [
+        coloured(Color.Crimson, MA.String "3x")
+        op Operator.Plus
+        coloured(Color.SeaGreen, frac(c '1', c '2'))
+        op Operator.Equals
+        c '5'
+    ]
+    "ModeMathOverbrace",
+    sup(spanned(Spanning.Overbrace, row [ c 'a'; c '+'; c 'b'; c '+'; c 'c' ]), c 'n')
+    "ModeMathSpacing",
+    row [
+        c 'a'
+        space Space.NegativeThin
+        c 'b'
+        space Space.Thin
+        c 'c'
+        space Space.Medium
+        c 'd'
+        space Space.Thick
+        c 'e'
+        space Space.Quad
+        c 'f'
+        space Space.QQuad
+        c 'g'
+    ]
+    "ModeMathVectorArrow",
+    row [ spanned(Spanning.Overrightarrow, s "AB"); op Operator.Equals; acc(Accent.Vec, MA.BoldVar 'v') ]
+    "ModeMathWideTilde", acc(Accent.WideTilde, s "xyz")
     "ModeMathAccents",
     row [
         acc(Accent.Hat, c 'a')
@@ -325,23 +433,13 @@ let implemented = [
 
 /// Examples from the same folder that MA cannot express yet, with the roadmap item each waits on.
 let unimplemented = [
-    "Abs", @"|x|=\begin{cases} -x, & \text{ if } x < 0 \\ x, & \text{ if } x \geq 0 \end{cases}", "Text"
-    "AccentOverMultiple", @"\widehat{ABcd}", "horizontal stretch"
     "AccentUnder", @"\threeunderdot{x}", "accents below"
     "AccentUnderThin", @"\threeunderdot{i}", "accents below"
-    "ArcsinSin", @"\arcsin(\sin x)=x\quad\mathrm{for}\quad|x|\le\frac\pi2", "spacing, Styled"
-    "Cases", @"w \equiv \begin{cases} 0 & \text{for}\ c = d = 0 \end{cases}", "Text"
-    "Color", @"\color{#000088}a\color{#0000FF}b", "Coloured"
-    "Cyrillic", @"А а\ Б б\ В в", "Text"
-    "EvalIntegral", @"\int_1^2 x\; dx=\left.\frac{x^2}{2}\right|_1^2", "spacing"
+    "Cyrillic", @"А а\ Б б\ В в", "Cyrillic in the font"
     "FontStyles", @"\mathnormal F\mathrm F\mathbf F\mathcal F\mathtt F", "Styled"
-    "Integral", @"\int_{0}^{\infty}e^x \,dx=\oint_0^{\Delta}5\Gamma", "spacing"
-    "ItalicAlignment", @"\colorbox{yellow}P\\\begin{array}{r}\colorbox{yellow}{PF}\end{array}", "Coloured"
+    "ItalicAlignment", @"\colorbox{yellow}P\\\begin{array}{r}\colorbox{yellow}{PF}\end{array}", "colorbox"
     "LineStyles", @"a \displaystyle a \textstyle a \scriptstyle a \scriptscriptstyle a", "style commands"
     "Matrixception", @"\begin{Vmatrix}\begin{vmatrix}a&b\end{vmatrix}\end{Vmatrix}", "double bar delimiter"
     "RaiseBox", @"a\raisebox{1mu}a\raisebox{2mu}a", "raisebox"
-    "SolveEquations", @"\text{Solve } \begin{cases} y=x^2-x+3 \end{cases}", "Text"
     "SomeLimit", @"\lim_{x\to\infty}\frac{e^2}{1-x}=\limsup_{\sigma}5", "limsup"
-    "Underbrace", @"\underbrace{abcd}", "horizontal stretch"
-    "UnderbraceSubscript", @"\underbrace{abcdefghklmnopqrst} _{eee}", "horizontal stretch"
 ]

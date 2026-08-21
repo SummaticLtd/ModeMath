@@ -57,6 +57,16 @@ let accents =
         "breve", 0x0306, "The breve of \\breve."
     ]
 
+/// Marks that grow along the line to span what they are set over or under.
+let horizontalMarks =
+    [
+        "wideHat", 0x0302, "The circumflex of \\widehat, which grows to cover its base."
+        "wideTilde", 0x0303, "The tilde of \\widetilde, which grows to cover its base."
+        "overbrace", 0x23DE, "The brace of \\overbrace."
+        "underbrace", 0x23DF, "The brace of \\underbrace."
+        "rightArrow", 0x20D7, "The arrow of \\overrightarrow."
+    ]
+
 let radicals =
     [ "surd", 0x221A, "The tick and bar of a root, which grows to cover the radicand." ]
 

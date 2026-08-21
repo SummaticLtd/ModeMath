@@ -106,7 +106,8 @@ type MICurs =
             | BracketCompletion.Right -> MICurs.AtEnd inner |> ValueSome
         | MA.Char _ | MA.BoldVar _ | MA.Blackboard _ | MA.Cdot | MA.UprightD | MA.Function _
         | MA.Operator _ | MA.ScriptSuper _ | MA.ScriptSub _ | MA.Frac _ | MA.RootN _ | MA.Sqrt _
-        | MA.BigOp _ | MA.Accented _ | MA.Overline _ | MA.Underline _ | MA.Stack _ | MA.Table _ ->
+        | MA.BigOp _ | MA.Accented _ | MA.Spanned _ | MA.Overline _ | MA.Underline _ | MA.Stack _
+        | MA.Table _ | MA.Text _ | MA.Space _ | MA.Coloured _ ->
             ValueSome CursorOrEmpty
 
     /// Returns Choice2 of MA if the cursor is on the left; otherwise returns Choice1 of the altered MICurs
@@ -190,7 +191,8 @@ type MICurs =
             | BracketCompletion.Left -> MICurs.AtStart inner |> ValueSome
         | MA.Char _ | MA.BoldVar _ | MA.Blackboard _ | MA.Cdot | MA.UprightD | MA.Function _
         | MA.Operator _ | MA.ScriptSuper _ | MA.ScriptSub _ | MA.Frac _ | MA.RootN _ | MA.Sqrt _
-        | MA.BigOp _ | MA.Accented _ | MA.Overline _ | MA.Underline _ | MA.Stack _ | MA.Table _ ->
+        | MA.BigOp _ | MA.Accented _ | MA.Spanned _ | MA.Overline _ | MA.Underline _ | MA.Stack _
+        | MA.Table _ | MA.Text _ | MA.Space _ | MA.Coloured _ ->
             ValueSome CursorOrEmpty
 
     /// Returns Choice2 of MA if the cursor is on the right; otherwise returns Choice1 of the altered MICurs
@@ -258,8 +260,8 @@ type MICurs =
     static member private EnterFromLeft(ma: MA): MICurs voption =
         match ma with
         | MA.Row _ | MA.Char _ | MA.BoldVar _ | MA.Blackboard _ | MA.Cdot | MA.UprightD
-        | MA.Function _ | MA.Operator _ | MA.BigOp _ | MA.Accented _ | MA.Overline _ | MA.Underline _
-        | MA.Stack _ | MA.Table _ ->
+        | MA.Function _ | MA.Operator _ | MA.BigOp _ | MA.Accented _ | MA.Spanned _ | MA.Overline _
+        | MA.Underline _ | MA.Stack _ | MA.Table _ | MA.Text _ | MA.Space _ | MA.Coloured _ ->
             ValueNone
         | MA.ScriptSuper(main, super, sub) -> ScriptMainSuper(MICurs.AtStart main, super, sub) |> ValueSome
         | MA.ScriptSub(main, sub) -> ScriptMainSub(MICurs.AtStart main, sub) |> ValueSome
@@ -272,8 +274,8 @@ type MICurs =
     static member private EnterFromRight(ma: MA): MICurs voption =
         match ma with
         | MA.Row _ | MA.Char _ | MA.BoldVar _ | MA.Blackboard _ | MA.Cdot | MA.UprightD
-        | MA.Function _ | MA.Operator _ | MA.BigOp _ | MA.Accented _ | MA.Overline _ | MA.Underline _
-        | MA.Stack _ | MA.Table _ ->
+        | MA.Function _ | MA.Operator _ | MA.BigOp _ | MA.Accented _ | MA.Spanned _ | MA.Overline _
+        | MA.Underline _ | MA.Stack _ | MA.Table _ | MA.Text _ | MA.Space _ | MA.Coloured _ ->
             ValueNone
         | MA.ScriptSuper(main, super, sub) ->
             match sub with

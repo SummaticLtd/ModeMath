@@ -171,11 +171,11 @@ let main(args: string array): int =
     w.Array("all", "CG", repertoire |> Seq.map (fun c -> $"CG({c}, {glyph (resolve c)})"))
     w.Blank()
 
-    /// A delimiter with its sizes and assembly, taken from the vertical constructions.
-    let stretchy(codepoint: int) =
+    /// The sizes and assembly a glyph grows through along one axis.
+    let grown(codepoint: int, constructions: GlyphConstruction array, axis: string) =
         let id = resolve codepoint
-        match table.VerticalConstructions |> Array.tryFind (fun c -> c.Glyph = id) with
-        | None -> failwith $"U+{codepoint:X4} does not stretch vertically"
+        match constructions |> Array.tryFind (fun c -> c.Glyph = id) with
+        | None -> failwith $"U+{codepoint:X4} does not stretch {axis}"
         | Some construction ->
             let sizes =
                 construction.Variants
@@ -191,11 +191,20 @@ let main(args: string array): int =
                             {p.EndConnector}f<du>, {p.FullAdvance}f<du>, {extender})")
             id, sizes, parts
 
-    let writeStretchy(moduleName: string, summary: string, entries: (string * int * string) list) =
+    let vertical(codepoint: int) = grown(codepoint, table.VerticalConstructions, "vertically")
+    let horizontal(codepoint: int) = grown(codepoint, table.HorizontalConstructions, "horizontally")
+
+    let writeGrown
+        (
+            moduleName: string,
+            summary: string,
+            entries: (string * int * string) list,
+            along: int -> int * string array * string array
+        ) =
         w.Line $"/// {summary}"
         w.Line $"module {moduleName} ="
         for name, codepoint, doc in entries do
-            let id, sizes, parts = stretchy codepoint
+            let id, sizes, parts = along codepoint
             w.Line $"    /// {doc}"
             w.Line $"    let {name} ="
             w.Line "        StretchyGlyph("
@@ -203,6 +212,9 @@ let main(args: string array): int =
             w.Nested(sizes, ",")
             w.Nested(parts, ")")
         w.Blank()
+
+    let writeStretchy(moduleName: string, summary: string, entries: (string * int * string) list) =
+        writeGrown(moduleName, summary, entries, vertical)
 
     let writeNamed(moduleName: string, summary: string, entries: (string * int * string) list) =
         w.Line $"/// {summary}"
@@ -224,6 +236,11 @@ let main(args: string array): int =
         "Large operators, which take a taller glyph in display style and may carry limits.",
         Named.bigOperators)
     writeStretchy("Radicals", "Roots, whose surd grows to cover the radicand.", Named.radicals)
+    writeGrown(
+        "HorizontalMarks",
+        "Marks that grow along the line to span what they are set over or under.",
+        Named.horizontalMarks,
+        horizontal)
 
     w.Line "module internal FontFile ="
     w.Line "    /// The math face, which every glyph but a blackboard bold capital comes from."
