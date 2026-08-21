@@ -51,10 +51,39 @@ let private measurement =
                     nearly(0f, empty.Height, "height")
             )
             Test.Sync(
-                "aRowOfOrdinariesIsAsWideAsItsParts",
+                "aRowOfOrdinariesIsAsWideAsItsPartsLessTheLeansTheySetUnder",
                 fun () ->
-                    let parts = "abc" |> Seq.sumBy (fun character -> (laid(c character)).Width)
-                    nearly(parts, (laid(MA.String "abc")).Width, "row width")
+                    let letters = [ for character in "abc" -> laid(c character) ]
+                    let parts = letters |> List.sumBy (fun letter -> letter.Width)
+                    let tucked =
+                        letters
+                        |> List.take (letters.Length - 1)
+                        |> List.sumBy (fun letter -> letter.ItalicCorrection)
+                    Assert.True(tucked > 0f, "the test proves nothing unless one of the letters leans")
+                    nearly(parts - tucked, (laid(MA.String "abc")).Width, "row width")
+            )
+            Test.Sync(
+                "aRowKeepsTheReachOfALeanThatAWidthlessAtomFollows",
+                fun () ->
+                    let f = laid(c 'f')
+                    Assert.True(f.ItalicCorrection > 0f, "italic f does not lean")
+                    let followed = laid(row [ c 'f'; MA.Overline MA.Empty ])
+                    nearly(f.Width, followed.Width, "the row stopped short of the lean it drew")
+            )
+            Test.Sync(
+                "aLeanDoesNotPushTheNextLetterThoughTheRowStillClearsIt",
+                fun () ->
+                    let f = laid(c 'f')
+                    let g = laid(c 'g')
+                    Assert.True(f.ItalicCorrection > 0f, "italic f does not lean")
+                    match (laid(MA.String "fg")).Pma with
+                    | PlacedMA.Row children ->
+                        nearly(f.Width - f.ItalicCorrection, children.[1].X, "g does not set under the lean")
+                    | other -> Assert.Fail $"not a row: {other}"
+                    nearly(
+                        g.Width - g.ItalicCorrection + f.Width,
+                        (laid(MA.String "gf")).Width,
+                        "a row ending in a lean does not reach past it")
             )
             Test.Sync(
                 "aBinaryOperatorIsGivenRoomOnBothSides",
@@ -95,6 +124,16 @@ let private structures =
                     let raised = laid(MA.ScriptSuper(c 'e', c '2', ValueNone))
                     Assert.True(raised.Ascent > e.Ascent, "superscript does not rise")
                     Assert.True(raised.Width > e.Width, "superscript takes no width")
+            )
+            Test.Sync(
+                "aScriptSitsBesideALeanWhereTheNextLetterWouldSetUnderIt",
+                fun () ->
+                    let f = laid(c 'f')
+                    match (laid(MA.ScriptSuper(c 'f', c '2', ValueSome(c '1')))).Pma with
+                    | PlacedMA.ScriptSuper(_, super, ValueSome sub) ->
+                        nearly(f.Width, super.X, "the superscript does not clear the lean")
+                        nearly(f.Width - f.ItalicCorrection, sub.X, "the subscript does not step back under it")
+                    | other -> Assert.Fail $"not a superscript with a subscript: {other}"
             )
             Test.Sync(
                 "aSubscriptFallsBelowItsBase",

@@ -249,7 +249,7 @@ type Layout(fontSize: float32) =
         | ValueSome found -> found
         | ValueNone -> failwith $"the font cannot draw {what}"
 
-    /// The italic correction trails the advance, as TeX kerns after every character it sets.
+    /// The atom reaches past the advance by the glyph lean, which is what its scripts are placed by.
     let single(glyph: Glyph, style: Style, make: PlacedGlyph -> PlacedMA) =
         let s = scale style
         let pma = make(PlacedGlyph(glyph, pointSize style, 0f, 0f))
@@ -365,14 +365,17 @@ type Layout(fontSize: float32) =
             classes.[classes.Length - 1] <- ordinary
         let children = ImmutableArray.CreateBuilder<Placed>()
         let mutable x = 0f
+        let mutable reach = 0f
         let mutable italicCorrection = 0f
         for i in 0 .. elements.Length - 1 do
             if i > 0 then x <- x + spacing(facingRight (i - 1), facingLeft i, style)
             let child = t.Of(elements.[i], style)
             children.Add(child.At(x, 0f))
-            x <- x + child.Width
+            // A lean is ink above the baseline, which the next atom sets under rather than after.
+            x <- x + child.Width - child.ItalicCorrection
+            reach <- max reach (x + child.ItalicCorrection)
             italicCorrection <- child.ItalicCorrection
-        atomOf(PlacedMA.Row(children.ToImmutable()), x, italicCorrection)
+        atomOf(PlacedMA.Row(children.ToImmutable()), reach, italicCorrection)
 
     member private t.Fraction(numerator: MA, denominator: MA, style: Style) =
         let n = t.Of(numerator, style.Numerator)
