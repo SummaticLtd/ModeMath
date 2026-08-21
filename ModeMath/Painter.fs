@@ -26,28 +26,31 @@ type Painter(typeface: SKTypeface) =
         new Painter(SKTypeface.FromStream stream)
 
     /// Draws what is only offered at a third of the given paint's opacity.
-    member t.Draw(display: Display, canvas: SKCanvas, x: float32, baseline: float32, paint: SKPaint) =
+    member t.Draw(placed: Placed, canvas: SKCanvas, x: float32, baseline: float32, paint: SKPaint) =
         use tentative = paint.Clone()
         tentative.Color <- paint.Color.WithAlpha(byte (int paint.Color.Alpha / 3))
-        t.Draw(display, canvas, x, baseline, paint, tentative)
+        t.Draw(placed, canvas, x, baseline, paint, tentative)
 
     member t.Draw
-        (display: Display, canvas: SKCanvas, x: float32, baseline: float32, solid: SKPaint, tentative: SKPaint) =
+        (placed: Placed, canvas: SKCanvas, x: float32, baseline: float32, solid: SKPaint, tentative: SKPaint) =
         let paint(ink: Ink) = if ink = Ink.Tentative then tentative else solid
-        match display.Content with
-        | Content.Glyph(glyph, size, ink) ->
-            let id = BitConverter.GetBytes(uint16 glyph.Id)
-            use blob =
-                SKTextBlob.Create(
-                    ReadOnlySpan<byte> id, SKTextEncoding.GlyphId, font size, SKPoint(x, baseline))
-            canvas.DrawText(blob, 0f, 0f, paint ink)
-        | Content.Rule ink ->
-            canvas.DrawRect(
-                SKRect.Create(x, baseline - display.Ascent, display.Width, display.Height),
-                paint ink)
-        | Content.Children children ->
-            for child in children do
-                t.Draw(child.Display, canvas, x + child.X, baseline - child.Y, solid, tentative)
+        for part in placed.Pma.Parts do
+            match part with
+            | Part.Glyph(glyph, ink) ->
+                let id = BitConverter.GetBytes(uint16 glyph.Glyph.Id)
+                use blob =
+                    SKTextBlob.Create(
+                        ReadOnlySpan<byte> id,
+                        SKTextEncoding.GlyphId,
+                        font glyph.Size,
+                        SKPoint(x + glyph.X, baseline - glyph.Y))
+                canvas.DrawText(blob, 0f, 0f, paint ink)
+            | Part.Rule(rule, ink) ->
+                canvas.DrawRect(
+                    SKRect.Create(x + rule.X, baseline - rule.Y - rule.Thickness, rule.Width, rule.Thickness),
+                    paint ink)
+            | Part.Child child ->
+                t.Draw(child, canvas, x + child.X, baseline - child.Y, solid, tentative)
 
     interface IDisposable with
         member _.Dispose() =

@@ -163,7 +163,14 @@ let private structures =
 let private repertoire =
     TestList(
         "Repertoire",
-        [   Test.CasesSync(
+        [   Test.Sync(
+                "aCharacterTheFontCannotDrawIsAnErrorRatherThanAGap",
+                fun () ->
+                    Assert.Throws(
+                        (fun () -> laid(c '☃') |> ignore),
+                        "a character outside the repertoire must not lay out as nothing")
+            )
+            Test.CasesSync(
                 "everyClassifiedCharacterCanBeDrawn",
                 [   "relations", Conventions.relations
                     "binaries", Conventions.binaries
@@ -264,18 +271,14 @@ let private bigOperators =
         ]
     )
 
-/// Every glyph a display draws, in order, so that a delimiter can be told from its neighbour.
-let rec private glyphIds(display: Display) =
-    match display.Content with
-    | Content.Glyph(glyph, _, _) -> [ glyph.Id ]
-    | Content.Rule _ -> []
-    | Content.Children children -> [ for child in children do yield! glyphIds child.Display ]
+/// The glyphs a mark is drawn from, so that a delimiter can be told from its neighbour.
+let private glyphIds(mark: PlacedGlyphs) = [ for glyph in mark.Glyphs -> glyph.Glyph.Id ]
 
 /// The delimiters a bracketed formula was drawn with, which surround its content.
-let private sides(display: Display) =
-    match display.Content with
-    | Content.Children children when children.Length = 3 -> children.[0].Display, children.[2].Display
-    | Content.Children _ | Content.Glyph _ | Content.Rule _ -> failwith $"not a bracketed display: {display}"
+let private sides(placed: Placed) =
+    match placed.Pma with
+    | PlacedMA.Bracketed(_, left, _, right, _) -> left, right
+    | other -> failwith $"not a bracketed atom: {other}"
 
 let private brackets =
     TestList(
@@ -318,4 +321,43 @@ let private brackets =
         ]
     )
 
-let tests = TestFolder("Layout", [ measurement; structures; repertoire; bigOperators; brackets ])
+/// One of every MA case, so that the round trip below covers the whole language.
+let private everyKind =
+    [
+        MA.Empty
+        MA.String "ab"
+        c 'x'
+        MA.BoldVar 'v'
+        MA.Cdot
+        MA.UprightD
+        MA.ScriptSuper(c 'e', c '2', ValueNone)
+        MA.ScriptSuper(c 'e', c '2', ValueSome(c '3'))
+        MA.ScriptSub(c 'a', c '1')
+        MA.Frac(c 'a', c 'b')
+        MA.Function MathFunction.Sin
+        MA.Operator Operator.Plus
+        MA.Paired(Bracket.Square, MA.String "0,1")
+        MA.Sqrt(c 'x')
+        MA.RootN(c '3', c 'x')
+        MA.BigOp(BigOperator.Sum, ValueSome(c 'n'), ValueSome(c 'm'))
+        MA.BigOp(BigOperator.Integral, ValueSome(c '0'), ValueNone)
+        row [ c 'a'; MA.Frac(c 'b', c 'c'); MA.Sqrt(c 'd') ]
+    ]
+
+let private roundTrip =
+    TestList(
+        "RoundTrip",
+        [   Test.CasesSync(
+                "layingOutKeepsTheFormulaItLaidOut",
+                everyKind |> List.map (fun ma -> ma.ToString(), ma),
+                fun ma ->
+                    Assert.Equal(
+                        ma.Flatten.ToString(),
+                        (layout.Of ma).Pma.ToMA.ToString(),
+                        "a laid-out atom gives back the atom it was laid out from")
+            )
+        ]
+    )
+
+let tests =
+    TestFolder("Layout", [ measurement; structures; repertoire; bigOperators; brackets; roundTrip ])

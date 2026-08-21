@@ -191,42 +191,61 @@ module private Spacing =
     let leavesNothingToBind(next: AtomClass) =
         next = AtomClass.Relation || next = AtomClass.Close || next = AtomClass.Punctuation
 
+
 /// Lays out an MA at a base font size in points.
 type Layout(fontSize: float32) =
     let scale(style: Style) = fontSize * style.ScaleFactor / float32 MathConstants.UnitsPerEm
+    let pointSize(style: Style) = fontSize * style.ScaleFactor
+
+    /// An atom of the given width, reaching as far as the parts it draws.
+    let atomOf(pma: PlacedMA, width: float32, italicCorrection: float32) =
+        Placed(pma, Extent.OfParts(width, italicCorrection, pma.Parts), 0f, 0f)
+
+    let markOf(glyphs: ImmutableArray<PlacedGlyph>, width: float32) =
+        let ascent = ImmArray.maxWithSafe(glyphs, 0f, fun g -> g.Top)
+        let descent = -ImmArray.minWithSafe(glyphs, 0f, fun g -> g.Bottom)
+        PlacedGlyphs(glyphs, Extent(width, ascent, descent, 0f))
+
+    /// A gap where a glyph should be would be wrong output, so a missing one is an error.
+    let required(glyph: Glyph voption, what: string) =
+        match glyph with
+        | ValueSome found -> found
+        | ValueNone -> failwith $"the font cannot draw {what}"
 
     /// The italic correction trails the advance, as TeX kerns after every character it sets.
-    let glyphDisplay(glyph: Glyph, style: Style, ink: Ink) =
+    let single(glyph: Glyph, style: Style, make: PlacedGlyph -> PlacedMA) =
         let s = scale style
-        Display(
-            float32 (glyph.Advance + glyph.ItalicCorrection) * s,
-            float32 glyph.Top * s,
-            -(float32 glyph.Bottom) * s,
-            float32 glyph.ItalicCorrection * s,
-            Content.Glyph(glyph, fontSize * style.ScaleFactor, ink))
-
-    /// A character the font cannot draw takes no room, since there is nothing to show for it.
-    let symbol(glyph: Glyph voption, style: Style, ink: Ink) =
-        match glyph with
-        | ValueSome found -> glyphDisplay(found, style, ink)
-        | ValueNone -> Display.Empty
+        let pma = make(PlacedGlyph(glyph, pointSize style, 0f, 0f))
+        atomOf(pma, float32 (glyph.Advance + glyph.ItalicCorrection) * s, float32 glyph.ItalicCorrection * s)
 
     /// A large operator's italic correction measures its lean rather than ink past its advance, so it
-    /// does not widen the box, though scripts and limits are still placed by it.
-    let operatorDisplay(glyph: Glyph, style: Style, ink: Ink) =
+    /// does not widen the mark, though scripts and limits are still placed by it.
+    let operatorMark(glyph: Glyph, style: Style) =
         let s = scale style
-        Display(
-            float32 glyph.Advance * s,
-            float32 glyph.Top * s,
-            -(float32 glyph.Bottom) * s,
-            float32 glyph.ItalicCorrection * s,
-            Content.Glyph(glyph, fontSize * style.ScaleFactor, ink))
+        PlacedGlyphs(
+            ImmutableArray.Create(PlacedGlyph(glyph, pointSize style, 0f, 0f)),
+            Extent(
+                float32 glyph.Advance * s,
+                float32 glyph.Top * s,
+                -(float32 glyph.Bottom) * s,
+                float32 glyph.ItalicCorrection * s))
 
-    /// A glyph laid out with its ink resting on the origin, so that callers place it by its bottom.
-    let bottomAnchored(glyph: Glyph, style: Style, ink: Ink) =
+    /// A glyph with its ink resting on the origin, so that callers place it by its bottom.
+    let bottomAnchored(glyph: Glyph, style: Style) =
         let s = scale style
-        let child = Placed(glyphDisplay(glyph, style, ink), 0f, -(float32 glyph.Bottom) * s)
-        Display.OfChildren(float32 glyph.Advance * s, 0f, ImmutableArray.Create child)
+        let placed = PlacedGlyph(glyph, pointSize style, 0f, -(float32 glyph.Bottom) * s)
+        markOf(ImmutableArray.Create placed, float32 glyph.Advance * s)
+
+    /// Upright letters, as function names are set: one mark, so no italic correction trails them.
+    let upright(text: string, style: Style) =
+        let s = scale style
+        let glyphs = ImmutableArray.CreateBuilder<PlacedGlyph>()
+        let mutable x = 0f
+        for c in text do
+            let glyph = required(Letters.upright c, $"the letter {c}")
+            glyphs.Add(PlacedGlyph(glyph, pointSize style, x, 0f))
+            x <- x + float32 glyph.Advance * s
+        markOf(glyphs.ToImmutable(), x)
 
     let spacing(left: AtomClass, right: AtomClass, style: Style) =
         let entry = Spacing.table.[int left * 8 + int right]
@@ -235,6 +254,62 @@ type Layout(fontSize: float32) =
             elif style.Size = MathSize.Display || style.Size = MathSize.Text then -entry
             else 0
         float32 eighteenths * fontSize * style.ScaleFactor / 18f
+
+    let extentOf(placed: Placed voption) = placed |> ValueOption.map (fun p -> p.Extent)
+
+    /// How far the scripts beside a base sit above and below it, and how wide the three come to.
+    let scriptPlacement(b: Extent, above: Extent voption, below: Extent voption, style: Style) =
+        let s = scale style
+        let mutable width = b.Width
+        let mutable up = 0f
+        let mutable down = 0f
+        match above with
+        | ValueSome extent ->
+            let start =
+                float32 (
+                    if style.Cramped then MathConstants.SuperscriptShiftUpCramped
+                    else MathConstants.SuperscriptShiftUp)
+                * s
+            up <-
+                max
+                    (max start (b.Ascent - float32 MathConstants.SuperscriptBaselineDropMax * s))
+                    (extent.Descent + float32 MathConstants.SuperscriptBottomMin * s)
+        | ValueNone -> ()
+        match below with
+        | ValueSome extent ->
+            down <-
+                max
+                    (max
+                        (float32 MathConstants.SubscriptShiftDown * s)
+                        (b.Descent + float32 MathConstants.SubscriptBaselineDropMin * s))
+                    (extent.Ascent - float32 MathConstants.SubscriptTopMax * s)
+        | ValueNone -> ()
+        match above, below with
+        | ValueSome over, ValueSome under ->
+            let gapMin = float32 MathConstants.SubSuperscriptGapMin * s
+            let gap = (up - over.Descent) - (under.Ascent - down)
+            if gap < gapMin then
+                down <- down + gapMin - gap
+                let shortfall =
+                    float32 MathConstants.SuperscriptBottomMaxWithSubscript * s - (up - over.Descent)
+                if shortfall > 0f then
+                    up <- up + shortfall
+                    down <- down - shortfall
+        | ValueNone, _ | _, ValueNone -> ()
+        match above with
+        | ValueSome extent -> width <- max width (b.Width + extent.Width)
+        | ValueNone -> ()
+        // The italic correction leans the base right, so the subscript steps back over it.
+        let subscriptX = b.Width - b.ItalicCorrection
+        match below with
+        | ValueSome extent -> width <- max width (subscriptX + extent.Width)
+        | ValueNone -> ()
+        // Only a script is followed by the space after a script; a bare operator is not.
+        let after =
+            match above, below with
+            | ValueNone, ValueNone -> 0f
+            | ValueSome _, _ | _, ValueSome _ -> float32 MathConstants.SpaceAfterScript * s
+        struct (up, down, subscriptX, width + after)
 
     member private t.Row(elements: ImmutableArray<MA>, style: Style) =
         let classes = Array.init elements.Length (fun i -> Conventions.atomClasses elements.[i])
@@ -257,20 +332,10 @@ type Layout(fontSize: float32) =
         for i in 0 .. elements.Length - 1 do
             if i > 0 then x <- x + spacing(facingRight (i - 1), facingLeft i, style)
             let child = t.Of(elements.[i], style)
-            children.Add(Placed(child, x, 0f))
+            children.Add(child.At(x, 0f))
             x <- x + child.Width
             italicCorrection <- child.ItalicCorrection
-        Display.OfChildren(x, italicCorrection, children.ToImmutable())
-
-    /// Upright letters, as function names are set: one box, so no italic correction trails them.
-    member private t.Upright(text: string, style: Style) =
-        let children = ImmutableArray.CreateBuilder<Placed>()
-        let mutable x = 0f
-        for c in text do
-            let child = symbol(Letters.upright c, style, Ink.Solid)
-            children.Add(Placed(child, x, 0f))
-            x <- x + child.Width - child.ItalicCorrection
-        Display.OfChildren(x, 0f, children.ToImmutable())
+        atomOf(PlacedMA.Row(children.ToImmutable()), x, italicCorrection)
 
     member private t.Fraction(numerator: MA, denominator: MA, style: Style) =
         let n = t.Of(numerator, style.Numerator)
@@ -299,76 +364,37 @@ type Layout(fontSize: float32) =
                     MathConstants.FractionDenominatorShiftDown))
                 (d.Ascent + denominatorGap - ruleBottom)
         let width = max n.Width d.Width
-        let children =
-            ImmutableArray.Create(
-                Placed(n, (width - n.Width) / 2f, up),
-                Placed(Display.OfRule(width, thickness, Ink.Solid), 0f, ruleBottom),
-                Placed(d, (width - d.Width) / 2f, -down))
-        Display.OfChildren(width, 0f, children)
+        let pma =
+            PlacedMA.Frac(
+                n.At((width - n.Width) / 2f, up),
+                PlacedRule(width, thickness, 0f, ruleBottom),
+                d.At((width - d.Width) / 2f, -down))
+        atomOf(pma, width, 0f)
 
-    member private t.Scripts(main: MA, super: MA voption, sub: MA voption, style: Style) =
-        t.ScriptsOn(t.Of(main, style), super, sub, style)
+    /// The base with its scripts placed, which both script atoms share.
+    member private t.ScriptsOn(main: MA, super: MA voption, sub: MA voption, style: Style) =
+        let b = t.Of(main, style)
+        let above = super |> ValueOption.map (fun ma -> t.Of(ma, style.Superscript))
+        let below = sub |> ValueOption.map (fun ma -> t.Of(ma, style.Subscript))
+        let struct (up, down, subscriptX, width) =
+            scriptPlacement(b.Extent, extentOf above, extentOf below, style)
+        struct (
+            b,
+            above |> ValueOption.map (fun p -> p.At(b.Width, up)),
+            below |> ValueOption.map (fun p -> p.At(subscriptX, -down)),
+            width)
 
-    member private t.ScriptsOn(b: Display, super: MA voption, sub: MA voption, style: Style) =
-        let s = scale style
-        let children = ImmutableArray.CreateBuilder<Placed>()
-        children.Add(Placed(b, 0f, 0f))
-        let mutable width = b.Width
-        let mutable up = 0f
-        let mutable down = 0f
-        let superscript = super |> ValueOption.map (fun ma -> t.Of(ma, style.Superscript))
-        let subscript = sub |> ValueOption.map (fun ma -> t.Of(ma, style.Subscript))
-        match superscript with
-        | ValueSome display ->
-            let start =
-                float32 (
-                    if style.Cramped then MathConstants.SuperscriptShiftUpCramped
-                    else MathConstants.SuperscriptShiftUp)
-                * s
-            up <-
-                max
-                    (max start (b.Ascent - float32 MathConstants.SuperscriptBaselineDropMax * s))
-                    (display.Descent + float32 MathConstants.SuperscriptBottomMin * s)
-        | ValueNone -> ()
-        match subscript with
-        | ValueSome display ->
-            down <-
-                max
-                    (max
-                        (float32 MathConstants.SubscriptShiftDown * s)
-                        (b.Descent + float32 MathConstants.SubscriptBaselineDropMin * s))
-                    (display.Ascent - float32 MathConstants.SubscriptTopMax * s)
-        | ValueNone -> ()
-        match superscript, subscript with
-        | ValueSome above, ValueSome below ->
-            let gapMin = float32 MathConstants.SubSuperscriptGapMin * s
-            let gap = (up - above.Descent) - (below.Ascent - down)
-            if gap < gapMin then
-                down <- down + gapMin - gap
-                let shortfall =
-                    float32 MathConstants.SuperscriptBottomMaxWithSubscript * s - (up - above.Descent)
-                if shortfall > 0f then
-                    up <- up + shortfall
-                    down <- down - shortfall
-        | ValueNone, _ | _, ValueNone -> ()
-        match superscript with
-        | ValueSome display ->
-            children.Add(Placed(display, b.Width, up))
-            width <- max width (b.Width + display.Width)
-        | ValueNone -> ()
-        // The italic correction leans the base right, so the subscript steps back over it.
-        let subscriptX = b.Width - b.ItalicCorrection
-        match subscript with
-        | ValueSome display ->
-            children.Add(Placed(display, subscriptX, -down))
-            width <- max width (subscriptX + display.Width)
-        | ValueNone -> ()
-        // Only a script is followed by the space after a script; a bare operator is not.
-        let after =
-            match superscript, subscript with
-            | ValueNone, ValueNone -> 0f
-            | ValueSome _, _ | _, ValueSome _ -> float32 MathConstants.SpaceAfterScript * s
-        Display.OfChildren(width + after, 0f, children.ToImmutable())
+    member private t.ScriptSuper(main: MA, super: MA, sub: MA voption, style: Style) =
+        let struct (b, above, below, width) = t.ScriptsOn(main, ValueSome super, sub, style)
+        match above with
+        | ValueSome placed -> atomOf(PlacedMA.ScriptSuper(b, placed, below), width, 0f)
+        | ValueNone -> failwith "a superscript was laid out and then lost"
+
+    member private t.ScriptSub(main: MA, sub: MA, style: Style) =
+        let struct (b, _, below, width) = t.ScriptsOn(main, ValueNone, ValueSome sub, style)
+        match below with
+        | ValueSome placed -> atomOf(PlacedMA.ScriptSub(b, placed), width, 0f)
+        | ValueNone -> failwith "a subscript was laid out and then lost"
 
     /// Display style takes the first variant tall enough, which is how a sum grows with the formula.
     member private _.BigOperatorGlyph(stretchy: StretchyGlyph, style: Style) =
@@ -387,8 +413,7 @@ type Layout(fontSize: float32) =
 
     /// The operator alone: a glyph for the sum and its kin, upright letters for lim.
     member private t.BigOperator(op: BigOperator, style: Style) =
-        let big(stretchy: StretchyGlyph) =
-            operatorDisplay(t.BigOperatorGlyph(stretchy, style), style, Ink.Solid)
+        let big(stretchy: StretchyGlyph) = operatorMark(t.BigOperatorGlyph(stretchy, style), style)
         match op with
         | BigOperator.Sum -> big BigOperators.sum
         | BigOperator.Product -> big BigOperators.product
@@ -397,47 +422,65 @@ type Layout(fontSize: float32) =
         | BigOperator.ContourIntegral -> big BigOperators.contourIntegral
         | BigOperator.Union -> big BigOperators.union
         | BigOperator.Intersection -> big BigOperators.intersection
-        | BigOperator.Limit -> t.Upright("lim", style)
+        | BigOperator.Limit -> upright("lim", style)
 
     member private t.BigOp(op: BigOperator, lower: MA voption, upper: MA voption, style: Style) =
         let operator = t.BigOperator(op, style)
-        if style.IsDisplay && Conventions.takesLimits op then t.Limits(operator, lower, upper, style)
-        else t.ScriptsOn(operator, upper, lower, style)
-
-    /// Limits above and below, centred on the operator and each nudged by half its italic correction.
-    member private t.Limits(operator: Display, lower: MA voption, upper: MA voption, style: Style) =
-        let s = scale style
         let above = upper |> ValueOption.map (fun ma -> t.Of(ma, style.Superscript))
         let below = lower |> ValueOption.map (fun ma -> t.Of(ma, style.Subscript))
+        if style.IsDisplay && Conventions.takesLimits op then t.Limits(op, operator, below, above, style)
+        else
+            let struct (up, down, subscriptX, width) =
+                scriptPlacement(operator.Extent, extentOf above, extentOf below, style)
+            let pma =
+                PlacedMA.BigOp(
+                    op,
+                    operator,
+                    below |> ValueOption.map (fun p -> p.At(subscriptX, -down)),
+                    above |> ValueOption.map (fun p -> p.At(operator.Width, up)))
+            atomOf(pma, width, 0f)
+
+    /// Limits above and below, centred on the operator and each nudged by half its italic correction.
+    member private _.Limits
+        (op: BigOperator, operator: PlacedGlyphs, below: Placed voption, above: Placed voption, style: Style) =
+        let s = scale style
         let half = operator.ItalicCorrection / 2f
         let centre = operator.Width / 2f
-        let placed = ImmutableArray.CreateBuilder<Placed>()
-        placed.Add(Placed(operator, 0f, 0f))
-        match above with
-        | ValueSome display ->
-            let rise =
-                max
-                    (float32 MathConstants.UpperLimitBaselineRiseMin * s)
-                    (float32 MathConstants.UpperLimitGapMin * s + display.Descent)
-            placed.Add(Placed(display, centre + half - display.Width / 2f, operator.Ascent + rise))
-        | ValueNone -> ()
-        match below with
-        | ValueSome display ->
-            let drop =
-                max
-                    (float32 MathConstants.LowerLimitBaselineDropMin * s)
-                    (float32 MathConstants.LowerLimitGapMin * s + display.Ascent)
-            placed.Add(Placed(display, centre - half - display.Width / 2f, -(operator.Descent + drop)))
-        | ValueNone -> ()
-        // A limit wider than the operator overhangs on both sides, so the whole row shifts right.
-        let mutable left = 0f
-        for child in placed do left <- min left child.X
-        let children = placed.ToImmutable() |> ImmArray.map (fun c -> Placed(c.Display, c.X - left, c.Y))
-        let width = ImmArray.maxWithSafe(children, 0f, fun c -> c.X + c.Display.Width)
-        Display.OfChildren(width, 0f, children)
+        let upper =
+            above
+            |> ValueOption.map (fun placed ->
+                let rise =
+                    max
+                        (float32 MathConstants.UpperLimitBaselineRiseMin * s)
+                        (float32 MathConstants.UpperLimitGapMin * s + placed.Descent)
+                placed.At(centre + half - placed.Width / 2f, operator.Ascent + rise))
+        let lower =
+            below
+            |> ValueOption.map (fun placed ->
+                let drop =
+                    max
+                        (float32 MathConstants.LowerLimitBaselineDropMin * s)
+                        (float32 MathConstants.LowerLimitGapMin * s + placed.Ascent)
+                placed.At(centre - half - placed.Width / 2f, -(operator.Descent + drop)))
+        // A limit wider than the operator overhangs on both sides, so the whole atom shifts right.
+        let leftmost(placed: Placed voption) =
+            match placed with
+            | ValueSome found -> min 0f found.X
+            | ValueNone -> 0f
+        let left = min (leftmost upper) (leftmost lower)
+        let shift(placed: Placed voption) = placed |> ValueOption.map (fun p -> p.At(p.X - left, p.Y))
+        let moved = PlacedGlyphs(operator.Glyphs |> ImmArray.map (fun g -> PlacedGlyph(g.Glyph, g.Size, g.X - left, g.Y)), operator.Extent)
+        let upper = shift upper
+        let lower = shift lower
+        let far(placed: Placed voption) =
+            match placed with
+            | ValueSome found -> found.X + found.Width
+            | ValueNone -> 0f
+        let width = max (operator.Width - left) (max (far upper) (far lower))
+        atomOf(PlacedMA.BigOp(op, moved, lower, upper), width, 0f)
 
     /// The glyph grown to at least the given height, laid out resting on the origin.
-    member private t.Stretched(stretchy: StretchyGlyph, style: Style, minHeight: float32, ink: Ink) =
+    member private t.Stretched(stretchy: StretchyGlyph, style: Style, minHeight: float32) =
         let s = scale style
         let mutable chosen = ValueNone
         let mutable i = 0
@@ -446,13 +489,13 @@ type Layout(fontSize: float32) =
             if float32 size.Advance * s >= minHeight then chosen <- ValueSome size.Glyph
             i <- i + 1
         match chosen with
-        | ValueSome size -> bottomAnchored(size, style, ink)
-        | ValueNone when stretchy.PartCount > 0 -> t.Assembly(stretchy, style, minHeight, ink)
+        | ValueSome size -> bottomAnchored(size, style)
+        | ValueNone when stretchy.PartCount > 0 -> t.Assembly(stretchy, style, minHeight)
         | ValueNone when stretchy.SizeCount > 0 ->
-            bottomAnchored(stretchy.Size(stretchy.SizeCount - 1).Glyph, style, ink)
-        | ValueNone -> bottomAnchored(stretchy.Glyph, style, ink)
+            bottomAnchored(stretchy.Size(stretchy.SizeCount - 1).Glyph, style)
+        | ValueNone -> bottomAnchored(stretchy.Glyph, style)
 
-    member private _.Assembly(stretchy: StretchyGlyph, style: Style, minHeight: float32, ink: Ink) =
+    member private _.Assembly(stretchy: StretchyGlyph, style: Style, minHeight: float32) =
         let s = scale style
         let overlap = float32 MathConstants.MinConnectorOverlap * s
         let parts = Array.init stretchy.PartCount stretchy.Part
@@ -470,15 +513,15 @@ type Layout(fontSize: float32) =
         for part in parts do
             for _ in 1 .. (if part.IsExtender then repeats else 1) do
                 items.Add part
-        let children = ImmutableArray.CreateBuilder<Placed>()
+        let glyphs = ImmutableArray.CreateBuilder<PlacedGlyph>()
         let mutable y = 0f
         let mutable width = 0f
         for part in items do
             let glyph = part.Glyph
-            children.Add(Placed(glyphDisplay(glyph, style, ink), 0f, y - (float32 glyph.Bottom) * s))
+            glyphs.Add(PlacedGlyph(glyph, pointSize style, 0f, y - (float32 glyph.Bottom) * s))
             width <- max width (float32 glyph.Advance * s)
             y <- y + float32 part.FullAdvance * s - overlap
-        Display.OfChildren(width, 0f, children.ToImmutable())
+        markOf(glyphs.ToImmutable(), width)
 
     member private t.Brackets(brackets: Brackets, inner: MA, completion: BracketCompletion, style: Style) =
         let content = t.Of(inner, style)
@@ -487,18 +530,23 @@ type Layout(fontSize: float32) =
         let reach = 2f * max (content.Ascent - axis) (content.Descent + axis)
         // TeX lets a delimiter fall a little short rather than jump to the next size up.
         let needed = max (reach * 0.901f) (reach - 0.5f * fontSize * style.ScaleFactor)
-        let ink(completed: bool) = if completed then Ink.Solid else Ink.Tentative
-        let left =
-            t.Stretched(Conventions.leftDelimiter brackets.Left, style, needed, ink completion.LeftCompleted)
-        let right =
-            t.Stretched(Conventions.rightDelimiter brackets.Right, style, needed, ink completion.RightCompleted)
-        let onAxis(display: Display) = axis - display.Ascent / 2f
-        let children =
-            ImmutableArray.Create(
-                Placed(left, 0f, onAxis left),
-                Placed(content, left.Width, 0f),
-                Placed(right, left.Width + content.Width, onAxis right))
-        Display.OfChildren(left.Width + content.Width + right.Width, 0f, children)
+        let left = t.Stretched(Conventions.leftDelimiter brackets.Left, style, needed)
+        let right = t.Stretched(Conventions.rightDelimiter brackets.Right, style, needed)
+        let onAxis(mark: PlacedGlyphs, x: float32) =
+            let y = axis - mark.Ascent / 2f
+            PlacedGlyphs(
+                mark.Glyphs |> ImmArray.map (fun g -> PlacedGlyph(g.Glyph, g.Size, g.X + x, g.Y + y)),
+                mark.Extent)
+        let contentX = left.Width
+        let rightX = contentX + content.Width
+        let pma =
+            PlacedMA.Bracketed(
+                brackets,
+                onAxis(left, 0f),
+                content.At(contentX, 0f),
+                onAxis(right, rightX),
+                completion)
+        atomOf(pma, rightX + right.Width, 0f)
 
     member private t.Radical(degree: MA voption, radicand: MA, style: Style) =
         let x = t.Of(radicand, style.Cramp)
@@ -510,7 +558,7 @@ type Layout(fontSize: float32) =
                 else MathConstants.RadicalVerticalGap)
             * s
         let needed = x.Ascent + x.Descent + gap + thickness
-        let surd = t.Stretched(Radicals.surd, style, needed, Ink.Solid)
+        let surd = t.Stretched(Radicals.surd, style, needed)
         // A surd taller than needed hangs half its surplus below and lifts the rule by the other half.
         let clearance = gap + max 0f (surd.Ascent - needed) / 2f
         let ruleTop = x.Ascent + clearance + thickness
@@ -518,33 +566,52 @@ type Layout(fontSize: float32) =
         let index = degree |> ValueOption.map (fun ma -> t.Of(ma, Style(MathSize.ScriptScript, style.Cramped)))
         let before = float32 MathConstants.RadicalKernBeforeDegree * s
         let after = float32 MathConstants.RadicalKernAfterDegree * s
-        let indexWidth = match index with ValueSome display -> display.Width | ValueNone -> 0f
-        let surdX = match index with ValueNone -> 0f | ValueSome _ -> max 0f (before + indexWidth + after)
-        let children = ImmutableArray.CreateBuilder<Placed>()
-        match index with
-        | ValueSome display ->
-            let raise = float32 MathConstants.RadicalDegreeBottomRaisePercent / 100f * surd.Ascent
-            children.Add(Placed(display, surdX - indexWidth - after, bottom + raise + display.Descent))
-        | ValueNone -> ()
-        children.Add(Placed(surd, surdX, bottom))
-        children.Add(Placed(Display.OfRule(x.Width, thickness, Ink.Solid), surdX + surd.Width, ruleTop - thickness))
-        children.Add(Placed(x, surdX + surd.Width, 0f))
+        let indexWidth =
+            match index with
+            | ValueSome placed -> placed.Width
+            | ValueNone -> 0f
+        let surdX =
+            match index with
+            | ValueNone -> 0f
+            | ValueSome _ -> max 0f (before + indexWidth + after)
+        let placedSurd =
+            PlacedGlyphs(
+                surd.Glyphs |> ImmArray.map (fun g -> PlacedGlyph(g.Glyph, g.Size, g.X + surdX, g.Y + bottom)),
+                surd.Extent)
+        let barX = surdX + surd.Width
+        let bar = PlacedRule(x.Width, thickness, barX, ruleTop - thickness)
+        let radicand = x.At(barX, 0f)
+        let pma =
+            match index with
+            | ValueSome placed ->
+                let raise = float32 MathConstants.RadicalDegreeBottomRaisePercent / 100f * surd.Ascent
+                let degreeY = bottom + raise + placed.Descent
+                PlacedMA.RootN(placed.At(surdX - indexWidth - after, degreeY), placedSurd, bar, radicand)
+            | ValueNone -> PlacedMA.Sqrt(placedSurd, bar, radicand)
+        let width = barX + x.Width
+        let body = Extent.OfParts(width, 0f, pma.Parts)
         let extra = float32 MathConstants.RadicalExtraAscender * s
-        let body = Display.OfChildren(surdX + surd.Width + x.Width, 0f, children.ToImmutable())
-        Display(body.Width, body.Ascent + extra, body.Descent, 0f, body.Content)
+        Placed(pma, Extent(width, body.Ascent + extra, body.Descent, 0f), 0f, 0f)
 
-    member private t.Of(ma: MA, style: Style): Display =
+    member private t.Of(ma: MA, style: Style): Placed =
         match ma with
         | MA.Row elements -> t.Row(elements, style)
-        | MA.Char c -> symbol(Conventions.variable c, style, Ink.Solid)
-        | MA.BoldVar c -> symbol(Conventions.boldVariable c, style, Ink.Solid)
-        | MA.Cdot -> symbol(ValueSome Operators.cdot, style, Ink.Solid)
-        | MA.UprightD -> symbol(ValueSome Symbols.uprightD, style, Ink.Solid)
-        | MA.Function f -> t.Upright(Conventions.functionName f, style)
-        | MA.Operator o -> symbol(ValueSome(Conventions.operator o), style, Ink.Solid)
+        | MA.Char c ->
+            single(required(Conventions.variable c, $"the character {c}"), style, fun g -> PlacedMA.Char(c, g))
+        | MA.BoldVar c ->
+            single(
+                required(Conventions.boldVariable c, $"a bold {c}"),
+                style,
+                fun g -> PlacedMA.BoldVar(c, g))
+        | MA.Cdot -> single(Operators.cdot, style, PlacedMA.Cdot)
+        | MA.UprightD -> single(Symbols.uprightD, style, PlacedMA.UprightD)
+        | MA.Function f ->
+            let letters = upright(Conventions.functionName f, style)
+            atomOf(PlacedMA.Function(f, letters), letters.Width, 0f)
+        | MA.Operator o -> single(Conventions.operator o, style, fun g -> PlacedMA.Operator(o, g))
         | MA.Frac(numerator, denominator) -> t.Fraction(numerator, denominator, style)
-        | MA.ScriptSuper(main, super, sub) -> t.Scripts(main, ValueSome super, sub, style)
-        | MA.ScriptSub(main, sub) -> t.Scripts(main, ValueNone, ValueSome sub, style)
+        | MA.ScriptSuper(main, super, sub) -> t.ScriptSuper(main, super, sub, style)
+        | MA.ScriptSub(main, sub) -> t.ScriptSub(main, sub, style)
         | MA.BigOp(op, lower, upper) -> t.BigOp(op, lower, upper, style)
         | MA.Bracketed(brackets, inner, completion) -> t.Brackets(brackets, inner, completion, style)
         | MA.Sqrt x -> t.Radical(ValueNone, x, style)

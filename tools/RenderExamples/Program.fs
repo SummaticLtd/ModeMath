@@ -9,7 +9,7 @@ open SkiaSharp
 let private padding = 10f
 let private fontSize = 40f
 
-let private render(display: Display, painter: Painter, path: string) =
+let private render(display: Placed, painter: Painter, path: string) =
     let width = max 1 (int (ceil (display.Width + 2f * padding)))
     let height = max 1 (int (ceil (display.Height + 2f * padding)))
     use bitmap = new SKBitmap(width, height)
