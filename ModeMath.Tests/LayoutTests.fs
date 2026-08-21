@@ -63,6 +63,14 @@ let private measurement =
                     nearly(parts - tucked, (laid(MA.String "abc")).Width, "row width")
             )
             Test.Sync(
+                "aRowKeepsTheReachOfALeanThatAWidthlessAtomFollows",
+                fun () ->
+                    let f = laid(c 'f')
+                    Assert.True(f.ItalicCorrection > 0f, "italic f does not lean")
+                    let followed = laid(row [ c 'f'; MA.Overline MA.Empty ])
+                    nearly(f.Width, followed.Width, "the row stopped short of the lean it drew")
+            )
+            Test.Sync(
                 "aLeanDoesNotPushTheNextLetterThoughTheRowStillClearsIt",
                 fun () ->
                     let f = laid(c 'f')

@@ -373,7 +373,7 @@ type Layout(fontSize: float32) =
             children.Add(child.At(x, 0f))
             // A lean is ink above the baseline, which the next atom sets under rather than after.
             x <- x + child.Width - child.ItalicCorrection
-            reach <- x + child.ItalicCorrection
+            reach <- max reach (x + child.ItalicCorrection)
             italicCorrection <- child.ItalicCorrection
         atomOf(PlacedMA.Row(children.ToImmutable()), reach, italicCorrection)
 
