@@ -3,15 +3,19 @@ module RenderExamples.Program
 open System
 open System.IO
 open System.Text
+open FSUtils
 open ModeMath
 open SkiaSharp
 
-let private padding = 10f
-let private fontSize = 40f
+let private padding = 10f<px>
+let private fontSize = 40f<px>
+
+/// The whole pixels a length covers, which is where the measure comes off.
+let private wholePixels(length: float32<px>) = max 1 (int (ceil (Measure.removeFloat32Unit<px> length)))
 
 let private render(display: Placed, painter: Painter, path: string) =
-    let width = max 1 (int (ceil (display.Width + 2f * padding)))
-    let height = max 1 (int (ceil (display.Height + 2f * padding)))
+    let width = wholePixels(display.Width + 2f * padding)
+    let height = wholePixels(display.Height + 2f * padding)
     use bitmap = new SKBitmap(width, height)
     use canvas = new SKCanvas(bitmap)
     canvas.Clear SKColors.White

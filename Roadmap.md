@@ -35,12 +35,6 @@ from the same face.
 The marks that stretch need the `MATH` table's horizontal constructions, which MathTableGen parses but
 does not yet emit.
 
-## 3. Units of measure
-
-A `Placed` carries every length as a bare `float32`, so points, ems and font units are one type and
-nothing catches mixing them. `Summatic.FSUtils` supplies the conversions and typed maxima to give them
-units.
-
 ## Tracked separately
 
 Selection: #3.
