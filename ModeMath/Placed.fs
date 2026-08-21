@@ -537,7 +537,9 @@ type PlacedCurs with
         let ma(placed: Placed) = placed.Pma.ToMA
         let first(count: int) = children.RemoveRange(count, children.Length - count) |> ImmArray.map ma
         let rest(count: int) = children.RemoveRange(0, count) |> ImmArray.map ma
-        let mutable best = MACurs.CursorOrEmpty
+        // The start of the slot, so that a point which is no number at all still finds a cursor
+        // standing in this formula rather than one standing in an empty one.
+        let mutable best = MACurs.MakeRow(first 0, MACurs.CursorOrEmpty, rest 0)
         let mutable closest = System.Single.MaxValue * 1f<px>
         let consider(distance: float32<px>, curs: MACurs) =
             if distance < closest then

@@ -103,6 +103,16 @@ let private editing =
                     | ValueNone -> Assert.Fail "backspace found nothing to take back"
             )
             Test.Sync(
+                "aClickAtAPointThatIsNoNumberKeepsTheFormula",
+                fun () ->
+                    // A caller working the point out through a scale of zero must not lose the lot.
+                    let editor = typed(opened MA.Empty, "ab")
+                    let nowhere = System.Single.NaN * 1f<px>
+                    Assert.Equal(MA.String "zab", ((editor.Click(nowhere, nowhere)).Type 'z').Formula)
+                    let far = System.Single.PositiveInfinity * 1f<px>
+                    Assert.Equal(MA.String "zab", ((editor.Click(far, 0f<px>)).Type 'z').Formula)
+            )
+            Test.Sync(
                 "aKeyWithNothingToDoIsPassedOn",
                 fun () ->
                     let empty = opened MA.Empty

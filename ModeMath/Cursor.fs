@@ -576,12 +576,27 @@ type internal MACurs =
                 match elements.[start + i] with
                 | MA.Char c -> c
                 | _ -> ' '))
+        let spelled(name: string) =
+            FunctionNames.table |> Array.tryPick (fun (spelling, fn) -> if spelling = name then Some fn else None)
+        /// The name the function standing before the letters was spelled with, if one stands there.
+        let before =
+            if start = 0 then None
+            else
+                match elements.[start - 1] with
+                | MA.Function fn ->
+                    FunctionNames.table
+                    |> Array.tryPick (fun (spelling, found) -> if found = fn then Some spelling else None)
+                | _ -> None
         let matched =
             FunctionNames.table
             |> Array.tryFind (fun (name, _) -> letters.EndsWith(name, StringComparison.Ordinal))
         match matched with
         | Some(name, fn) -> (elements |> ImmArray.truncate (elements.Length - name.Length)).Add(MA.Function fn)
-        | None -> elements
+        | None ->
+            // A name no run of letters spells may be one a function before them goes on to spell.
+            match before |> Option.bind (fun name -> spelled(name + letters)) with
+            | Some fn -> (elements |> ImmArray.truncate (start - 1)).Add(MA.Function fn)
+            | None -> elements
 
     /// Adds a character at the cursor, replacing a completed function name with that function.
     member t.AddAlphanumeric(c: char): MACurs =

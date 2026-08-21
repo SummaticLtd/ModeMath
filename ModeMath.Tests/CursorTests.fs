@@ -106,6 +106,24 @@ let private editing =
                 fun () -> Assert.Equal(MA.Function MathFunction.Asin, (typed "asin").ToMA)
             )
             Test.Sync(
+                "aFunctionGoesOnIntoTheLongerNameItStarts",
+                fun () ->
+                    // cos is a function by its third letter, and has to become cosh on the fourth.
+                    Assert.Equal(MA.Function MathFunction.Cosh, (typed "cosh").ToMA)
+                    Assert.Equal(MA.Function MathFunction.Sinh, (typed "sinh").ToMA)
+                    Assert.Equal(MA.Function MathFunction.Tanh, (typed "tanh").ToMA)
+            )
+            Test.Sync(
+                "aLetterThatSpellsNoLongerNameIsLeftBesideTheFunction",
+                fun () ->
+                    Assert.Equal(
+                        MA.Row2(MA.Function MathFunction.Cos, MA.Char 'x'),
+                        (typed "cosx").ToMA)
+                    Assert.Equal(
+                        MA.Row(arr [ MA.Function MathFunction.Cos; MA.Char 'e'; MA.Char 'c' ]),
+                        (typed "cosec").ToMA)
+            )
+            Test.Sync(
                 "functionNameRecognisedOnlyAtEndOfLetterRun",
                 fun () ->
                     Assert.Equal(MA.Row2(MA.Char '2', MA.Function MathFunction.Cos), (typed "2cos").ToMA)
