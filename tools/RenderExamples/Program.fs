@@ -27,7 +27,7 @@ let private render(display: Placed, painter: Painter, path: string) =
     data.SaveTo file
     width, height
 
-let private index(rendered: (string * int * int) list) =
+let private index(rendered: (string * int * int) list, cursored: (string * int * int) list) =
     let text = StringBuilder()
     let line(s: string) = text.Append(s).Append("\r\n") |> ignore
     line "# Examples"
@@ -39,6 +39,13 @@ let private index(rendered: (string * int * int) list) =
     line "| Name | Size | Rendering |"
     line "|---|---|---|"
     for name, width, height in rendered do
+        line $"| {name} | {width}×{height} | ![{name}]({name}.png) |"
+    line ""
+    line "## With the cursor"
+    line ""
+    line "| Name | Size | Rendering |"
+    line "|---|---|---|"
+    for name, width, height in cursored do
         line $"| {name} | {width}×{height} | ![{name}]({name}.png) |"
     line ""
     line "## Not yet expressible"
@@ -61,6 +68,16 @@ let main(args: string array): int =
             let width, height =
                 render(layout.Of ma, painter, Path.Combine(outputDirectory, name + ".png"))
             yield name, width, height ]
-    File.WriteAllText(Path.Combine(outputDirectory, "README.md"), index rendered, UTF8Encoding false)
-    printfn $"{rendered.Length} rendered, {Examples.unimplemented.Length} still to come"
+    let cursored =
+        [ for name, cursor in Examples.cursored do
+            let width, height =
+                render(layout.Of cursor, painter, Path.Combine(outputDirectory, name + ".png"))
+            yield name, width, height ]
+    File.WriteAllText(
+        Path.Combine(outputDirectory, "README.md"),
+        index(rendered, cursored),
+        UTF8Encoding false)
+    printfn
+        $"{rendered.Length} rendered, {cursored.Length} with the cursor, \
+            {Examples.unimplemented.Length} still to come"
     0
