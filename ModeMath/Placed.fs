@@ -40,6 +40,9 @@ type PlacedGlyphs(glyphs: ImmutableArray<PlacedGlyph>, extent: Extent) =
     member _.Descent = extent.Descent
     member _.ItalicCorrection = extent.ItalicCorrection
     member _.Height = extent.Height
+    /// The same mark, moved by an offset its atom has chosen for it.
+    member _.At(x: float32, y: float32) =
+        PlacedGlyphs(glyphs |> ImmArray.map (fun g -> PlacedGlyph(g.Glyph, g.Size, g.X + x, g.Y + y)), extent)
 
 /// A filled rectangle: a fraction's bar or a radical's overbar.
 [<Struct>]

@@ -372,29 +372,21 @@ type Layout(fontSize: float32) =
         atomOf(pma, width, 0f)
 
     /// The base with its scripts placed, which both script atoms share.
-    member private t.ScriptsOn(main: MA, super: MA voption, sub: MA voption, style: Style) =
+    member private t.ScriptSuper(main: MA, super: MA, sub: MA voption, style: Style) =
         let b = t.Of(main, style)
-        let above = super |> ValueOption.map (fun ma -> t.Of(ma, style.Superscript))
+        let above = t.Of(super, style.Superscript)
         let below = sub |> ValueOption.map (fun ma -> t.Of(ma, style.Subscript))
         let struct (up, down, subscriptX, width) =
-            scriptPlacement(b.Extent, extentOf above, extentOf below, style)
-        struct (
-            b,
-            above |> ValueOption.map (fun p -> p.At(b.Width, up)),
-            below |> ValueOption.map (fun p -> p.At(subscriptX, -down)),
-            width)
-
-    member private t.ScriptSuper(main: MA, super: MA, sub: MA voption, style: Style) =
-        let struct (b, above, below, width) = t.ScriptsOn(main, ValueSome super, sub, style)
-        match above with
-        | ValueSome placed -> atomOf(PlacedMA.ScriptSuper(b, placed, below), width, 0f)
-        | ValueNone -> failwith "a superscript was laid out and then lost"
+            scriptPlacement(b.Extent, ValueSome above.Extent, extentOf below, style)
+        let placedBelow = below |> ValueOption.map (fun p -> p.At(subscriptX, -down))
+        atomOf(PlacedMA.ScriptSuper(b, above.At(b.Width, up), placedBelow), width, 0f)
 
     member private t.ScriptSub(main: MA, sub: MA, style: Style) =
-        let struct (b, _, below, width) = t.ScriptsOn(main, ValueNone, ValueSome sub, style)
-        match below with
-        | ValueSome placed -> atomOf(PlacedMA.ScriptSub(b, placed), width, 0f)
-        | ValueNone -> failwith "a subscript was laid out and then lost"
+        let b = t.Of(main, style)
+        let below = t.Of(sub, style.Subscript)
+        let struct (_, down, subscriptX, width) =
+            scriptPlacement(b.Extent, ValueNone, ValueSome below.Extent, style)
+        atomOf(PlacedMA.ScriptSub(b, below.At(subscriptX, -down)), width, 0f)
 
     /// Display style takes the first variant tall enough, which is how a sum grows with the formula.
     member private _.BigOperatorGlyph(stretchy: StretchyGlyph, style: Style) =
@@ -469,7 +461,7 @@ type Layout(fontSize: float32) =
             | ValueNone -> 0f
         let left = min (leftmost upper) (leftmost lower)
         let shift(placed: Placed voption) = placed |> ValueOption.map (fun p -> p.At(p.X - left, p.Y))
-        let moved = PlacedGlyphs(operator.Glyphs |> ImmArray.map (fun g -> PlacedGlyph(g.Glyph, g.Size, g.X - left, g.Y)), operator.Extent)
+        let moved = operator.At(-left, 0f)
         let upper = shift upper
         let lower = shift lower
         let far(placed: Placed voption) =
@@ -532,11 +524,7 @@ type Layout(fontSize: float32) =
         let needed = max (reach * 0.901f) (reach - 0.5f * fontSize * style.ScaleFactor)
         let left = t.Stretched(Conventions.leftDelimiter brackets.Left, style, needed)
         let right = t.Stretched(Conventions.rightDelimiter brackets.Right, style, needed)
-        let onAxis(mark: PlacedGlyphs, x: float32) =
-            let y = axis - mark.Ascent / 2f
-            PlacedGlyphs(
-                mark.Glyphs |> ImmArray.map (fun g -> PlacedGlyph(g.Glyph, g.Size, g.X + x, g.Y + y)),
-                mark.Extent)
+        let onAxis(mark: PlacedGlyphs, x: float32) = mark.At(x, axis - mark.Ascent / 2f)
         let contentX = left.Width
         let rightX = contentX + content.Width
         let pma =
@@ -574,10 +562,7 @@ type Layout(fontSize: float32) =
             match index with
             | ValueNone -> 0f
             | ValueSome _ -> max 0f (before + indexWidth + after)
-        let placedSurd =
-            PlacedGlyphs(
-                surd.Glyphs |> ImmArray.map (fun g -> PlacedGlyph(g.Glyph, g.Size, g.X + surdX, g.Y + bottom)),
-                surd.Extent)
+        let placedSurd = surd.At(surdX, bottom)
         let barX = surdX + surd.Width
         let bar = PlacedRule(x.Width, thickness, barX, ruleTop - thickness)
         let radicand = x.At(barX, 0f)
