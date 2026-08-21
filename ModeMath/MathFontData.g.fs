@@ -606,6 +606,77 @@ module Radicals =
                 AssemblyPart(Glyph(3080, 1056f<du>, 625f<du>, 0f<du>, 0f<du>, 528f<du>), 320f<du>, 0f<du>, 620f<du>, false)
             |])
 
+/// Marks that grow along the line to span what they are set over or under.
+module HorizontalMarks =
+    /// The circumflex of \widehat, which grows to cover its base.
+    let wideHat =
+        StretchyGlyph(
+            Glyph(2270, 0f<du>, 735f<du>, 578f<du>, 0f<du>, -264f<du>),
+            [|
+                StretchSize(Glyph(2270, 0f<du>, 735f<du>, 578f<du>, 0f<du>, -264f<du>), 365f<du>); StretchSize(Glyph(2280, 644f<du>, 750f<du>, 562f<du>, 0f<du>, 322f<du>), 645f<du>)
+                StretchSize(Glyph(2290, 768f<du>, 750f<du>, 562f<du>, 0f<du>, 384f<du>), 769f<du>); StretchSize(Glyph(2300, 919f<du>, 750f<du>, 562f<du>, 0f<du>, 459f<du>), 920f<du>)
+                StretchSize(Glyph(2310, 1100f<du>, 750f<du>, 562f<du>, 0f<du>, 550f<du>), 1101f<du>); StretchSize(Glyph(2320, 1320f<du>, 750f<du>, 562f<du>, 0f<du>, 660f<du>), 1321f<du>)
+                StretchSize(Glyph(2330, 1581f<du>, 750f<du>, 562f<du>, 0f<du>, 790f<du>), 1582f<du>); StretchSize(Glyph(2340, 1896f<du>, 750f<du>, 562f<du>, 0f<du>, 948f<du>), 1897f<du>)
+            |],
+            [||])
+    /// The tilde of \widetilde, which grows to cover its base.
+    let wideTilde =
+        StretchyGlyph(
+            Glyph(2272, 0f<du>, 750f<du>, 546f<du>, 0f<du>, -264f<du>),
+            [|
+                StretchSize(Glyph(2272, 0f<du>, 750f<du>, 546f<du>, 0f<du>, -264f<du>), 371f<du>); StretchSize(Glyph(2282, 652f<du>, 750f<du>, 546f<du>, 0f<du>, 326f<du>), 653f<du>)
+                StretchSize(Glyph(2292, 778f<du>, 766f<du>, 546f<du>, 0f<du>, 389f<du>), 779f<du>); StretchSize(Glyph(2302, 931f<du>, 766f<du>, 531f<du>, 0f<du>, 465f<du>), 932f<du>)
+                StretchSize(Glyph(2312, 1115f<du>, 766f<du>, 531f<du>, 0f<du>, 557f<du>), 1116f<du>); StretchSize(Glyph(2322, 1335f<du>, 766f<du>, 531f<du>, 0f<du>, 667f<du>), 1336f<du>)
+                StretchSize(Glyph(2332, 1599f<du>, 782f<du>, 531f<du>, 0f<du>, 799f<du>), 1600f<du>); StretchSize(Glyph(2342, 1915f<du>, 782f<du>, 515f<du>, 0f<du>, 957f<du>), 1916f<du>)
+            |],
+            [||])
+    /// The brace of \overbrace.
+    let overbrace =
+        StretchyGlyph(
+            Glyph(2359, 492f<du>, 782f<du>, 531f<du>, 28f<du>, 246f<du>),
+            [|
+                StretchSize(Glyph(2359, 492f<du>, 782f<du>, 531f<du>, 28f<du>, 246f<du>), 493f<du>); StretchSize(Glyph(2381, 993f<du>, 829f<du>, 500f<du>, 29f<du>, 496f<du>), 994f<du>)
+                StretchSize(Glyph(2403, 1494f<du>, 829f<du>, 500f<du>, 28f<du>, 747f<du>), 1495f<du>); StretchSize(Glyph(2425, 1996f<du>, 829f<du>, 500f<du>, 28f<du>, 998f<du>), 1997f<du>)
+                StretchSize(Glyph(2447, 2498f<du>, 844f<du>, 500f<du>, 28f<du>, 1249f<du>), 2499f<du>); StretchSize(Glyph(2469, 3000f<du>, 844f<du>, 500f<du>, 28f<du>, 1500f<du>), 3001f<du>)
+                StretchSize(Glyph(2491, 3502f<du>, 844f<du>, 484f<du>, 28f<du>, 1751f<du>), 3503f<du>); StretchSize(Glyph(2545, 4006f<du>, 860f<du>, 484f<du>, 28f<du>, 2003f<du>), 4007f<du>)
+            |],
+            [|
+                AssemblyPart(Glyph(2547, 1002f<du>, 735f<du>, 484f<du>, 0f<du>, 501f<du>), 0f<du>, 497f<du>, 1002f<du>, false)
+                AssemblyPart(Glyph(2548, 994f<du>, 735f<du>, 609f<du>, 0f<du>, 497f<du>), 994f<du>, 994f<du>, 994f<du>, true)
+                AssemblyPart(Glyph(2549, 2003f<du>, 860f<du>, 609f<du>, 0f<du>, 1001f<du>), 497f<du>, 497f<du>, 2003f<du>, false)
+                AssemblyPart(Glyph(2548, 994f<du>, 735f<du>, 609f<du>, 0f<du>, 497f<du>), 994f<du>, 994f<du>, 994f<du>, true)
+                AssemblyPart(Glyph(2550, 1001f<du>, 735f<du>, 484f<du>, 0f<du>, 500f<du>), 497f<du>, 0f<du>, 1001f<du>, false)
+            |])
+    /// The brace of \underbrace.
+    let underbrace =
+        StretchyGlyph(
+            Glyph(2360, 492f<du>, -109f<du>, -360f<du>, 28f<du>, 246f<du>),
+            [|
+                StretchSize(Glyph(2360, 492f<du>, -109f<du>, -360f<du>, 28f<du>, 246f<du>), 493f<du>); StretchSize(Glyph(2382, 993f<du>, -78f<du>, -391f<du>, 28f<du>, 496f<du>), 994f<du>)
+                StretchSize(Glyph(2404, 1494f<du>, -78f<du>, -391f<du>, 28f<du>, 747f<du>), 1495f<du>); StretchSize(Glyph(2426, 1996f<du>, -62f<du>, -407f<du>, 28f<du>, 998f<du>), 1997f<du>)
+                StretchSize(Glyph(2448, 2498f<du>, -62f<du>, -407f<du>, 28f<du>, 1249f<du>), 2499f<du>); StretchSize(Glyph(2470, 3000f<du>, -62f<du>, -407f<du>, 28f<du>, 1500f<du>), 3001f<du>)
+                StretchSize(Glyph(2492, 3502f<du>, -62f<du>, -422f<du>, 28f<du>, 1751f<du>), 3503f<du>); StretchSize(Glyph(2546, 4006f<du>, -62f<du>, -422f<du>, 28f<du>, 2003f<du>), 4007f<du>)
+            |],
+            [|
+                AssemblyPart(Glyph(2551, 1002f<du>, -62f<du>, -297f<du>, 0f<du>, 501f<du>), 0f<du>, 497f<du>, 1002f<du>, false)
+                AssemblyPart(Glyph(2552, 994f<du>, -187f<du>, -297f<du>, 0f<du>, 497f<du>), 994f<du>, 994f<du>, 994f<du>, true)
+                AssemblyPart(Glyph(2553, 2003f<du>, -187f<du>, -422f<du>, 0f<du>, 1001f<du>), 497f<du>, 497f<du>, 2003f<du>, false)
+                AssemblyPart(Glyph(2552, 994f<du>, -187f<du>, -297f<du>, 0f<du>, 497f<du>), 994f<du>, 994f<du>, 994f<du>, true)
+                AssemblyPart(Glyph(2554, 1001f<du>, -62f<du>, -297f<du>, 0f<du>, 500f<du>), 497f<du>, 0f<du>, 1001f<du>, false)
+            |])
+    /// The arrow of \overrightarrow.
+    let rightArrow =
+        StretchyGlyph(
+            Glyph(1817, 0f<du>, 719f<du>, 515f<du>, 0f<du>, -264f<du>),
+            [|
+                StretchSize(Glyph(1817, 0f<du>, 719f<du>, 515f<du>, 0f<du>, -264f<du>), 417f<du>); StretchSize(Glyph(1819, 659f<du>, 719f<du>, 515f<du>, 0f<du>, 329f<du>), 548f<du>)
+            |],
+            [|
+                AssemblyPart(Glyph(1823, 205f<du>, 641f<du>, 593f<du>, 0f<du>, 102f<du>), 0f<du>, 69f<du>, 205f<du>, false)
+                AssemblyPart(Glyph(1824, 137f<du>, 641f<du>, 593f<du>, 0f<du>, 68f<du>), 137f<du>, 137f<du>, 137f<du>, true)
+                AssemblyPart(Glyph(1825, 205f<du>, 719f<du>, 515f<du>, 0f<du>, 102f<du>), 69f<du>, 0f<du>, 205f<du>, false)
+            |])
+
 module internal FontFile =
     /// The math face, which every glyph but a blackboard bold capital comes from.
     let byteLength = 733736

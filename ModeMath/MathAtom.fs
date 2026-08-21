@@ -61,6 +61,31 @@ type Accent =
     | Acute = 7
     | Grave = 8
     | Breve = 9
+    /// The circumflex of \widehat, which takes a size that covers its base.
+    | WideHat = 10
+    /// The tilde of \widetilde, which takes a size that covers its base.
+    | WideTilde = 11
+
+/// A mark grown to span what it is set over or under.
+type Spanning =
+    | Overbrace = 0
+    | Underbrace = 1
+    | Overrightarrow = 2
+
+/// A gap of a fixed width, named for the TeX command that gives it.
+type Space =
+    /// 3/18 of an em, as \, gives.
+    | Thin = 0
+    /// 4/18 of an em, as \: gives.
+    | Medium = 1
+    /// 5/18 of an em, as \; gives.
+    | Thick = 2
+    /// Back 3/18 of an em, as \! gives.
+    | NegativeThin = 3
+    /// A full em, as \quad gives.
+    | Quad = 4
+    /// Two ems, as \qquad gives.
+    | QQuad = 5
 
 /// Where a table's cells sit in the column they share.
 type Alignment =
@@ -126,6 +151,10 @@ type MA =
     | Stack of top: MA * bottom: MA
     /// A grid of cells, whose columns take the alignments in turn, repeating. None centres them all.
     | Table of cells: ImmA2D<MA> * alignments: ImmutableArray<Alignment>
+    | Spanned of mark: Spanning * x: MA
+    /// Words set upright among the mathematics, as \text does.
+    | Text of string
+    | Space of Space
 
     static member Empty = Row ImmutableArray<MA>.Empty
     static member Row2(a: MA, b: MA) = Row(ImmutableArray.Create(a, b))
@@ -180,7 +209,8 @@ type MA =
     member t.Flatten: MA =
         match t with
         | Row l -> MA.FlattenElements l |> MA.OfElements
-        | Char _ | BoldVar _ | Blackboard _ | Cdot | UprightD | Function _ | Operator _ -> t
+        | Char _ | BoldVar _ | Blackboard _ | Cdot | UprightD | Function _ | Operator _
+        | Text _ | Space _ -> t
         | ScriptSuper(main, super, sub) ->
             ScriptSuper(main.Flatten, super.Flatten, sub |> ValueOption.map (fun s -> s.Flatten))
         | ScriptSub(main, sub) -> ScriptSub(main.Flatten, sub.Flatten)
@@ -194,10 +224,12 @@ type MA =
                 lower |> ValueOption.map (fun l -> l.Flatten),
                 upper |> ValueOption.map (fun u -> u.Flatten))
         | Accented(accent, x) -> Accented(accent, x.Flatten)
+        | Spanned(mark, x) -> Spanned(mark, x.Flatten)
         | Overline x -> Overline x.Flatten
         | Underline x -> Underline x.Flatten
         | Stack(top, bottom) -> Stack(top.Flatten, bottom.Flatten)
         | Table(cells, alignments) -> Table(cells |> ImmA2D.map (fun cell -> cell.Flatten), alignments)
+
 
     override t.ToString() =
         let props(name: string, xs: obj seq) =
@@ -207,6 +239,8 @@ type MA =
         | Char c -> string c
         | BoldVar c -> props("BoldVar", [ box c ])
         | Blackboard c -> props("Blackboard", [ box c ])
+        | Text text -> props("Text", [ box text ])
+        | Space space -> props("Space", [ box space ])
         | Cdot -> "Cdot"
         | UprightD -> "UprightD"
         | ScriptSuper(main, super, sub) -> props("ScriptSuper", [ main; super; sub ])
@@ -219,6 +253,7 @@ type MA =
         | Sqrt x -> props("Sqrt", [ x ])
         | BigOp(op, lower, upper) -> props("BigOp", [ box op; box lower; box upper ])
         | Accented(accent, x) -> props("Accented", [ box accent; box x ])
+        | Spanned(mark, x) -> props("Spanned", [ box mark; box x ])
         | Overline x -> props("Overline", [ x ])
         | Underline x -> props("Underline", [ x ])
         | Stack(top, bottom) -> props("Stack", [ top; bottom ])

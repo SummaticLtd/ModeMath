@@ -398,6 +398,20 @@ let private brackets =
         ]
     )
 
+/// The lowest ink of a mark, wherever its atom has since moved it to.
+let private lowestInk(mark: PlacedGlyphs) = mark.Glyphs |> Seq.map (fun glyph -> glyph.Bottom) |> Seq.min
+
+/// The grown mark and the atom it spans.
+let private spanning(placed: Placed) =
+    match placed.Pma with
+    | PlacedMA.Spanned(_, mark, x) -> mark, x
+    | other -> failwith $"not a spanning mark: {other}"
+
+let private lettersOf(placed: Placed) =
+    match placed.Pma with
+    | PlacedMA.Text(_, letters) -> letters
+    | other -> failwith $"not text: {other}"
+
 /// The accent and the base it was placed over.
 let private accented(placed: Placed) =
     match placed.Pma with
@@ -484,6 +498,126 @@ let private marks =
                         nearly(bare.Width, rule.Width, "the rule does not span the atom")
                         Assert.True(rule.Y + rule.Thickness < -bare.Descent, "the rule is not clear of the ink")
                     | drawn -> Assert.Fail $"an underline draws {drawn.Length} rules"
+            )
+        ]
+    )
+
+let private words =
+    TestList(
+        "Words",
+        [   Test.Sync(
+                "textIsSetInTheUprightLetters",
+                fun () ->
+                    let drawn = [ for glyph in (lettersOf(laid(MA.Text "ab"))).Glyphs -> glyph.Glyph.Id ]
+                    let upright(character: char) =
+                        match Letters.upright character with
+                        | ValueSome glyph -> glyph.Id
+                        | ValueNone -> failwith $"no upright {character}"
+                    Assert.Equal([ upright 'a'; upright 'b' ], drawn, "the letters are not the upright ones")
+            )
+            Test.Sync(
+                "textKeepsTheSpacesBetweenItsWords",
+                fun () ->
+                    let space =
+                        match MathFont.OfChar ' ' with
+                        | ValueSome glyph -> glyph.Advance * units
+                        | ValueNone -> failwith "the repertoire has no space"
+                    Assert.True(space > 0f<px>, "the space in the font is of no width")
+                    nearly(
+                        space,
+                        (laid(MA.Text "a b")).Width - (laid(MA.Text "ab")).Width,
+                        "the space between the words is not the one the font sets")
+            )
+            Test.CasesSync(
+                "everySpaceIsAsWideAsTeXMakesIt",
+                [   "thin", (Space.Thin, 3f)
+                    "medium", (Space.Medium, 4f)
+                    "thick", (Space.Thick, 5f)
+                    "negativeThin", (Space.NegativeThin, -3f)
+                    "quad", (Space.Quad, 18f)
+                    "qquad", (Space.QQuad, 36f) ],
+                fun (space, eighteenths) ->
+                    nearly(eighteenths * 20f<px> / 18f, (laid(MA.Space space)).Width, $"{space}")
+            )
+            Test.Sync(
+                "aSpaceDrawsNothingAndReachesNowhere",
+                fun () ->
+                    let quad = laid(MA.Space Space.Quad)
+                    Assert.Equal(0, quad.Parts.Length, "a space draws something")
+                    nearly(0f<px>, quad.Height, "height")
+            )
+            Test.Sync(
+                "aNegativeSpaceCloseTheGapItIsPutIn",
+                fun () ->
+                    let apart = laid(row [ c 'a'; c 'b' ])
+                    let pulled = laid(row [ c 'a'; MA.Space Space.NegativeThin; c 'b' ])
+                    Assert.True(pulled.Width < apart.Width, "the negative space did not pull the letters together")
+            )
+        ]
+    )
+
+let private grown =
+    TestList(
+        "Grown",
+        [   Test.Sync(
+                "aWideAccentTakesASizeThatCoversItsBase",
+                fun () ->
+                    let over(x: MA) = fst (accented(laid(MA.Accented(Accent.WideHat, x))))
+                    Assert.Equal(
+                        Accents.hat.Id,
+                        (over(c 'l')).Glyph.Id,
+                        "a base narrower than the plain hat takes the plain hat")
+                    let covered = MA.String "ab"
+                    Assert.True(
+                        (over covered).Glyph.Advance * units >= (laid covered).Width,
+                        "the hat chosen does not reach across the base")
+                    Assert.True(
+                        (over(MA.String "ABcd")).Glyph.Advance > (over covered).Glyph.Advance,
+                        "the wider of the two bases did not take the wider hat")
+            )
+            Test.Sync(
+                "aSpanningMarkGrowsToCoverWhatItSpans",
+                fun () ->
+                    let braced(x: MA) = fst (spanning(laid(MA.Spanned(Spanning.Overbrace, x))))
+                    let wide = MA.String "abcdefghijklmnop"
+                    Assert.True((braced wide).Width > (braced(MA.String "ab")).Width, "the brace did not grow")
+                    Assert.True(
+                        (braced wide).Width >= (laid wide).Width,
+                        "the brace does not cover what it spans")
+            )
+            Test.Sync(
+                "aMarkBeyondItsLargestSizeIsBuiltFromParts",
+                fun () ->
+                    let long = MA.String(String.replicate 12 "abcdefghij")
+                    let mark, _ = spanning(laid(MA.Spanned(Spanning.Overbrace, long)))
+                    Assert.True(mark.Glyphs.Length > 1, "the brace was not assembled from its parts")
+                    Assert.True(mark.Width >= (laid long).Width, "the assembly does not reach across")
+            )
+            Test.CasesSync(
+                "aMarkSetsAboveOrBelowAsItsKindDecides",
+                [   "overbrace", (Spanning.Overbrace, true)
+                    "underbrace", (Spanning.Underbrace, false)
+                    "overrightarrow", (Spanning.Overrightarrow, true) ],
+                fun (kind, above) ->
+                    let mark, x = spanning(laid(MA.Spanned(kind, MA.String "abc")))
+                    if above then
+                        nearly(
+                            x.Ascent + MathConstants.StretchStackGapAboveMin * units,
+                            lowestInk mark,
+                            $"{kind} does not clear the ink below it by the gap the font names")
+                    else
+                        Assert.True(
+                            (mark.Glyphs |> Seq.map (fun glyph -> glyph.Top) |> Seq.max) < -x.Descent,
+                            $"{kind} does not sit below the ink")
+            )
+            Test.Sync(
+                "whatASpanningMarkOverreachesIsCentredUnderIt",
+                fun () ->
+                    let spanned = MA.Spanned(Spanning.Overbrace, MA.String "ab")
+                    let mark, x = spanning(laid spanned)
+                    Assert.True(mark.Width > x.Width, "the test proves nothing unless the brace overreaches")
+                    nearly((laid spanned).Width - mark.Width, 0f<px>, "the atom is not as wide as the mark")
+                    nearly((mark.Width - x.Width) / 2f, x.X, "the base is not centred under the mark")
             )
         ]
     )
@@ -636,6 +770,11 @@ let private everyKind =
         MA.BigOp(BigOperator.Integral, ValueSome(c '0'), ValueNone)
         MA.Blackboard 'R'
         MA.Accented(Accent.Vec, c 'v')
+        MA.Accented(Accent.WideHat, MA.String "ab")
+        MA.Spanned(Spanning.Overbrace, c 'x')
+        MA.Spanned(Spanning.Underbrace, MA.String "ab")
+        MA.Text "for"
+        MA.Space Space.Quad
         MA.Overline(MA.String "ab")
         MA.Underline(MA.String "ab")
         MA.Stack(c '6', c 'x')
@@ -664,4 +803,15 @@ let private roundTrip =
 let tests =
     TestFolder(
         "Layout",
-        [ measurement; structures; repertoire; bigOperators; brackets; marks; stacks; tables; blackboard; roundTrip ])
+        [   measurement
+            structures
+            repertoire
+            bigOperators
+            brackets
+            marks
+            words
+            grown
+            stacks
+            tables
+            blackboard
+            roundTrip ])

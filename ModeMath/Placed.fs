@@ -77,10 +77,14 @@ type PlacedMA =
     | Sqrt of surd: PlacedGlyphs * bar: PlacedRule * radicand: Placed
     | BigOp of BigOperator * operator: PlacedGlyphs * lower: Placed voption * upper: Placed voption
     | Accented of accent: Accent * mark: PlacedGlyph * x: Placed
+    | Spanned of mark: Spanning * grown: PlacedGlyphs * x: Placed
     | Overline of rule: PlacedRule * x: Placed
     | Underline of x: Placed * rule: PlacedRule
     | Stack of top: Placed * bottom: Placed
     | Table of cells: ImmA2D<Placed> * alignments: ImmutableArray<Alignment>
+    | Text of string * letters: PlacedGlyphs
+    /// A gap, which draws nothing at all.
+    | Space of Space
 
 /// A laid-out MA at an offset from its parent's origin, holding what it draws so that painting a
 /// second time builds nothing.
@@ -161,6 +165,9 @@ type PlacedMA with
         | PlacedMA.Accented(_, mark, x) ->
             child x
             glyph mark
+        | PlacedMA.Spanned(_, grown, x) ->
+            child x
+            marks(grown, Ink.Solid)
         | PlacedMA.Overline(bar, x) ->
             child x
             rule bar
@@ -171,6 +178,8 @@ type PlacedMA with
             child top
             child bottom
         | PlacedMA.Table(cells, _) -> for cell in cells.Elements do child cell
+        | PlacedMA.Text(_, letters) -> marks(letters, Ink.Solid)
+        | PlacedMA.Space _ -> ()
         b.ToImmutable()
 
     /// The glyph this atom draws, where it draws exactly one and nothing besides.
@@ -180,8 +189,9 @@ type PlacedMA with
         | PlacedMA.UprightD g | PlacedMA.Operator(_, g) -> ValueSome g
         | PlacedMA.Row _ | PlacedMA.ScriptSuper _ | PlacedMA.ScriptSub _ | PlacedMA.Frac _
         | PlacedMA.Function _ | PlacedMA.Bracketed _ | PlacedMA.RootN _ | PlacedMA.Sqrt _
-        | PlacedMA.BigOp _ | PlacedMA.Accented _ | PlacedMA.Overline _ | PlacedMA.Underline _
-        | PlacedMA.Stack _ | PlacedMA.Table _ -> ValueNone
+        | PlacedMA.BigOp _ | PlacedMA.Accented _ | PlacedMA.Spanned _ | PlacedMA.Overline _
+        | PlacedMA.Underline _ | PlacedMA.Stack _ | PlacedMA.Table _ | PlacedMA.Text _
+        | PlacedMA.Space _ -> ValueNone
 
     /// The MA this was laid out from, which a cursor position is expressed against.
     member t.ToMA: MA =
@@ -208,11 +218,14 @@ type PlacedMA with
                 lower |> ValueOption.map (fun l -> l.Pma.ToMA),
                 upper |> ValueOption.map (fun u -> u.Pma.ToMA))
         | PlacedMA.Accented(accent, _, x) -> MA.Accented(accent, x.Pma.ToMA)
+        | PlacedMA.Spanned(mark, _, x) -> MA.Spanned(mark, x.Pma.ToMA)
         | PlacedMA.Overline(_, x) -> MA.Overline x.Pma.ToMA
         | PlacedMA.Underline(x, _) -> MA.Underline x.Pma.ToMA
         | PlacedMA.Stack(top, bottom) -> MA.Stack(top.Pma.ToMA, bottom.Pma.ToMA)
         | PlacedMA.Table(cells, alignments) ->
             MA.Table(cells |> ImmA2D.map (fun cell -> cell.Pma.ToMA), alignments)
+        | PlacedMA.Text(text, _) -> MA.Text text
+        | PlacedMA.Space space -> MA.Space space
 
 type Extent with
     /// Covering everything drawn, which is placed relative to the atom's own origin.
