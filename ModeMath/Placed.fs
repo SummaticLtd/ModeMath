@@ -8,7 +8,7 @@ type Ink =
     | Solid = 0
     | Tentative = 1
 
-/// What a laid-out atom measures, in points from its own origin on the baseline, y upwards.
+/// What a laid-out atom measures, in pixels from its own origin on the baseline, y upwards.
 [<Struct>]
 type Extent
     (
@@ -25,7 +25,7 @@ type Extent
     member _.ItalicCorrection = italicCorrection
     member _.Height = ascent + descent
 
-/// One glyph at a point size, offset from the origin of the atom that drew it.
+/// One glyph at the size it is set in, offset from the origin of the atom that drew it.
 [<Struct>]
 type PlacedGlyph(glyph: Glyph, size: float32<px>, x: float32<px>, y: float32<px>) =
     member _.Glyph = glyph

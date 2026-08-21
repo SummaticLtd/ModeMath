@@ -222,10 +222,10 @@ module private Spacing =
         next = AtomClass.Relation || next = AtomClass.Close || next = AtomClass.Punctuation
 
 
-/// Lays out an MA at a base font size in points.
+/// Lays out an MA at a base font size, which is pixels to the em.
 type Layout(fontSize: float32<px>) =
     let scale(style: Style) = fontSize * style.ScaleFactor / MathConstants.UnitsPerEm
-    let pointSize(style: Style) = fontSize * style.ScaleFactor
+    let emSize(style: Style) = fontSize * style.ScaleFactor
 
     /// An atom of the given width, reaching as far as the parts it draws.
     let atomOf(pma: PlacedMA, width: float32<px>, italicCorrection: float32<px>) =
@@ -253,7 +253,7 @@ type Layout(fontSize: float32<px>) =
     /// The atom reaches past the advance by the glyph lean, which is what its scripts are placed by.
     let single(glyph: Glyph, style: Style, make: PlacedGlyph -> PlacedMA) =
         let s = scale style
-        let pma = make(PlacedGlyph(glyph, pointSize style, 0f<px>, 0f<px>))
+        let pma = make(PlacedGlyph(glyph, emSize style, 0f<px>, 0f<px>))
         atomOf(pma, (glyph.Advance + glyph.ItalicCorrection) * s, glyph.ItalicCorrection * s)
 
     /// A large operator's italic correction measures its lean rather than ink past its advance, so it
@@ -261,7 +261,7 @@ type Layout(fontSize: float32<px>) =
     let operatorMark(glyph: Glyph, style: Style) =
         let s = scale style
         PlacedGlyphs(
-            ImmutableArray.Create(PlacedGlyph(glyph, pointSize style, 0f<px>, 0f<px>)),
+            ImmutableArray.Create(PlacedGlyph(glyph, emSize style, 0f<px>, 0f<px>)),
             Extent(
                 glyph.Advance * s,
                 glyph.Top * s,
@@ -271,7 +271,7 @@ type Layout(fontSize: float32<px>) =
     /// A glyph with its ink resting on the origin, so that callers place it by its bottom.
     let bottomAnchored(glyph: Glyph, style: Style) =
         let s = scale style
-        let placed = PlacedGlyph(glyph, pointSize style, 0f<px>, -glyph.Bottom * s)
+        let placed = PlacedGlyph(glyph, emSize style, 0f<px>, -glyph.Bottom * s)
         markOf(ImmutableArray.Create placed, glyph.Advance * s)
 
     /// Upright letters, as function names are set: one mark, so no italic correction trails them.
@@ -281,7 +281,7 @@ type Layout(fontSize: float32<px>) =
         let mutable x = 0f<px>
         for c in text do
             let glyph = required(Conventions.uprightGlyph c, $"the character {c}")
-            glyphs.Add(PlacedGlyph(glyph, pointSize style, x, 0f<px>))
+            glyphs.Add(PlacedGlyph(glyph, emSize style, x, 0f<px>))
             x <- x + glyph.Advance * s
         markOf(glyphs.ToImmutable(), x)
 
@@ -551,7 +551,7 @@ type Layout(fontSize: float32<px>) =
         let mutable width = 0f<px>
         for part in items do
             let glyph = part.Glyph
-            glyphs.Add(PlacedGlyph(glyph, pointSize style, 0f<px>, y - (glyph.Bottom) * s))
+            glyphs.Add(PlacedGlyph(glyph, emSize style, 0f<px>, y - (glyph.Bottom) * s))
             width <- max width (glyph.Advance * s)
             y <- y + part.FullAdvance * s - overlap
         markOf(glyphs.ToImmutable(), width)
@@ -637,7 +637,7 @@ type Layout(fontSize: float32<px>) =
         let mark =
             PlacedGlyph(
                 glyph,
-                pointSize style,
+                emSize style,
                 t.Attachment(b, style) - glyph.TopAccentAttachment * s,
                 max 0f<px> (b.Ascent - MathConstants.AccentBaseHeight * s))
         atomOf(PlacedMA.Accented(accent, mark, b), b.Width, b.ItalicCorrection)
