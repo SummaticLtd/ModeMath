@@ -53,12 +53,12 @@ type Editor(layout: Layout, cursor: PlacedCurs) =
 
     /// A superscript on the atom before the cursor, which then stands in it.
     member _.InsertSuperscript =
-        over(cursor.ToMACurs.WrapBefore(fun main ->
+        over(cursor.ToMACurs.ReplaceBefore(fun main ->
             MACurs.ScriptSuper(main, MACurs.CursorOrEmpty, ValueNone)))
 
     /// A subscript on the atom before the cursor, which then stands in it.
     member _.InsertSubscript =
-        over(cursor.ToMACurs.WrapBefore(fun main ->
+        over(cursor.ToMACurs.ReplaceBefore(fun main ->
             MACurs.ScriptSub(main, ValueNone, MACurs.CursorOrEmpty)))
 
     /// ValueNone where there is nothing to the left to delete, so that a caller can pass the key on.

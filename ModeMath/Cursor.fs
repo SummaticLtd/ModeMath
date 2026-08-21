@@ -72,7 +72,6 @@ type internal MACurs =
                 current <- current.Value.Right
         }
 
-    /// The rows around the cursor flattened, as MA.Flatten does, leaving it between the same atoms.
     member t.Flatten: MACurs =
         let flat(ma: MA) = ma.Flatten
         match t with
@@ -525,25 +524,28 @@ type internal MACurs =
         | Direction.Down -> t.Down
         | _ -> ValueNone
 
-    /// Puts the atom before the cursor into a new one, or an empty slot where nothing stands there.
-    member t.WrapBefore(wrap: MA -> MACurs): MACurs =
+    /// Replaces the atom before the cursor with one built from it, or from an empty slot if there is none.
+    /// Before means the last atom of the row the cursor stands in, and a slot the cursor fills has none.
+    member t.ReplaceBefore(build: MA -> MACurs): MACurs =
         match t with
-        | CursorOrEmpty -> wrap MA.Empty
-        | Row(before, CursorOrEmpty, after) when not before.IsEmpty ->
-            let last = before.Length - 1
-            MACurs.MakeRow(before.RemoveAt last, wrap before.[last], after)
-        | Row(before, CursorOrEmpty, after) -> MACurs.MakeRow(before, wrap MA.Empty, after)
-        | Row(before, inner, after) -> MACurs.MakeRow(before, inner.WrapBefore wrap, after)
-        | ScriptMainSuper(main, super, sub) -> ScriptMainSuper(main.WrapBefore wrap, super, sub)
-        | ScriptMainSub(main, sub) -> ScriptMainSub(main.WrapBefore wrap, sub)
-        | ScriptSuper(main, super, sub) -> ScriptSuper(main, super.WrapBefore wrap, sub)
-        | ScriptSub(main, super, sub) -> ScriptSub(main, super, sub.WrapBefore wrap)
-        | FracNum(n, d) -> FracNum(n.WrapBefore wrap, d)
-        | FracDen(n, d) -> FracDen(n, d.WrapBefore wrap)
-        | Bracketed(b, inner, bc) -> Bracketed(b, inner.WrapBefore wrap, bc)
-        | RootNDegree(n, x) -> RootNDegree(n.WrapBefore wrap, x)
-        | RootNMain(n, x) -> RootNMain(n, x.WrapBefore wrap)
-        | Sqrt x -> Sqrt(x.WrapBefore wrap)
+        | CursorOrEmpty -> build MA.Empty
+        | Row(before, inner, after) ->
+            match inner with
+            | CursorOrEmpty when before.IsEmpty -> MACurs.MakeRow(before, build MA.Empty, after)
+            | CursorOrEmpty ->
+                let last = before.Length - 1
+                MACurs.MakeRow(before.RemoveAt last, build before.[last], after)
+            | inner -> MACurs.MakeRow(before, inner.ReplaceBefore build, after)
+        | ScriptMainSuper(main, super, sub) -> ScriptMainSuper(main.ReplaceBefore build, super, sub)
+        | ScriptMainSub(main, sub) -> ScriptMainSub(main.ReplaceBefore build, sub)
+        | ScriptSuper(main, super, sub) -> ScriptSuper(main, super.ReplaceBefore build, sub)
+        | ScriptSub(main, super, sub) -> ScriptSub(main, super, sub.ReplaceBefore build)
+        | FracNum(n, d) -> FracNum(n.ReplaceBefore build, d)
+        | FracDen(n, d) -> FracDen(n, d.ReplaceBefore build)
+        | Bracketed(b, inner, bc) -> Bracketed(b, inner.ReplaceBefore build, bc)
+        | RootNDegree(n, x) -> RootNDegree(n.ReplaceBefore build, x)
+        | RootNMain(n, x) -> RootNMain(n, x.ReplaceBefore build)
+        | Sqrt x -> Sqrt(x.ReplaceBefore build)
 
     /// Adds an MACurs naively
     member t.AddMACurs(addition: MACurs): MACurs =
