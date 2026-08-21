@@ -256,8 +256,10 @@ let implemented = [
     "Underline", underline(s "Underline")
     "SimpleShortProof",
     grid(
-        [ [ row [ c '∵'; c 'x'; c '+'; c '3'; op Operator.Equals; c '5' ] ]
-          [ row [ c '∴'; c 'x'; op Operator.Equals; c '2' ] ] ],
+        [
+            [ row [ c '∵'; c 'x'; c '+'; c '3'; op Operator.Equals; c '5' ] ]
+            [ row [ c '∴'; c 'x'; op Operator.Equals; c '2' ] ]
+        ],
         [ Alignment.Left ])
     "Taylor",
     grid(
@@ -299,9 +301,10 @@ let implemented = [
     row [
         bars(c 'x')
         op Operator.Equals
-        cases
-            [ [ row [ c '-'; c 'x' ]; row [ c 'x'; c '<'; c '0' ] ]
-              [ c 'x'; row [ c 'x'; c '≥'; c '0' ] ] ]
+        cases [
+            [ row [ c '-'; c 'x' ]; row [ c 'x'; c '<'; c '0' ] ]
+            [ c 'x'; row [ c 'x'; c '≥'; c '0' ] ]
+        ]
     ]
     "ModeMathEvaluatedAt", evaluatedAt(frac(sup(c 'x', c '2'), c '2'), c '1', c '2')
     "ModeMathBigOperators",
