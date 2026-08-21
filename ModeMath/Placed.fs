@@ -263,7 +263,7 @@ type Extent with
 
 type Placed with
     /// Where the cursor is, in pixels from this atom's origin. ValueNone where it holds none.
-    member t.Caret: PlacedRule voption =
+    member internal t.Caret: PlacedRule voption =
         let rec find(placed: Placed, x: float32<px>, y: float32<px>) =
             let mutable found = ValueNone
             for part in placed.Parts do
@@ -276,3 +276,10 @@ type Placed with
                     | Part.Glyph _ | Part.Rule _ -> ()
             found
         find(t, 0f<px>, 0f<px>)
+
+/// A cursored formula laid out: everything it draws, and where in it the cursor came to rest.
+[<Struct>]
+type PlacedMICurs(placed: Placed, caret: PlacedRule) =
+    member _.Placed = placed
+    /// In pixels from the formula's origin, so that what was clicked on is what is drawn.
+    member _.Caret = caret

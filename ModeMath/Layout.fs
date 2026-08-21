@@ -981,15 +981,18 @@ type Layout(fontSize: float32<px>) =
     member t.Of(cursor: MICurs) = t.Of(cursor, MathSize.Display)
 
     /// The MA the cursor stands in must already be flat, as Layout.Of makes an MA of its own.
-    member t.Of(cursor: MICurs, size: MathSize) = t.Cursored(cursor, Style(size, false))
+    member t.Of(cursor: MICurs, size: MathSize) =
+        let placed = t.Cursored(cursor, Style(size, false))
+        // Every cursored path draws the cursor, so this is the one place that has to be sure of it.
+        match placed.Caret with
+        | ValueSome caret -> PlacedMICurs(placed, caret)
+        | ValueNone -> failwith $"a cursored layout drew no cursor: {cursor}"
 
     /// The cursor position nearest a point, in pixels from the formula origin with y upwards.
     member t.Nearest(ma: MA, x: float32<px>, y: float32<px>) =
         let away(from: float32<px>, until: float32<px>, point: float32<px>) =
             max 0f<px> (max (from - point) (point - until))
         let distance(cursor: MICurs) =
-            match (t.Of cursor).Caret with
-            | ValueSome caret ->
-                away(caret.X, caret.X + caret.Width, x) + away(caret.Y, caret.Y + caret.Thickness, y)
-            | ValueNone -> failwith $"a cursored layout drew no cursor: {cursor}"
+            let caret = (t.Of cursor).Caret
+            away(caret.X, caret.X + caret.Width, x) + away(caret.Y, caret.Y + caret.Thickness, y)
         MICurs.Positions ma |> Seq.minBy distance

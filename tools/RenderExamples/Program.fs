@@ -71,7 +71,10 @@ let main(args: string array): int =
     let cursored =
         [ for name, cursor in Examples.cursored do
             let width, height =
-                render(layout.Of cursor, painter, Path.Combine(outputDirectory, name + ".png"))
+                render(
+                    (layout.Of cursor).Placed,
+                    painter,
+                    Path.Combine(outputDirectory, name + ".png"))
             yield name, width, height ]
     File.WriteAllText(
         Path.Combine(outputDirectory, "README.md"),

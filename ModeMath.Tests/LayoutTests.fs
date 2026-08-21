@@ -857,11 +857,6 @@ let private flat(ma: MA) = ma.Flatten
 
 let private positions(ma: MA) = MICurs.Positions ma |> List.ofSeq
 
-let private caretOf(cursor: MICurs) =
-    match (layout.Of cursor).Caret with
-    | ValueSome caret -> caret
-    | ValueNone -> failwith $"no cursor was drawn in {cursor}"
-
 let private cursors =
     TestList(
         "Cursor",
@@ -885,7 +880,7 @@ let private cursors =
                     for formula in formulas |> List.map flat do
                         let bare = laid formula
                         for cursor in positions formula do
-                            let cursored = layout.Of cursor
+                            let cursored = (layout.Of cursor).Placed
                             nearly(bare.Width, cursored.Width, $"width at {cursor}")
                             nearly(bare.Ascent, cursored.Ascent, $"ascent at {cursor}")
                             nearly(bare.Descent, cursored.Descent, $"descent at {cursor}")
@@ -895,13 +890,14 @@ let private cursors =
                 fun () ->
                     // A leading minus is unary, and a cursor before it is a gap rather than an atom.
                     let unary = row [ c '-'; c 'x' ] |> flat
-                    nearly((laid unary).Width, (layout.Of(MICurs.AtStart unary)).Width, "before the minus")
+                    let cursored = (layout.Of(MICurs.AtStart unary)).Placed
+                    nearly((laid unary).Width, cursored.Width, "before the minus")
             )
             Test.Sync(
                 "theCursorMovesRightwardsAsItIsStepped",
                 fun () ->
                     let formula = MA.String "abc" |> flat
-                    let xs = [ for cursor in positions formula -> (caretOf cursor).X ]
+                    let xs = [ for cursor in positions formula -> (layout.Of cursor).Caret.X ]
                     for pair in List.pairwise xs do
                         let previous, next = pair
                         Assert.True(next > previous, $"the cursor did not move: {previous} then {next}")
@@ -914,7 +910,7 @@ let private cursors =
                         match (laid slot).Pma with
                         | PlacedMA.Frac(numerator, _, _) -> numerator
                         | other -> failwith $"not a fraction: {other}"
-                    let caret = caretOf (positions slot).[1]
+                    let caret = (layout.Of (positions slot).[1]).Caret
                     nearly(placeholder.Width, caret.Width, "the cursor did not fill the box")
                     nearly(placeholder.Height, caret.Thickness, "the cursor did not fill the box")
             )
@@ -923,7 +919,7 @@ let private cursors =
                 fun () ->
                     let formula = row [ c 'a'; MA.Frac(MA.String "bc", c 'd'); c 'e' ] |> flat
                     for cursor in positions formula do
-                        let caret = caretOf cursor
+                        let caret = (layout.Of cursor).Caret
                         let x = caret.X + caret.Width / 2f
                         let y = caret.Y + caret.Thickness / 2f
                         Assert.Equal(cursor, layout.Nearest(formula, x, y), $"clicking on {cursor}")
