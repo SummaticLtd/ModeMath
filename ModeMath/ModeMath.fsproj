@@ -10,6 +10,7 @@
     <Compile Include="Placed.fs" />
     <Compile Include="Layout.fs" />
     <Compile Include="Painter.fs" />
+    <Compile Include="Editor.fs" />
   </ItemGroup>
 
   <ItemGroup>

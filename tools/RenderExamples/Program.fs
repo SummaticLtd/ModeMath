@@ -27,9 +27,9 @@ let private render(display: Placed, painter: Painter, path: string) =
     data.SaveTo file
     width, height
 
-let private renderCursor(curs: PlacedCurs, painter: Painter, path: string) =
+let private renderCursor(editor: Editor, painter: Painter, path: string) =
     // The cursor stands taller than the formula, so the bitmap is sized to hold both.
-    let bounds = curs.Bounds
+    let bounds = editor.Bounds
     let width = wholePixels(bounds.Width + 2f * padding)
     let height = wholePixels(bounds.Thickness + 2f * padding)
     use bitmap = new SKBitmap(width, height)
@@ -37,7 +37,7 @@ let private renderCursor(curs: PlacedCurs, painter: Painter, path: string) =
     canvas.Clear SKColors.White
     use paint = new SKPaint(Color = SKColors.Black, IsAntialias = true)
     painter.Draw(
-        curs,
+        editor.Cursor,
         canvas,
         padding - bounds.X,
         padding + bounds.Y + bounds.Thickness,
@@ -90,9 +90,9 @@ let main(args: string array): int =
                 render(layout.Of ma, painter, Path.Combine(outputDirectory, name + ".png"))
             yield name, width, height ]
     let cursored =
-        [ for name, cursor in Examples.cursored do
+        [ for name, editor in Examples.cursored layout do
             let width, height =
-                renderCursor(layout.Of cursor, painter, Path.Combine(outputDirectory, name + ".png"))
+                renderCursor(editor, painter, Path.Combine(outputDirectory, name + ".png"))
             yield name, width, height ]
     File.WriteAllText(
         Path.Combine(outputDirectory, "README.md"),

@@ -432,15 +432,20 @@ let implemented = [
     "ModeMathEmptySlots", frac(MA.Empty, MA.Empty)
 ]
 
-/// The same, with the cursor somewhere in each.
-let cursored =
-    let formula = (row [ c 'a'; frac(s "b+1", c 'c'); c 'd' ]).Flatten
-    let positions = MACurs.Positions formula |> List.ofSeq
-    let slot = (frac(MA.Empty, c 'c')).Flatten
+/// The same, edited: each is what the keys named leave behind.
+let cursored(layout: Layout) =
+    let rightwards(formula: MA, times: int) =
+        let mutable editor = Editor(layout, formula)
+        for _ in 1 .. times do
+            editor <- (editor.Move Direction.Right).Value
+        editor
+    let typed(editor: Editor, letters: string) =
+        letters |> Seq.fold (fun (e: Editor) letter -> e.Type letter) editor
     [
-        "CursorBeforeAFraction", positions.[1]
-        "CursorAfterALetterInTheNumerator", positions.[3]
-        "CursorInAnEmptySlot", (MACurs.Positions slot |> Seq.item 1)
+        "CursorBeforeAFraction", rightwards(row [ c 'a'; frac(s "b+1", c 'c'); c 'd' ], 1)
+        "CursorAfterALetterInTheNumerator", rightwards(row [ c 'a'; frac(s "b+1", c 'c'); c 'd' ], 3)
+        "CursorInAnEmptySlot", (Editor(layout, MA.Empty)).InsertFraction
+        "CursorOverATypedFunction", typed(Editor(layout, MA.Empty), "cos")
     ]
 
 /// Examples from the same folder that MA cannot express yet, with the roadmap item each waits on.

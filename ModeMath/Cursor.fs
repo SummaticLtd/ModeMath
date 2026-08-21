@@ -29,7 +29,7 @@ module internal FunctionNames =
 
 /// Math formula Input with a cursor
 [<RequireQualifiedAccess>]
-type MACurs =
+type internal MACurs =
     /// A cursor (e.g. in a row), or empty position (e.g. empty superscript).
     | CursorOrEmpty
     | Row of before: ImmutableArray<MA> * MACurs * after: ImmutableArray<MA>
@@ -71,6 +71,27 @@ type MACurs =
                 yield current.Value
                 current <- current.Value.Right
         }
+
+    /// The rows around the cursor flattened, as MA.Flatten does, leaving it between the same atoms.
+    member t.Flatten: MACurs =
+        let flat(ma: MA) = ma.Flatten
+        match t with
+        | CursorOrEmpty -> t
+        | Row(before, inner, after) ->
+            MACurs.MakeRow(MA.FlattenElements before, inner.Flatten, MA.FlattenElements after)
+        | ScriptMainSuper(main, super, sub) ->
+            ScriptMainSuper(main.Flatten, flat super, sub |> ValueOption.map flat)
+        | ScriptMainSub(main, sub) -> ScriptMainSub(main.Flatten, flat sub)
+        | ScriptSuper(main, super, sub) ->
+            ScriptSuper(flat main, super.Flatten, sub |> ValueOption.map flat)
+        | ScriptSub(main, super, sub) ->
+            ScriptSub(flat main, super |> ValueOption.map flat, sub.Flatten)
+        | FracNum(n, d) -> FracNum(n.Flatten, flat d)
+        | FracDen(n, d) -> FracDen(flat n, d.Flatten)
+        | Bracketed(b, inner, bc) -> Bracketed(b, inner.Flatten, bc)
+        | RootNDegree(n, x) -> RootNDegree(n.Flatten, flat x)
+        | RootNMain(n, x) -> RootNMain(flat n, x.Flatten)
+        | Sqrt x -> Sqrt x.Flatten
 
     /// The formula with the cursor removed.
     member t.ToMA: MA =
@@ -503,6 +524,26 @@ type MACurs =
         | Direction.Up -> t.Up
         | Direction.Down -> t.Down
         | _ -> ValueNone
+
+    /// Puts the atom before the cursor into a new one, or an empty slot where nothing stands there.
+    member t.WrapBefore(wrap: MA -> MACurs): MACurs =
+        match t with
+        | CursorOrEmpty -> wrap MA.Empty
+        | Row(before, CursorOrEmpty, after) when not before.IsEmpty ->
+            let last = before.Length - 1
+            MACurs.MakeRow(before.RemoveAt last, wrap before.[last], after)
+        | Row(before, CursorOrEmpty, after) -> MACurs.MakeRow(before, wrap MA.Empty, after)
+        | Row(before, inner, after) -> MACurs.MakeRow(before, inner.WrapBefore wrap, after)
+        | ScriptMainSuper(main, super, sub) -> ScriptMainSuper(main.WrapBefore wrap, super, sub)
+        | ScriptMainSub(main, sub) -> ScriptMainSub(main.WrapBefore wrap, sub)
+        | ScriptSuper(main, super, sub) -> ScriptSuper(main, super.WrapBefore wrap, sub)
+        | ScriptSub(main, super, sub) -> ScriptSub(main, super, sub.WrapBefore wrap)
+        | FracNum(n, d) -> FracNum(n.WrapBefore wrap, d)
+        | FracDen(n, d) -> FracDen(n, d.WrapBefore wrap)
+        | Bracketed(b, inner, bc) -> Bracketed(b, inner.WrapBefore wrap, bc)
+        | RootNDegree(n, x) -> RootNDegree(n.WrapBefore wrap, x)
+        | RootNMain(n, x) -> RootNMain(n, x.WrapBefore wrap)
+        | Sqrt x -> Sqrt(x.WrapBefore wrap)
 
     /// Adds an MACurs naively
     member t.AddMACurs(addition: MACurs): MACurs =

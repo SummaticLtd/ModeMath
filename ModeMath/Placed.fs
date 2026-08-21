@@ -348,7 +348,7 @@ and [<Struct>] PlacedCurs(placed: Placed, curs: PlacedMACurs) =
 
 type PlacedCurs with
     /// The cursor this was placed from, which an edit is made against.
-    member t.ToMACurs: MACurs =
+    member internal t.ToMACurs: MACurs =
         let ma(placed: Placed) = placed.Pma.ToMA
         let each(placed: ImmutableArray<Placed>) = placed |> ImmArray.map ma
         match t.Curs with
@@ -387,7 +387,7 @@ type PlacedCurs with
             last.X + last.Width - last.ItalicCorrection
 
     /// The cursor put against a formula already laid out, which must be the formula it stands in.
-    static member Of(curs: MACurs, placed: Placed): PlacedCurs =
+    static member internal Of(curs: MACurs, placed: Placed): PlacedCurs =
         let children = PlacedCurs.Children placed
         let bar(count: int) = PlacedCurs.Bar(PlacedCurs.Pen(children, count), placed.EmSize)
         let first(count: int) = children.RemoveRange(count, children.Length - count)
