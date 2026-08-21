@@ -34,7 +34,7 @@ type Painter(typeface: SKTypeface) =
     member t.Draw
         (placed: Placed, canvas: SKCanvas, x: float32, baseline: float32, solid: SKPaint, tentative: SKPaint) =
         let paint(ink: Ink) = if ink = Ink.Tentative then tentative else solid
-        for part in placed.Pma.Parts do
+        for part in placed.Parts do
             match part with
             | Part.Glyph(glyph, ink) ->
                 let id = BitConverter.GetBytes(uint16 glyph.Glyph.Id)

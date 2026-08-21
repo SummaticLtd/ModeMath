@@ -199,7 +199,8 @@ type Layout(fontSize: float32) =
 
     /// An atom of the given width, reaching as far as the parts it draws.
     let atomOf(pma: PlacedMA, width: float32, italicCorrection: float32) =
-        Placed(pma, Extent.OfParts(width, italicCorrection, pma.Parts), 0f, 0f)
+        let parts = pma.Parts
+        Placed(pma, parts, Extent.OfParts(width, italicCorrection, parts), 0f, 0f)
 
     let markOf(glyphs: ImmutableArray<PlacedGlyph>, width: float32) =
         let ascent = ImmArray.maxWithSafe(glyphs, 0f, fun g -> g.Top)
@@ -574,9 +575,10 @@ type Layout(fontSize: float32) =
                 PlacedMA.RootN(placed.At(surdX - indexWidth - after, degreeY), placedSurd, bar, radicand)
             | ValueNone -> PlacedMA.Sqrt(placedSurd, bar, radicand)
         let width = barX + x.Width
-        let body = Extent.OfParts(width, 0f, pma.Parts)
+        let parts = pma.Parts
+        let body = Extent.OfParts(width, 0f, parts)
         let extra = float32 MathConstants.RadicalExtraAscender * s
-        Placed(pma, Extent(width, body.Ascent + extra, body.Descent, 0f), 0f, 0f)
+        Placed(pma, parts, Extent(width, body.Ascent + extra, body.Descent, 0f), 0f, 0f)
 
     member private t.Of(ma: MA, style: Style): Placed =
         match ma with

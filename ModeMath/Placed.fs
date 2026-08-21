@@ -70,9 +70,11 @@ type PlacedMA =
     | Sqrt of surd: PlacedGlyphs * bar: PlacedRule * radicand: Placed
     | BigOp of BigOperator * operator: PlacedGlyphs * lower: Placed voption * upper: Placed voption
 
-/// A laid-out MA at an offset from its parent's origin.
-and [<Struct>] Placed(pma: PlacedMA, extent: Extent, x: float32, y: float32) =
+/// A laid-out MA at an offset from its parent's origin, holding what it draws so that painting a
+/// second time builds nothing.
+and [<Struct>] Placed(pma: PlacedMA, parts: ImmutableArray<Part>, extent: Extent, x: float32, y: float32) =
     member _.Pma = pma
+    member _.Parts = parts
     member _.Extent = extent
     member _.X = x
     member _.Y = y
@@ -82,18 +84,18 @@ and [<Struct>] Placed(pma: PlacedMA, extent: Extent, x: float32, y: float32) =
     member _.ItalicCorrection = extent.ItalicCorrection
     member _.Height = extent.Height
     /// The same atom, moved to an offset its parent has chosen for it.
-    member _.At(x: float32, y: float32) = Placed(pma, extent, x, y)
+    member _.At(x: float32, y: float32) = Placed(pma, parts, extent, x, y)
 
 /// One thing drawn, so that a painter need know nothing of the atom that drew it.
-[<RequireQualifiedAccess>]
-type Part =
+and [<RequireQualifiedAccess>] Part =
     | Glyph of glyph: PlacedGlyph * ink: Ink
     | Rule of rule: PlacedRule * ink: Ink
     | Child of Placed
 
 type PlacedMA with
-    /// Everything this atom draws, in the order it is drawn.
-    member t.Parts: ImmutableArray<Part> =
+    /// Everything this atom draws, in the order it is drawn. Built once, and kept by the Placed that
+    /// holds it, so painting reads Placed.Parts rather than building them again.
+    member internal t.Parts: ImmutableArray<Part> =
         let b = ImmutableArray.CreateBuilder<Part>()
         let glyph(g: PlacedGlyph) = b.Add(Part.Glyph(g, Ink.Solid))
         let marks(m: PlacedGlyphs, ink: Ink) = for g in m.Glyphs do b.Add(Part.Glyph(g, ink))
