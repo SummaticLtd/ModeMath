@@ -82,9 +82,11 @@ module internal Conventions =
 
     let boldVariable(c: char) = Letters.bold c
 
-    /// Function names are set upright, though one of them is the factorial's exclamation mark.
+    /// Function names are set upright, though two are the indicator's 1 and the factorial's !.
     let uprightGlyph(c: char) =
-        Letters.upright c |> ValueOption.orElseWith (fun () -> MathFont.OfChar c)
+        Letters.upright c
+        |> ValueOption.orElseWith (fun () -> Digits.glyph c)
+        |> ValueOption.orElseWith (fun () -> MathFont.OfChar c)
 
     let blackboardVariable(c: char) = Letters.blackboard c
 

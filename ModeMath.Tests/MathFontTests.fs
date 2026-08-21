@@ -36,6 +36,16 @@ let private data =
                     Assert.Equal(byteLength, bytes.Length, $"{face} byte length")
                     Assert.Equal(sha256, Convert.ToHexStringLower(SHA256.HashData bytes), $"{face} SHA-256")
             )
+            Test.CasesSync(
+                "theLicenceOfEveryFaceTravelsWithIt",
+                [   "math", (Face.Math, "GUST Font License")
+                    "blackboard", (Face.Blackboard, "SIL OPEN FONT LICENSE") ],
+                fun (face, wording) ->
+                    use stream = MathFont.OpenLicenceFile face
+                    use reader = new StreamReader(stream)
+                    let text = reader.ReadToEnd()
+                    Assert.True(text.Contains wording, $"the {face} licence does not read as one")
+            )
             Test.Sync(
                 "theRepertoireIsSortedAndUnique",
                 fun () ->

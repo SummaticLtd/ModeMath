@@ -79,3 +79,11 @@ type MathFont =
             | Face.Math -> "ModeMath.latinmodern-math.otf"
             | Face.Blackboard -> "ModeMath.AMS-Capital-Blackboard-Bold.otf"
         typeof<Glyph>.Assembly.GetManifestResourceStream name
+
+    /// The licence a face is redistributed under, which every copy of it has to carry.
+    static member OpenLicenceFile(face: Face): Stream =
+        let name =
+            match face with
+            | Face.Math -> "ModeMath.GUST-FONT-LICENSE.txt"
+            | Face.Blackboard -> "ModeMath.AMSFONTS-OFL.txt"
+        typeof<Glyph>.Assembly.GetManifestResourceStream name

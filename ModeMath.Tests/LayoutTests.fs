@@ -1,5 +1,6 @@
 module ModeMath.Tests.LayoutTests
 
+open System
 open System.Collections.Immutable
 open FSUtils
 open SimpleTests
@@ -188,6 +189,13 @@ let private repertoire =
                     Assert.Throws(
                         (fun () -> laid(c '☃') |> ignore),
                         "a character outside the repertoire must not lay out as nothing")
+            )
+            Test.CasesSync(
+                "everyFunctionNameCanBeSet",
+                [ for f in Enum.GetValues<MathFunction>() -> string f, f ],
+                fun f ->
+                    // Not every name is letters: the indicator is 1 and the factorial is !.
+                    Assert.True((laid(MA.Function f)).Width > 0f, $"{f} is set as nothing")
             )
             Test.CasesSync(
                 "everyClassifiedCharacterCanBeDrawn",
