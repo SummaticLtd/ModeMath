@@ -2,15 +2,17 @@
 
 Editing and display work. `examples/` shows what renders today.
 
-## 1. An editor over PlacedCurs
+## 1. Editing
 
-`PlacedCurs.Nearest` takes a point to a cursor and `Layout.Of` lays one out, so what is left is to put
-the editing operations on the laid-out cursor rather than the structural one: an edit goes
-`ToMACurs`, edits, and lays out again, and a move goes the same way without laying out. Then the
-caller holds a `PlacedCurs` and a `Layout`, and never names a `MACurs`.
+`Editor` covers typing, clicking, moving, backspace and delete, and putting in a fraction, root,
+bracket or script. What is left:
 
-Moving up and down is structural, so it ignores where the atoms are. A `PlacedCurs` knows, which is
-what would let leaving a denominator land under the same point in the numerator.
+| Addition | Why |
+|---|---|
+| Selection | Tracked separately: #3 |
+| Up and down by where the atoms are | `Move` is structural, so leaving a denominator ignores the point it left from |
+| Putting a bracket around what is already there | Typing `(` before a formula should be able to take it in |
+| Undo | The editor is a value, so a caller can keep the old ones. Nothing here does it for them |
 
 ## 2. Remaining mathematics
 

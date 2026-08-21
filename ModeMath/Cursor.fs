@@ -29,7 +29,7 @@ module internal FunctionNames =
 
 /// Math formula Input with a cursor
 [<RequireQualifiedAccess>]
-type MACurs =
+type internal MACurs =
     /// A cursor (e.g. in a row), or empty position (e.g. empty superscript).
     | CursorOrEmpty
     | Row of before: ImmutableArray<MA> * MACurs * after: ImmutableArray<MA>
@@ -71,6 +71,26 @@ type MACurs =
                 yield current.Value
                 current <- current.Value.Right
         }
+
+    member t.Flatten: MACurs =
+        let flat(ma: MA) = ma.Flatten
+        match t with
+        | CursorOrEmpty -> t
+        | Row(before, inner, after) ->
+            MACurs.MakeRow(MA.FlattenElements before, inner.Flatten, MA.FlattenElements after)
+        | ScriptMainSuper(main, super, sub) ->
+            ScriptMainSuper(main.Flatten, flat super, sub |> ValueOption.map flat)
+        | ScriptMainSub(main, sub) -> ScriptMainSub(main.Flatten, flat sub)
+        | ScriptSuper(main, super, sub) ->
+            ScriptSuper(flat main, super.Flatten, sub |> ValueOption.map flat)
+        | ScriptSub(main, super, sub) ->
+            ScriptSub(flat main, super |> ValueOption.map flat, sub.Flatten)
+        | FracNum(n, d) -> FracNum(n.Flatten, flat d)
+        | FracDen(n, d) -> FracDen(flat n, d.Flatten)
+        | Bracketed(b, inner, bc) -> Bracketed(b, inner.Flatten, bc)
+        | RootNDegree(n, x) -> RootNDegree(n.Flatten, flat x)
+        | RootNMain(n, x) -> RootNMain(flat n, x.Flatten)
+        | Sqrt x -> Sqrt x.Flatten
 
     /// The formula with the cursor removed.
     member t.ToMA: MA =
@@ -504,6 +524,28 @@ type MACurs =
         | Direction.Down -> t.Down
         | _ -> ValueNone
 
+    /// Replaces the atom before the cursor with one built from it, or from an empty slot if there is none.
+    /// There is none where the cursor starts the row it stands in, or fills an empty slot on its own.
+    member t.ReplaceBefore(build: MA -> MACurs): MACurs =
+        match t with
+        | CursorOrEmpty -> build MA.Empty
+        | Row(before, inner, after) ->
+            if not inner.IsCursorOrEmpty then MACurs.MakeRow(before, inner.ReplaceBefore build, after)
+            elif before.IsEmpty then MACurs.MakeRow(before, build MA.Empty, after)
+            else
+                let last = before.Length - 1
+                MACurs.MakeRow(before.RemoveAt last, build before.[last], after)
+        | ScriptMainSuper(main, super, sub) -> ScriptMainSuper(main.ReplaceBefore build, super, sub)
+        | ScriptMainSub(main, sub) -> ScriptMainSub(main.ReplaceBefore build, sub)
+        | ScriptSuper(main, super, sub) -> ScriptSuper(main, super.ReplaceBefore build, sub)
+        | ScriptSub(main, super, sub) -> ScriptSub(main, super, sub.ReplaceBefore build)
+        | FracNum(n, d) -> FracNum(n.ReplaceBefore build, d)
+        | FracDen(n, d) -> FracDen(n, d.ReplaceBefore build)
+        | Bracketed(b, inner, bc) -> Bracketed(b, inner.ReplaceBefore build, bc)
+        | RootNDegree(n, x) -> RootNDegree(n.ReplaceBefore build, x)
+        | RootNMain(n, x) -> RootNMain(n, x.ReplaceBefore build)
+        | Sqrt x -> Sqrt(x.ReplaceBefore build)
+
     /// Adds an MACurs naively
     member t.AddMACurs(addition: MACurs): MACurs =
         match t with
@@ -534,12 +576,27 @@ type MACurs =
                 match elements.[start + i] with
                 | MA.Char c -> c
                 | _ -> ' '))
+        let spelled(name: string) =
+            FunctionNames.table |> Array.tryPick (fun (spelling, fn) -> if spelling = name then Some fn else None)
+        /// The name the function standing before the letters was spelled with, if one stands there.
+        let before =
+            if start = 0 then None
+            else
+                match elements.[start - 1] with
+                | MA.Function fn ->
+                    FunctionNames.table
+                    |> Array.tryPick (fun (spelling, found) -> if found = fn then Some spelling else None)
+                | _ -> None
         let matched =
             FunctionNames.table
             |> Array.tryFind (fun (name, _) -> letters.EndsWith(name, StringComparison.Ordinal))
         match matched with
         | Some(name, fn) -> (elements |> ImmArray.truncate (elements.Length - name.Length)).Add(MA.Function fn)
-        | None -> elements
+        | None ->
+            // A name no run of letters spells may be one a function before them goes on to spell.
+            match before |> Option.bind (fun name -> spelled(name + letters)) with
+            | Some fn -> (elements |> ImmArray.truncate (start - 1)).Add(MA.Function fn)
+            | None -> elements
 
     /// Adds a character at the cursor, replacing a completed function name with that function.
     member t.AddAlphanumeric(c: char): MACurs =

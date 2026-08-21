@@ -911,9 +911,9 @@ type Layout(fontSize: float32<px>) =
     member t.Of(ma: MA, size: MathSize) = t.Of(ma.Flatten, Style(size, false))
 
     /// Laid out with a cursor in it, which is drawn over the formula rather than among it.
-    member t.Of(curs: MACurs) = t.Of(curs, MathSize.Display)
+    member internal t.Of(curs: MACurs) = t.Of(curs, MathSize.Display)
 
-    /// The MA the cursor stands in must already be flat, as Layout.Of makes an MA of its own.
-    member t.Of(curs: MACurs, size: MathSize) =
-        PlacedCurs.Of(curs, t.Of(curs.ToMA, Style(size, false)))
+    member internal t.Of(curs: MACurs, size: MathSize) =
+        let flat = curs.Flatten
+        PlacedCurs.Of(flat, t.Of(flat.ToMA, Style(size, false)))
 
