@@ -2,6 +2,7 @@ namespace ModeMath
 
 open System
 open System.Collections.Generic
+open System.Drawing
 open SkiaSharp
 open FSUtils
 
@@ -73,6 +74,16 @@ type Painter(math: SKTypeface, blackboard: SKTypeface) =
                     paint ink)
             | Part.Child child ->
                 t.Draw(child, canvas, x + child.X, baseline - child.Y, solid, tentative)
+            | Part.Painted(colour, child) ->
+                // The paints belong to the caller, so the colours go back once the child is drawn.
+                let wasSolid = solid.Color
+                let wasTentative = tentative.Color
+                let painted = SKColor(colour.R, colour.G, colour.B, colour.A)
+                solid.Color <- painted
+                tentative.Color <- painted.WithAlpha(byte (int colour.A / 3))
+                t.Draw(child, canvas, x + child.X, baseline - child.Y, solid, tentative)
+                solid.Color <- wasSolid
+                tentative.Color <- wasTentative
 
     interface IDisposable with
         member _.Dispose() =

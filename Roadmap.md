@@ -15,7 +15,6 @@ Ordered by use in the SummaticApp content library.
 
 | Addition | LaTeX |
 |---|---|
-| `Coloured` | `\color`, `\red`, `\blue` and the rest |
 | `Styled` | `\mathbf`, `\mathcal`, `\mathfrak`, `\it` |
 | Relations and arrows | `\leq`, `\Rightarrow`, `\approx`, `\in`, `\to` |
 | Binary operators | `\ast`, `\cap`, `\pm`, `\cup`, `\div` |
@@ -29,8 +28,12 @@ Relations and binary operators carry a TeX atom class, which sets the spacing ar
 ellipses, and `\mathbb` is done: `MA.Blackboard` reaches all 26 capitals and `ℂ ℍ ℕ ℙ ℚ ℝ ℤ` are drawn
 from the same face. `MA.Text` covers `\mathrm` over a word as well as `\text`.
 
-`Coloured` needs a colour type settling first: `System.Drawing.Color` carries more than a colour, and
-`Summatic.Drawing` is not published.
+## TODO: an efficient colour
+
+`MA.Coloured` carries a `System.Drawing.Color`, as CSharpMath's `Colored` does. It is 24 bytes for
+what is four bytes of RGBA, and one of its four fields is a string reference, so every colour in a
+formula is a pointer the collector tracks. `SKColor` is four bytes but would put SkiaSharp in the
+semantic model, and `Summatic.Drawing` is not published.
 
 ## Tracked separately
 

@@ -1,6 +1,7 @@
 namespace ModeMath
 
 open System.Collections.Immutable
+open System.Drawing
 open FSUtils
 
 /// Whether something is part of the formula or only offered, such as an unclosed bracket's partner.
@@ -82,6 +83,7 @@ type PlacedMA =
     | Underline of x: Placed * rule: PlacedRule
     | Stack of top: Placed * bottom: Placed
     | Table of cells: ImmA2D<Placed> * alignments: ImmutableArray<Alignment>
+    | Coloured of colour: Color * x: Placed
     | Text of string * letters: PlacedGlyphs
     /// A gap, which draws nothing at all.
     | Space of Space
@@ -114,6 +116,8 @@ and [<RequireQualifiedAccess>] Part =
     | Glyph of glyph: PlacedGlyph * ink: Ink
     | Rule of rule: PlacedRule * ink: Ink
     | Child of Placed
+    /// A child drawn in a colour of its own, which the one around it goes back to afterwards.
+    | Painted of colour: Color * child: Placed
 
 type PlacedMA with
     /// Everything this atom draws, in the order it is drawn. Built once, and kept by the Placed that
@@ -178,6 +182,7 @@ type PlacedMA with
             child top
             child bottom
         | PlacedMA.Table(cells, _) -> for cell in cells.Elements do child cell
+        | PlacedMA.Coloured(colour, x) -> b.Add(Part.Painted(colour, x))
         | PlacedMA.Text(_, letters) -> marks(letters, Ink.Solid)
         | PlacedMA.Space _ -> ()
         b.ToImmutable()
@@ -191,7 +196,7 @@ type PlacedMA with
         | PlacedMA.Function _ | PlacedMA.Bracketed _ | PlacedMA.RootN _ | PlacedMA.Sqrt _
         | PlacedMA.BigOp _ | PlacedMA.Accented _ | PlacedMA.Spanned _ | PlacedMA.Overline _
         | PlacedMA.Underline _ | PlacedMA.Stack _ | PlacedMA.Table _ | PlacedMA.Text _
-        | PlacedMA.Space _ -> ValueNone
+        | PlacedMA.Space _ | PlacedMA.Coloured _ -> ValueNone
 
     /// The MA this was laid out from, which a cursor position is expressed against.
     member t.ToMA: MA =
@@ -224,6 +229,7 @@ type PlacedMA with
         | PlacedMA.Stack(top, bottom) -> MA.Stack(top.Pma.ToMA, bottom.Pma.ToMA)
         | PlacedMA.Table(cells, alignments) ->
             MA.Table(cells |> ImmA2D.map (fun cell -> cell.Pma.ToMA), alignments)
+        | PlacedMA.Coloured(colour, x) -> MA.Coloured(colour, x.Pma.ToMA)
         | PlacedMA.Text(text, _) -> MA.Text text
         | PlacedMA.Space space -> MA.Space space
 
@@ -233,12 +239,12 @@ type Extent with
         (width: float32<px>, italicCorrection: float32<px>, parts: ImmutableArray<Part>) =
         let top(part: Part) =
             match part with
-            | Part.Child c -> c.Y + c.Extent.Ascent
+            | Part.Child c | Part.Painted(_, c) -> c.Y + c.Extent.Ascent
             | Part.Rule(r, _) -> r.Y + r.Thickness
             | Part.Glyph(g, _) -> g.Top
         let bottom(part: Part) =
             match part with
-            | Part.Child c -> c.Y - c.Extent.Descent
+            | Part.Child c | Part.Painted(_, c) -> c.Y - c.Extent.Descent
             | Part.Rule(r, _) -> r.Y
             | Part.Glyph(g, _) -> g.Bottom
         let ascent = ImmArray.maxWithSafe(parts, 0f<px>, top)

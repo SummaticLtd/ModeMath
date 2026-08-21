@@ -219,6 +219,8 @@ module internal Conventions =
         | MA.Frac _ | MA.Stack _ | MA.Table _ -> both AtomClass.Inner
         | MA.Bracketed _ -> struct (AtomClass.Open, AtomClass.Close)
         | MA.ScriptSuper(main, _, _) | MA.ScriptSub(main, _) -> atomClasses main
+        // A colour changes how an atom is drawn, not what it binds to on either side.
+        | MA.Coloured(_, x) -> atomClasses x
         | MA.BigOp _ -> both AtomClass.Operator
         | MA.Row _ | MA.BoldVar _ | MA.Blackboard _ | MA.UprightD | MA.RootN _ | MA.Sqrt _
         | MA.Accented _ | MA.Spanned _ | MA.Overline _ | MA.Underline _ | MA.Text _ | MA.Space _ ->
@@ -883,6 +885,9 @@ type Layout(fontSize: float32<px>) =
             atomOf(PlacedMA.Text(text, letters), letters.Width, 0f<px>)
         | MA.Space space ->
             atomOf(PlacedMA.Space space, eighteenths(Conventions.space space, style), 0f<px>)
+        | MA.Coloured(colour, x) ->
+            let inner = t.Of(x, style)
+            atomOf(PlacedMA.Coloured(colour, inner), inner.Width, inner.ItalicCorrection)
 
     /// Laid out on a line of its own, where fractions and radicals are given their full height.
     member t.Of(ma: MA) = t.Of(ma, MathSize.Display)

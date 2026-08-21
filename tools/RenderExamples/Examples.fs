@@ -1,6 +1,7 @@
 module RenderExamples.Examples
 
 open System.Collections.Immutable
+open System.Drawing
 open FSUtils
 open ModeMath
 
@@ -30,6 +31,7 @@ let private bigOpSubSup(o: BigOperator, lower: MA, upper: MA) = MA.BigOp(o, Valu
 let private acc(accent: Accent, x: MA) = MA.Accented(accent, x)
 let private spanned(mark: Spanning, x: MA) = MA.Spanned(mark, x)
 let private text(words: string) = MA.Text words
+let private coloured(colour: Color, x: MA) = MA.Coloured(colour, x)
 let private space(width: Space) = MA.Space width
 let private bb(letter: char) = MA.Blackboard letter
 let private overline(x: MA) = MA.Overline x
@@ -71,6 +73,12 @@ let implemented = [
     "CapitalGreeks", s "ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ"
     "Greeks", s "αβγδεζηθικλμνξοπρςστυφχψω"
     "Numbers", s "1234567890"
+
+    "Color",
+    row [
+        coloured(Color.FromArgb(0x00, 0x00, 0x88), c 'a')
+        coloured(Color.FromArgb(0x00, 0x00, 0xFF), c 'b')
+    ]
 
     "Commands",
     row [
@@ -353,6 +361,14 @@ let implemented = [
     ]
 
     "ModeMathAbsolute", row [ bars(row [ c 'x'; c '-'; c '1' ]); op Operator.Equals; c '3' ]
+    "ModeMathColoured",
+    row [
+        coloured(Color.Crimson, MA.String "3x")
+        op Operator.Plus
+        coloured(Color.SeaGreen, frac(c '1', c '2'))
+        op Operator.Equals
+        c '5'
+    ]
     "ModeMathOverbrace",
     sup(spanned(Spanning.Overbrace, row [ c 'a'; c '+'; c 'b'; c '+'; c 'c' ]), c 'n')
     "ModeMathSpacing",
@@ -419,10 +435,9 @@ let implemented = [
 let unimplemented = [
     "AccentUnder", @"\threeunderdot{x}", "accents below"
     "AccentUnderThin", @"\threeunderdot{i}", "accents below"
-    "Color", @"\color{#000088}a\color{#0000FF}b", "Coloured"
     "Cyrillic", @"А а\ Б б\ В в", "Cyrillic in the font"
     "FontStyles", @"\mathnormal F\mathrm F\mathbf F\mathcal F\mathtt F", "Styled"
-    "ItalicAlignment", @"\colorbox{yellow}P\\\begin{array}{r}\colorbox{yellow}{PF}\end{array}", "Coloured"
+    "ItalicAlignment", @"\colorbox{yellow}P\\\begin{array}{r}\colorbox{yellow}{PF}\end{array}", "colorbox"
     "LineStyles", @"a \displaystyle a \textstyle a \scriptstyle a \scriptscriptstyle a", "style commands"
     "Matrixception", @"\begin{Vmatrix}\begin{vmatrix}a&b\end{vmatrix}\end{Vmatrix}", "double bar delimiter"
     "RaiseBox", @"a\raisebox{1mu}a\raisebox{2mu}a", "raisebox"

@@ -2,6 +2,7 @@ module ModeMath.Tests.LayoutTests
 
 open System
 open System.Collections.Immutable
+open System.Drawing
 open FSUtils
 open SimpleTests
 open ModeMath
@@ -22,7 +23,7 @@ let private rules(placed: Placed) =
     [ for part in placed.Parts do
         match part with
         | Part.Rule(rule, _) -> yield rule
-        | Part.Glyph _ | Part.Child _ -> () ]
+        | Part.Glyph _ | Part.Child _ | Part.Painted _ -> () ]
 
 let private glyphOf(placed: Placed) =
     match placed.Pma.SingleGlyph with
@@ -502,6 +503,40 @@ let private marks =
         ]
     )
 
+let private colours =
+    TestList(
+        "Colours",
+        [   Test.Sync(
+                "aColourIsHandedToWhateverDrawsTheAtomInside",
+                fun () ->
+                    let parts = (laid(MA.Coloured(Color.Crimson, MA.String "ab"))).Parts
+                    Assert.Equal(1, parts.Length, "a colour draws more than the atom inside it")
+                    match parts.[0] with
+                    | Part.Painted(colour, child) ->
+                        Assert.Equal(Color.Crimson, colour, "colour")
+                        Assert.True(child.Parts.Length > 0, "the atom inside draws nothing")
+                    | other -> Assert.Fail $"not a painted child: {other}"
+            )
+            Test.Sync(
+                "aColourChangesNothingAboutTheSize",
+                fun () ->
+                    let bare = laid(MA.String "ab")
+                    let painted = laid(MA.Coloured(Color.Crimson, MA.String "ab"))
+                    nearly(bare.Width, painted.Width, "width")
+                    nearly(bare.Ascent, painted.Ascent, "ascent")
+                    nearly(bare.Descent, painted.Descent, "descent")
+            )
+            Test.Sync(
+                "aColourKeepsWhatTheAtomBindsToOnEitherSide",
+                fun () ->
+                    let plus = MA.Operator Operator.Plus
+                    let bare = laid(row [ c 'a'; plus; c 'b' ])
+                    let painted = laid(row [ c 'a'; MA.Coloured(Color.Crimson, plus); c 'b' ])
+                    nearly(bare.Width, painted.Width, "a coloured operator is spaced as a plain one")
+            )
+        ]
+    )
+
 let private words =
     TestList(
         "Words",
@@ -775,6 +810,7 @@ let private everyKind =
         MA.Spanned(Spanning.Underbrace, MA.String "ab")
         MA.Text "for"
         MA.Space Space.Quad
+        MA.Coloured(Color.Crimson, c 'x')
         MA.Overline(MA.String "ab")
         MA.Underline(MA.String "ab")
         MA.Stack(c '6', c 'x')
@@ -808,6 +844,7 @@ let tests =
             repertoire
             bigOperators
             brackets
+            colours
             marks
             words
             grown

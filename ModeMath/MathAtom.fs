@@ -1,6 +1,7 @@
 namespace ModeMath
 
 open System.Collections.Immutable
+open System.Drawing
 open FSUtils
 
 type MathFunction =
@@ -152,6 +153,8 @@ type MA =
     /// A grid of cells, whose columns take the alignments in turn, repeating. None centres them all.
     | Table of cells: ImmA2D<MA> * alignments: ImmutableArray<Alignment>
     | Spanned of mark: Spanning * x: MA
+    /// A formula in a colour. TODO: Color is 24 bytes and a pointer for four bytes of RGBA.
+    | Coloured of colour: Color * x: MA
     /// Words set upright among the mathematics, as \text does.
     | Text of string
     | Space of Space
@@ -225,6 +228,7 @@ type MA =
                 upper |> ValueOption.map (fun u -> u.Flatten))
         | Accented(accent, x) -> Accented(accent, x.Flatten)
         | Spanned(mark, x) -> Spanned(mark, x.Flatten)
+        | Coloured(colour, x) -> Coloured(colour, x.Flatten)
         | Overline x -> Overline x.Flatten
         | Underline x -> Underline x.Flatten
         | Stack(top, bottom) -> Stack(top.Flatten, bottom.Flatten)
@@ -254,6 +258,7 @@ type MA =
         | BigOp(op, lower, upper) -> props("BigOp", [ box op; box lower; box upper ])
         | Accented(accent, x) -> props("Accented", [ box accent; box x ])
         | Spanned(mark, x) -> props("Spanned", [ box mark; box x ])
+        | Coloured(colour, x) -> props("Coloured", [ box colour; box x ])
         | Overline x -> props("Overline", [ x ])
         | Underline x -> props("Underline", [ x ])
         | Stack(top, bottom) -> props("Stack", [ top; bottom ])
