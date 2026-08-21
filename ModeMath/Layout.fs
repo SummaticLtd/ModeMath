@@ -928,11 +928,3 @@ type Layout(fontSize: float32<px>) =
     member t.Of(curs: MACurs, size: MathSize) =
         PlacedCurs.Of(curs, t.Of(curs.ToMA, Style(size, false)))
 
-    /// The cursor position nearest a point, in pixels from the formula origin with y upwards.
-    member t.Nearest(ma: MA, x: float32<px>, y: float32<px>) =
-        let away(from: float32<px>, until: float32<px>, point: float32<px>) =
-            max 0f<px> (max (from - point) (point - until))
-        let distance(curs: MACurs) =
-            let caret = (t.Of curs).Caret
-            away(caret.X, caret.X + caret.Width, x) + away(caret.Y, caret.Y + caret.Thickness, y)
-        MACurs.Positions ma |> Seq.minBy distance

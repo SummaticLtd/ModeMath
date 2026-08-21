@@ -938,17 +938,36 @@ let private cursors =
                             let y = caret.Y + caret.Thickness / 2f
                             // Carets overlap, as before x does with before x squared, so a click
                             // cannot always tell which was meant. It must land on one holding it.
-                            let found = (layout.Of(layout.Nearest(formula, x, y))).Caret
+                            let found = (PlacedCurs.Nearest(laid formula, x, y)).Caret
                             Assert.True(
                                 found.X - 0.01f<px> <= x && x <= found.X + found.Width + 0.01f<px>
                                 && found.Y - 0.01f<px> <= y && y <= found.Y + found.Thickness + 0.01f<px>,
                                 $"clicking on {curs} found a cursor that was not under the point")
             )
             Test.Sync(
+                "everyPointFindsAPositionTheCursorCanReach",
+                fun () ->
+                    // Stepping right is what a position is, so a click must not invent one besides.
+                    for formula in cursored |> List.map flat do
+                        let placed = laid formula
+                        let reachable = positions formula
+                        for step in 0 .. 20 do
+                            let across = float32 step / 20f
+                            for rise in 0 .. 10 do
+                                let up = float32 rise / 10f
+                                let x = placed.Width * across
+                                let y = placed.Ascent * up - placed.Descent * (1f - up)
+                                let found = (PlacedCurs.Nearest(placed, x, y)).ToMACurs
+                                Assert.True(
+                                    reachable |> List.contains found,
+                                    $"a click at {x}, {y} on {formula} found {found}, which is unreachable")
+            )
+            Test.Sync(
                 "aPointFarBelowFindsAPositionInTheDenominator",
                 fun () ->
                     let formula = MA.Frac(c 'b', c 'd') |> flat
-                    let found = layout.Nearest(formula, (laid formula).Width / 2f, -(laid formula).Descent)
+                    let placed = laid formula
+                    let found = (PlacedCurs.Nearest(placed, placed.Width / 2f, -placed.Descent)).ToMACurs
                     match found with
                     | MACurs.FracDen _ -> ()
                     | other -> failwith $"a point under the bar found {other}"

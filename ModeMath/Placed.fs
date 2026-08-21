@@ -288,6 +288,30 @@ type PlacedMACurs =
 
 /// The atom a cursor stands in, laid out, with the way down to the cursor inside it.
 and [<Struct>] PlacedCurs(placed: Placed, curs: PlacedMACurs) =
+    /// The bar a cursor is drawn as where the pen stood, as tall as the box an empty slot shows.
+    static member internal Bar(pen: float32<px>, emSize: float32<px>) =
+        let scale = emSize / MathConstants.UnitsPerEm
+        let thickness = MathConstants.FractionRuleThickness * scale
+        PlacedRule(
+            thickness,
+            (Slot.box.Top - Slot.box.Bottom) * scale,
+            pen - thickness / 2f,
+            Slot.box.Bottom * scale)
+
+    /// How far a point is from a rectangle, which is nothing at all where it is inside it.
+    static member internal Away
+        (
+            left: float32<px>,
+            right: float32<px>,
+            bottom: float32<px>,
+            top: float32<px>,
+            x: float32<px>,
+            y: float32<px>
+        ) =
+        let outside(from: float32<px>, until: float32<px>, point: float32<px>) =
+            max 0f<px> (max (from - point) (point - until))
+        outside(left, right, x) + outside(bottom, top, y)
+
     /// The atom itself, which is laid out the same whatever the cursor in it is doing.
     member _.Placed = placed
     member _.Curs = curs
@@ -338,7 +362,6 @@ type PlacedCurs with
 
     /// The cursor put against a formula already laid out, which must be the formula it stands in.
     static member Of(curs: MACurs, placed: Placed): PlacedCurs =
-        let scale = placed.EmSize / MathConstants.UnitsPerEm
         /// A row of one atom is laid out as that atom, so an atom stands for the row holding it.
         let children =
             match placed.Pma with
@@ -351,13 +374,7 @@ type PlacedCurs with
             else
                 let last = children.[children.Length - 1]
                 last.X + last.Width - last.ItalicCorrection
-        let bar(count: int) =
-            let thickness = MathConstants.FractionRuleThickness * scale
-            PlacedRule(
-                thickness,
-                (Slot.box.Top - Slot.box.Bottom) * scale,
-                pen count - thickness / 2f,
-                Slot.box.Bottom * scale)
+        let bar(count: int) = PlacedCurs.Bar(pen count, placed.EmSize)
         let first(count: int) = children.RemoveRange(count, children.Length - count)
         let rest(count: int) = children.RemoveRange(0, count)
         let wrong(kind: string) = failwith $"a cursor in a {kind} was placed over {placed.Pma}"
@@ -441,3 +458,101 @@ type PlacedCurs with
             | PlacedMA.Sqrt(_, _, radicand) ->
                 PlacedCurs(placed, PlacedMACurs.Sqrt(PlacedCurs.Of(x, radicand)))
             | other -> wrong "square root"
+
+type PlacedCurs with
+    /// How far a point is from an atom where it was laid out.
+    static member private AwayFrom(placed: Placed, x: float32<px>, y: float32<px>) =
+        PlacedCurs.Away(
+            placed.X,
+            placed.X + placed.Width,
+            placed.Y - placed.Descent,
+            placed.Y + placed.Ascent,
+            x,
+            y)
+
+    /// The cursor nearest a point inside one atom. ValueNone where a cursor cannot go inside it.
+    static member private Inside(placed: Placed, x: float32<px>, y: float32<px>) =
+        let nearest(slots: struct (Placed * (MACurs -> MACurs)) list) =
+            let struct (slot, wrap) =
+                slots |> List.minBy (fun struct (slot, _) -> PlacedCurs.AwayFrom(slot, x, y))
+            wrap(PlacedCurs.NearestIn(slot, x - slot.X, y - slot.Y)) |> ValueSome
+        let ma(placed: Placed) = placed.Pma.ToMA
+        match placed.Pma with
+        | PlacedMA.Frac(n, _, d) ->
+            nearest [
+                struct (n, fun inner -> MACurs.FracNum(inner, ma d))
+                struct (d, fun inner -> MACurs.FracDen(ma n, inner))
+            ]
+        | PlacedMA.ScriptSuper(main, super, sub) ->
+            let below = sub |> ValueOption.map ma
+            [
+                struct (main, fun inner -> MACurs.ScriptMainSuper(inner, ma super, below))
+                struct (super, fun inner -> MACurs.ScriptSuper(ma main, inner, below))
+                match sub with
+                | ValueSome sub ->
+                    struct (sub, fun inner -> MACurs.ScriptSub(ma main, ValueSome(ma super), inner))
+                | ValueNone -> ()
+            ]
+            |> nearest
+        | PlacedMA.ScriptSub(main, sub) ->
+            nearest [
+                struct (main, fun inner -> MACurs.ScriptMainSub(inner, ma sub))
+                struct (sub, fun inner -> MACurs.ScriptSub(ma main, ValueNone, inner))
+            ]
+        | PlacedMA.Bracketed(brackets, _, held, _, completion) ->
+            nearest [ struct (held, fun inner -> MACurs.Bracketed(brackets, inner, completion)) ]
+        | PlacedMA.RootN(degree, _, _, radicand) ->
+            nearest [
+                struct (degree, fun inner -> MACurs.RootNDegree(inner, ma radicand))
+                struct (radicand, fun inner -> MACurs.RootNMain(ma degree, inner))
+            ]
+        | PlacedMA.Sqrt(_, _, radicand) ->
+            nearest [ struct (radicand, MACurs.Sqrt) ]
+        | PlacedMA.Row _ | PlacedMA.Char _ | PlacedMA.BoldVar _ | PlacedMA.Blackboard _
+        | PlacedMA.Cdot _ | PlacedMA.UprightD _ | PlacedMA.Function _ | PlacedMA.Operator _
+        | PlacedMA.BigOp _ | PlacedMA.Accented _ | PlacedMA.Spanned _ | PlacedMA.Overline _
+        | PlacedMA.Underline _ | PlacedMA.Stack _ | PlacedMA.Table _ | PlacedMA.Coloured _
+        | PlacedMA.Text _ | PlacedMA.Space _ | PlacedMA.Placeholder _ -> ValueNone
+
+    /// The cursor nearest a point in a slot, which every formula is and so always holds one.
+    static member private NearestIn(placed: Placed, x: float32<px>, y: float32<px>): MACurs =
+        if placed.Pma.IsPlaceholder then MACurs.CursorOrEmpty else
+
+        /// A row of one atom is laid out as that atom, so an atom stands for the row holding it.
+        let children =
+            match placed.Pma with
+            | PlacedMA.Row children -> children
+            | _ -> ImmutableArray.Create(placed.At(0f<px>, 0f<px>))
+        let ma(placed: Placed) = placed.Pma.ToMA
+        let first(count: int) = children.RemoveRange(count, children.Length - count) |> ImmArray.map ma
+        let rest(count: int) = children.RemoveRange(0, count) |> ImmArray.map ma
+        let pen(count: int) =
+            if count < children.Length then children.[count].X
+            elif children.IsEmpty then 0f<px>
+            else
+                let last = children.[children.Length - 1]
+                last.X + last.Width - last.ItalicCorrection
+        let mutable best = MACurs.CursorOrEmpty
+        let mutable closest = System.Single.MaxValue * 1f<px>
+        let consider(distance: float32<px>, curs: MACurs) =
+            if distance < closest then
+                closest <- distance
+                best <- curs
+        for count in 0 .. children.Length do
+            // A gap offers the bar it would draw, so a click high in a numerator is not drawn down
+            // to the row the fraction sits in.
+            let bar = PlacedCurs.Bar(pen count, placed.EmSize)
+            let away =
+                PlacedCurs.Away(bar.X, bar.X + bar.Width, bar.Y, bar.Y + bar.Thickness, x, y)
+            consider(away, MACurs.MakeRow(first count, MACurs.CursorOrEmpty, rest count))
+        for i in 0 .. children.Length - 1 do
+            let child = children.[i]
+            match PlacedCurs.Inside(child, x - child.X, y - child.Y) with
+            | ValueSome inner ->
+                consider(PlacedCurs.AwayFrom(child, x, y), MACurs.MakeRow(first i, inner, rest (i + 1)))
+            | ValueNone -> ()
+        best
+
+    /// The cursor nearest a point, in pixels from the formula's origin with y upwards.
+    static member Nearest(placed: Placed, x: float32<px>, y: float32<px>) =
+        PlacedCurs.Of(PlacedCurs.NearestIn(placed, x, y), placed)
