@@ -27,7 +27,28 @@ let private render(display: Placed, painter: Painter, path: string) =
     data.SaveTo file
     width, height
 
-let private index(rendered: (string * int * int) list) =
+let private renderCursor(curs: PlacedCurs, painter: Painter, path: string) =
+    // The cursor stands taller than the formula, so the bitmap is sized to hold both.
+    let bounds = curs.Bounds
+    let width = wholePixels(bounds.Width + 2f * padding)
+    let height = wholePixels(bounds.Thickness + 2f * padding)
+    use bitmap = new SKBitmap(width, height)
+    use canvas = new SKCanvas(bitmap)
+    canvas.Clear SKColors.White
+    use paint = new SKPaint(Color = SKColors.Black, IsAntialias = true)
+    painter.Draw(
+        curs,
+        canvas,
+        padding - bounds.X,
+        padding + bounds.Y + bounds.Thickness,
+        paint)
+    use image = SKImage.FromBitmap bitmap
+    use data = image.Encode(SKEncodedImageFormat.Png, 100)
+    use file = File.Create path
+    data.SaveTo file
+    width, height
+
+let private index(rendered: (string * int * int) list, cursored: (string * int * int) list) =
     let text = StringBuilder()
     let line(s: string) = text.Append(s).Append("\r\n") |> ignore
     line "# Examples"
@@ -39,6 +60,13 @@ let private index(rendered: (string * int * int) list) =
     line "| Name | Size | Rendering |"
     line "|---|---|---|"
     for name, width, height in rendered do
+        line $"| {name} | {width}×{height} | ![{name}]({name}.png) |"
+    line ""
+    line "## With the cursor"
+    line ""
+    line "| Name | Size | Rendering |"
+    line "|---|---|---|"
+    for name, width, height in cursored do
         line $"| {name} | {width}×{height} | ![{name}]({name}.png) |"
     line ""
     line "## Not yet expressible"
@@ -61,6 +89,16 @@ let main(args: string array): int =
             let width, height =
                 render(layout.Of ma, painter, Path.Combine(outputDirectory, name + ".png"))
             yield name, width, height ]
-    File.WriteAllText(Path.Combine(outputDirectory, "README.md"), index rendered, UTF8Encoding false)
-    printfn $"{rendered.Length} rendered, {Examples.unimplemented.Length} still to come"
+    let cursored =
+        [ for name, cursor in Examples.cursored do
+            let width, height =
+                renderCursor(layout.Of cursor, painter, Path.Combine(outputDirectory, name + ".png"))
+            yield name, width, height ]
+    File.WriteAllText(
+        Path.Combine(outputDirectory, "README.md"),
+        index(rendered, cursored),
+        UTF8Encoding false)
+    printfn
+        $"{rendered.Length} rendered, {cursored.Length} with the cursor, \
+            {Examples.unimplemented.Length} still to come"
     0

@@ -429,7 +429,19 @@ let implemented = [
     "ModeMathCubeRoot", root(c '3', row [ c 'x'; c '+'; c '1' ])
     "ModeMathDerivative", frac(row [ MA.UprightD; c 'y' ], row [ MA.UprightD; c 'x' ])
     "ModeMathTentativeBracket", MA.Bracketed(Brackets.Matching Bracket.Normal, s "x+1", BracketCompletion.Left)
+    "ModeMathEmptySlots", frac(MA.Empty, MA.Empty)
 ]
+
+/// The same, with the cursor somewhere in each.
+let cursored =
+    let formula = (row [ c 'a'; frac(s "b+1", c 'c'); c 'd' ]).Flatten
+    let positions = MACurs.Positions formula |> List.ofSeq
+    let slot = (frac(MA.Empty, c 'c')).Flatten
+    [
+        "CursorBeforeAFraction", positions.[1]
+        "CursorAfterALetterInTheNumerator", positions.[3]
+        "CursorInAnEmptySlot", (MACurs.Positions slot |> Seq.item 1)
+    ]
 
 /// Examples from the same folder that MA cannot express yet, with the roadmap item each waits on.
 let unimplemented = [

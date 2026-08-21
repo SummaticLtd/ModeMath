@@ -24,6 +24,19 @@ let private drawn(ma: MA) =
     painter.Draw(placed, canvas, margin, margin + placed.Ascent, paint)
     placed, Array2D.init bitmap.Width bitmap.Height (fun x y -> bitmap.GetPixel(x, y))
 
+/// Every pixel a formula and the cursor in it are drawn onto, sized to hold both.
+let private drawnWithCursor(curs: MACurs) =
+    let placed = (Layout size).Of curs
+    let bounds = placed.Bounds
+    let whole(length: float32<px>) = int (ceil (Measure.removeFloat32Unit<px> length)) + 4
+    use painter = Painter.Embedded()
+    use bitmap = new SKBitmap(whole bounds.Width, whole bounds.Thickness)
+    use canvas = new SKCanvas(bitmap)
+    canvas.Clear SKColors.White
+    use paint = new SKPaint(Color = SKColors.Black, IsAntialias = true)
+    painter.Draw(placed, canvas, margin - bounds.X, margin + bounds.Y + bounds.Thickness, paint)
+    placed, Array2D.init bitmap.Width bitmap.Height (fun x y -> bitmap.GetPixel(x, y))
+
 /// Ink in a red of its own, which antialiasing lightens but leaves the reddest of the three.
 let private red(pixel: SKColor) =
     int pixel.Red > int pixel.Green + 60 && int pixel.Red > int pixel.Blue + 60
@@ -51,6 +64,44 @@ let private painting =
                     let _, pixels = drawn(c 'x')
                     Assert.True(lastColumn(black, pixels) >= 0, "nothing was drawn in the black paint")
                     Assert.True(lastColumn(red, pixels) < 0, "something was drawn in a colour")
+            )
+            Test.Sync(
+                "aCursorIsDrawnWhereItSaysItIs",
+                fun () ->
+                    // At the end of the formula, so that only the cursor can be inking the column.
+                    let formula = (MA.String "abc").Flatten
+                    let placed, withCursor = drawnWithCursor(MACurs.AtEnd formula)
+                    let _, without = drawn formula
+                    let column = int (Measure.removeFloat32Unit<px>(margin + placed.Caret.X))
+                    let inked(pixels: SKColor[,]) =
+                        seq { 0 .. Array2D.length2 pixels - 1 }
+                        |> Seq.filter (fun y -> black pixels.[column, y])
+                        |> Seq.length
+                    let bar = int (Measure.removeFloat32Unit<px> placed.Caret.Thickness)
+                    Assert.True(
+                        inked withCursor >= bar - 1,
+                        $"the caret column held {inked withCursor} of the {bar} pixels the bar is tall")
+                    // The last letter reaches into that column too, so a gain is what proves the bar.
+                    Assert.True(
+                        inked withCursor > inked without,
+                        $"the cursor added nothing: {inked without} then {inked withCursor}")
+            )
+            Test.Sync(
+                "aFormulaWithoutACursorDrawsNoneOfIt",
+                fun () ->
+                    let formula = (MA.String "abc").Flatten
+                    let curs = MACurs.Positions formula |> Seq.item 2
+                    let placed, withCursor = drawnWithCursor curs
+                    let _, without = drawn formula
+                    let ink(pixels: SKColor[,]) =
+                        seq { for x in 0 .. Array2D.length1 pixels - 1 do
+                                for y in 0 .. Array2D.length2 pixels - 1 -> pixels.[x, y] }
+                        |> Seq.filter black
+                        |> Seq.length
+                    Assert.True(
+                        ink withCursor > ink without,
+                        $"the cursor added no ink: {ink withCursor} against {ink without}")
+                    Assert.True(placed.Caret.Width > 0f<px>, "the cursor had no width to draw")
             )
             Test.Sync(
                 "aColourStopsAtTheEndOfTheAtomItWasGivenTo",

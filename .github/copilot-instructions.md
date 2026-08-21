@@ -4,7 +4,7 @@
 
 ModeMath displays and edits mathematical formulas, rendered with SkiaSharp.
 
-`MA` is the formula tree. `MICurs` mirrors it with a cursor at one position.
+`MA` is the formula tree. `MACurs` mirrors it with a cursor at one position.
 
 ## Technology Stack
 - Primary Language: F#

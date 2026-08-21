@@ -45,11 +45,14 @@ let private measurement =
                     Assert.True(x.Descent >= 0f<px>, "descent")
             )
             Test.Sync(
-                "anEmptyFormulaHasNoSize",
+                "anEmptySlotShowsTheBoxAFormulaCouldBeWrittenIn",
                 fun () ->
                     let empty = laid MA.Empty
-                    nearly(0f<px>, empty.Width, "width")
-                    nearly(0f<px>, empty.Height, "height")
+                    Assert.True(empty.Width > 0f<px>, "width")
+                    Assert.True(empty.Height > 0f<px>, "height")
+                    match empty.Pma with
+                    | PlacedMA.Placeholder _ -> ()
+                    | other -> failwith $"an empty slot drew {other}"
             )
             Test.Sync(
                 "aRowOfOrdinariesIsAsWideAsItsPartsLessTheLeansTheySetUnder",
@@ -68,7 +71,7 @@ let private measurement =
                 fun () ->
                     let f = laid(c 'f')
                     Assert.True(f.ItalicCorrection > 0f<px>, "italic f does not lean")
-                    let followed = laid(row [ c 'f'; MA.Overline MA.Empty ])
+                    let followed = laid(row [ c 'f'; MA.Text "" ])
                     nearly(f.Width, followed.Width, "the row stopped short of the lean it drew")
             )
             Test.Sync(
@@ -850,6 +853,155 @@ let private roundTrip =
         ]
     )
 
+let private flat(ma: MA) = ma.Flatten
+
+/// Bounded, so that a walk which never ends fails the test rather than hanging it.
+let private positions(ma: MA) =
+    let walked = MACurs.Positions ma |> Seq.truncate 1000 |> List.ofSeq
+    if walked.Length = 1000 then failwith "the walk did not end"
+    walked
+
+/// One formula for each atom a cursor can go inside, so that every PlacedMACurs case is reached.
+let private cursored = [
+    row [ c 'a'; MA.Frac(MA.String "b+1", c 'c'); c 'd' ]
+    MA.ScriptSuper(c 'x', c '2', ValueSome(c 'i'))
+    MA.ScriptSub(c 'x', c 'i')
+    MA.Bracketed(Brackets.Matching Bracket.Normal, MA.String "x+1", BracketCompletion.Completed)
+    MA.RootN(c '3', MA.String "x+1")
+    MA.Sqrt(MA.String "2y")
+    MA.Frac(MA.Empty, c 'c')
+]
+
+let private cursors =
+    TestList(
+        "Cursor",
+        [   Test.Sync(
+                "steppingRightEndsRatherThanRunningOn",
+                fun () ->
+                    // Every position is walked to find the one nearest a click, so it has to end.
+                    Assert.Equal(3, (positions(MA.String "ab" |> flat)).Length, "positions in ab")
+                    Assert.Equal(6, (positions(MA.Frac(c 'b', c 'd') |> flat)).Length, "in a fraction")
+            )
+            Test.Sync(
+                "aPlacedCursorGoesBackToTheCursorItWasPlacedFrom",
+                fun () ->
+                    for formula in cursored |> List.map flat do
+                        for curs in positions formula do
+                            Assert.Equal(curs, (layout.Of curs).ToMACurs, $"in {formula}")
+            )
+            Test.Sync(
+                "aCursorIsDrawnOverAFormulaLaidOutWithoutIt",
+                fun () ->
+                    for formula in cursored |> List.map flat do
+                        let bare = laid formula
+                        for curs in positions formula do
+                            let placed = (layout.Of curs).Placed
+                            nearly(bare.Width, placed.Width, $"width at {curs}")
+                            nearly(bare.Ascent, placed.Ascent, $"ascent at {curs}")
+                            nearly(bare.Descent, placed.Descent, $"descent at {curs}")
+            )
+            Test.Sync(
+                "whatACursoredFormulaCoversHoldsBothTheFormulaAndTheCursor",
+                fun () ->
+                    // A caret stands taller than a letter, so a caller sizing to the formula clips it.
+                    for formula in cursored |> List.map flat do
+                        let placed = laid formula
+                        for curs in positions formula do
+                            let cursored = layout.Of curs
+                            let bounds = cursored.Bounds
+                            let caret = cursored.Caret
+                            let holds(from: float32<px>, until: float32<px>, low: float32<px>, high: float32<px>) =
+                                Assert.True(
+                                    from - 0.01f<px> <= low && high <= until + 0.01f<px>,
+                                    $"{low} to {high} was not inside {from} to {until} at {curs}")
+                            holds(bounds.X, bounds.X + bounds.Width, caret.X, caret.X + caret.Width)
+                            holds(bounds.Y, bounds.Y + bounds.Thickness, caret.Y, caret.Y + caret.Thickness)
+                            holds(bounds.X, bounds.X + bounds.Width, 0f<px>, placed.Width)
+                            holds(
+                                bounds.Y,
+                                bounds.Y + bounds.Thickness,
+                                -placed.Descent,
+                                placed.Ascent)
+            )
+            Test.Sync(
+                "theCursorMovesRightwardsAsItIsStepped",
+                fun () ->
+                    let formula = MA.String "abc" |> flat
+                    let xs = [ for curs in positions formula -> (layout.Of curs).Caret.X ]
+                    for pair in List.pairwise xs do
+                        let previous, next = pair
+                        Assert.True(next > previous, $"the cursor did not move: {previous} then {next}")
+            )
+            Test.Sync(
+                "theCursorInAnEmptySlotFillsTheBoxTheSlotShows",
+                fun () ->
+                    let slot = MA.Frac(MA.Empty, c 'c') |> flat
+                    let placeholder =
+                        match (laid slot).Pma with
+                        | PlacedMA.Frac(numerator, _, _) -> numerator
+                        | other -> failwith $"not a fraction: {other}"
+                    let caret = (layout.Of (positions slot).[1]).Caret
+                    nearly(placeholder.Width, caret.Width, "the cursor did not fill the box")
+                    nearly(placeholder.Height, caret.Thickness, "the cursor did not fill the box")
+            )
+            Test.Sync(
+                "aCursorIsSmallerWhereTheAtomsAroundItAre",
+                fun () ->
+                    // A caret takes its size from the atom it stands in, which a Placed now knows.
+                    let formula = MA.ScriptSuper(c 'x', MA.String "ab", ValueNone) |> flat
+                    let inScript = (layout.Of (positions formula).[3]).Caret
+                    let beside = (layout.Of (positions formula).[0]).Caret
+                    Assert.True(
+                        inScript.Thickness < beside.Thickness,
+                        $"a caret in a superscript was {inScript.Thickness}, beside it {beside.Thickness}")
+            )
+            Test.Sync(
+                "aPointOnAPositionFindsThatPosition",
+                fun () ->
+                    for formula in cursored |> List.map flat do
+                        for curs in positions formula do
+                            let caret = (layout.Of curs).Caret
+                            let x = caret.X + caret.Width / 2f
+                            let y = caret.Y + caret.Thickness / 2f
+                            // Carets overlap, as before x does with before x squared, so a click
+                            // cannot always tell which was meant. It must land on one holding it.
+                            let found = (PlacedCurs.Nearest(laid formula, x, y)).Caret
+                            Assert.True(
+                                found.X - 0.01f<px> <= x && x <= found.X + found.Width + 0.01f<px>
+                                && found.Y - 0.01f<px> <= y && y <= found.Y + found.Thickness + 0.01f<px>,
+                                $"clicking on {curs} found a cursor that was not under the point")
+            )
+            Test.Sync(
+                "everyPointFindsAPositionTheCursorCanReach",
+                fun () ->
+                    // Stepping right is what a position is, so a click must not invent one besides.
+                    for formula in cursored |> List.map flat do
+                        let placed = laid formula
+                        let reachable = positions formula
+                        for step in 0 .. 20 do
+                            let across = float32 step / 20f
+                            for rise in 0 .. 10 do
+                                let up = float32 rise / 10f
+                                let x = placed.Width * across
+                                let y = placed.Ascent * up - placed.Descent * (1f - up)
+                                let found = (PlacedCurs.Nearest(placed, x, y)).ToMACurs
+                                Assert.True(
+                                    reachable |> List.contains found,
+                                    $"a click at {x}, {y} on {formula} found {found}, which is unreachable")
+            )
+            Test.Sync(
+                "aPointFarBelowFindsAPositionInTheDenominator",
+                fun () ->
+                    let formula = MA.Frac(c 'b', c 'd') |> flat
+                    let placed = laid formula
+                    let found = (PlacedCurs.Nearest(placed, placed.Width / 2f, -placed.Descent)).ToMACurs
+                    match found with
+                    | MACurs.FracDen _ -> ()
+                    | other -> failwith $"a point under the bar found {other}"
+            )
+        ]
+    )
+
 let tests =
     TestFolder(
         "Layout",
@@ -865,4 +1017,5 @@ let tests =
             stacks
             tables
             blackboard
+            cursors
             roundTrip ])
