@@ -14,7 +14,35 @@ bracket or script. What is left:
 | Putting a bracket around what is already there | Typing `(` before a formula should be able to take it in |
 | Undo | The editor is a value, so a caller can keep the old ones. Nothing here does it for them |
 
-## 2. Remaining mathematics
+## 2. LaTeX
+
+`Latex.Read` reads a math-mode string into an `MA`. Writing one back out is still to come.
+
+It reads 97.8% of the 17,220 distinct formulas in the SummaticApp content library, and lays out
+97.1%. What it turns down, by how often the library asks for it:
+
+| Turned down | Uses | Why |
+|---|---|---|
+| Alignment markers outside any environment | 97 | A house convention rather than LaTeX |
+| A script on an empty base, as `*{^\circ}` writes | 49 | Would lay out as the editor's placeholder box |
+| `\overbar`, `\blue`, `\green`, `\gray` | 37 | House macros |
+| `\bf`, `\it` | 33 | Needs `Styled` |
+| `\arg`, `\det`, `\operatorname`, `\inf`, `\sup` | 60 | Needs open-ended function names |
+| `\circ`, `\triangle`, `\uparrow`, `\downarrow`, `\longrightarrow` | 65 | No glyph, see below |
+| `\choose` | 14 | The one infix command |
+
+## TODO: glyphs the font data leaves out
+
+`MathFont.OfChar` finds no glyph for `∘ ∣ ↑ ↓ △ ⟶ ⌈ ⌊ £ – µ`, and laying one out throws. The
+stretchy delimiters among them are in the font under another mechanism; the rest may be a gap in
+what `MathTableGen` emits.
+
+## TODO: the placeholder box outside the editor
+
+An empty slot lays out as □ so that the cursor has something to stand in. A formula displayed
+without a cursor shows the same box, where LaTeX shows nothing.
+
+## 3. Remaining mathematics
 
 All display-only. The cursor treats each as one unit, stepping over it and deleting it whole, so none
 needs a `MACurs` case.
@@ -32,7 +60,7 @@ Ordered by use in the SummaticApp content library.
 
 Relations and binary operators carry a TeX atom class, which sets the spacing around them.
 
-`MA.Char` already covers `\infty`, `\partial`, `\circ`, `\emptyset`, `\therefore`, `\mid` and the
+`MA.Char` already covers `\infty`, `\partial`, `\emptyset`, `\therefore` and the
 ellipses, and `\mathbb` is done: `MA.Blackboard` reaches all 26 capitals and `ℂ ℍ ℕ ℙ ℚ ℝ ℤ` are drawn
 from the same face. `MA.Text` covers `\mathrm` over a word as well as `\text`.
 
