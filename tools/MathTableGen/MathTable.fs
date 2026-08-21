@@ -48,6 +48,10 @@ type internal Reader(data: byte array) =
 
 /// The MathConstants, in table order.
 module MathConstantNames =
+    /// The constants that are ratios rather than lengths, which carry no design unit.
+    let percentages =
+        set [ "ScriptPercentScaleDown"; "ScriptScriptPercentScaleDown"; "RadicalDegreeBottomRaisePercent" ]
+
     let table =
         [|
             "ScriptPercentScaleDown"

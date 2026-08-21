@@ -8,9 +8,15 @@ type Ink =
     | Solid = 0
     | Tentative = 1
 
-/// What a laid-out atom measures, in points from its own origin on the baseline, y upwards.
+/// What a laid-out atom measures, in pixels from its own origin on the baseline, y upwards.
 [<Struct>]
-type Extent(width: float32, ascent: float32, descent: float32, italicCorrection: float32) =
+type Extent
+    (
+        width: float32<px>,
+        ascent: float32<px>,
+        descent: float32<px>,
+        italicCorrection: float32<px>
+    ) =
     member _.Width = width
     member _.Ascent = ascent
     /// Depth below the baseline, positive downwards.
@@ -19,16 +25,16 @@ type Extent(width: float32, ascent: float32, descent: float32, italicCorrection:
     member _.ItalicCorrection = italicCorrection
     member _.Height = ascent + descent
 
-/// One glyph at a point size, offset from the origin of the atom that drew it.
+/// One glyph at the size it is set in, offset from the origin of the atom that drew it.
 [<Struct>]
-type PlacedGlyph(glyph: Glyph, size: float32, x: float32, y: float32) =
+type PlacedGlyph(glyph: Glyph, size: float32<px>, x: float32<px>, y: float32<px>) =
     member _.Glyph = glyph
     member _.Size = size
     member _.X = x
     member _.Y = y
-    member private _.Scale = size / float32 MathConstants.UnitsPerEm
-    member t.Top = y + float32 glyph.Top * t.Scale
-    member t.Bottom = y + float32 glyph.Bottom * t.Scale
+    member private _.Scale = size / MathConstants.UnitsPerEm
+    member t.Top = y + glyph.Top * t.Scale
+    member t.Bottom = y + glyph.Bottom * t.Scale
 
 /// Glyphs forming one mark: a delimiter grown by stacking, a surd, or a function's letters.
 [<Struct>]
@@ -41,12 +47,12 @@ type PlacedGlyphs(glyphs: ImmutableArray<PlacedGlyph>, extent: Extent) =
     member _.ItalicCorrection = extent.ItalicCorrection
     member _.Height = extent.Height
     /// The same mark, moved by an offset its atom has chosen for it.
-    member _.At(x: float32, y: float32) =
+    member _.At(x: float32<px>, y: float32<px>) =
         PlacedGlyphs(glyphs |> ImmArray.map (fun g -> PlacedGlyph(g.Glyph, g.Size, g.X + x, g.Y + y)), extent)
 
 /// A filled rectangle: a fraction's bar or a radical's overbar.
 [<Struct>]
-type PlacedRule(width: float32, thickness: float32, x: float32, y: float32) =
+type PlacedRule(width: float32<px>, thickness: float32<px>, x: float32<px>, y: float32<px>) =
     member _.Width = width
     member _.Thickness = thickness
     member _.X = x
@@ -78,7 +84,14 @@ type PlacedMA =
 
 /// A laid-out MA at an offset from its parent's origin, holding what it draws so that painting a
 /// second time builds nothing.
-and [<Struct>] Placed(pma: PlacedMA, parts: ImmutableArray<Part>, extent: Extent, x: float32, y: float32) =
+and [<Struct>] Placed
+    (
+        pma: PlacedMA,
+        parts: ImmutableArray<Part>,
+        extent: Extent,
+        x: float32<px>,
+        y: float32<px>
+    ) =
     member _.Pma = pma
     member _.Parts = parts
     member _.Extent = extent
@@ -90,7 +103,7 @@ and [<Struct>] Placed(pma: PlacedMA, parts: ImmutableArray<Part>, extent: Extent
     member _.ItalicCorrection = extent.ItalicCorrection
     member _.Height = extent.Height
     /// The same atom, moved to an offset its parent has chosen for it.
-    member _.At(x: float32, y: float32) = Placed(pma, parts, extent, x, y)
+    member _.At(x: float32<px>, y: float32<px>) = Placed(pma, parts, extent, x, y)
 
 /// One thing drawn, so that a painter need know nothing of the atom that drew it.
 and [<RequireQualifiedAccess>] Part =
@@ -203,7 +216,8 @@ type PlacedMA with
 
 type Extent with
     /// Covering everything drawn, which is placed relative to the atom's own origin.
-    static member OfParts(width: float32, italicCorrection: float32, parts: ImmutableArray<Part>) =
+    static member OfParts
+        (width: float32<px>, italicCorrection: float32<px>, parts: ImmutableArray<Part>) =
         let top(part: Part) =
             match part with
             | Part.Child c -> c.Y + c.Extent.Ascent
@@ -214,6 +228,6 @@ type Extent with
             | Part.Child c -> c.Y - c.Extent.Descent
             | Part.Rule(r, _) -> r.Y
             | Part.Glyph(g, _) -> g.Bottom
-        let ascent = ImmArray.maxWithSafe(parts, 0f, top)
-        let descent = -ImmArray.minWithSafe(parts, 0f, bottom)
+        let ascent = ImmArray.maxWithSafe(parts, 0f<px>, top)
+        let descent = -ImmArray.minWithSafe(parts, 0f<px>, bottom)
         Extent(width, ascent, descent, italicCorrection)

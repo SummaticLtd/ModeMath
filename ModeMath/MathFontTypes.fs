@@ -13,14 +13,22 @@ type Glyph
     (
         face: Face,
         id: int,
-        advance: int,
-        top: int,
-        bottom: int,
-        italicCorrection: int,
-        topAccentAttachment: int
+        advance: float32<du>,
+        top: float32<du>,
+        bottom: float32<du>,
+        italicCorrection: float32<du>,
+        topAccentAttachment: float32<du>
     ) =
     /// A glyph of the math face, which everything but blackboard bold is set in.
-    internal new(id: int, advance: int, top: int, bottom: int, italicCorrection: int, topAccentAttachment: int) =
+    internal new
+        (
+            id: int,
+            advance: float32<du>,
+            top: float32<du>,
+            bottom: float32<du>,
+            italicCorrection: float32<du>,
+            topAccentAttachment: float32<du>
+        ) =
         Glyph(Face.Math, id, advance, top, bottom, italicCorrection, topAccentAttachment)
     /// The file the id indexes, which the painter needs to draw it.
     member _.Face = face
@@ -46,7 +54,7 @@ type CG internal (codepoint: int, glyph: Glyph) =
 
 /// One ready-made size of a glyph that stretches.
 [<Struct>]
-type StretchSize internal (glyph: Glyph, advance: int) =
+type StretchSize internal (glyph: Glyph, advance: float32<du>) =
     member _.Glyph = glyph
     /// The size to choose on: a height along the vertical axis, a width along the horizontal.
     member _.Advance = advance
@@ -54,7 +62,14 @@ type StretchSize internal (glyph: Glyph, advance: int) =
 /// One piece of a glyph assembled to reach a size no ready-made glyph covers.
 [<Struct>]
 type AssemblyPart
-    internal (glyph: Glyph, startConnector: int, endConnector: int, fullAdvance: int, isExtender: bool) =
+    internal
+    (
+        glyph: Glyph,
+        startConnector: float32<du>,
+        endConnector: float32<du>,
+        fullAdvance: float32<du>,
+        isExtender: bool
+    ) =
     member _.Glyph = glyph
     /// How far the piece may overlap its predecessor, in design units.
     member _.StartConnector = startConnector

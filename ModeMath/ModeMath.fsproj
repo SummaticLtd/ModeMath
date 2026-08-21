@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <Compile Include="Units.fs" />
     <Compile Include="MathFontTypes.fs" />
     <Compile Include="MathFontData.g.fs" />
     <Compile Include="MathAtom.fs" />

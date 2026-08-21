@@ -6,7 +6,7 @@ open FSUtils
 open SimpleTests
 open ModeMath
 
-let private layout = Layout 20f
+let private layout = Layout 20f<px>
 let private laid(ma: MA) = layout.Of ma
 let private row(elements: MA list) = MA.Row(elements.ToImmutableArray())
 let private c(character: char) = MA.Char character
@@ -14,8 +14,8 @@ let private c(character: char) = MA.Char character
 let private grid(cells: MA list list, alignments: Alignment list) =
     MA.Table(ImmA2D.fromJagged cells, alignments.ToImmutableArray())
 
-/// The design units of the font at the size the tests lay out.
-let private units = 20f / float32 MathConstants.UnitsPerEm
+/// The units of the font at the size the tests lay out.
+let private units = 20f<px> / MathConstants.UnitsPerEm
 
 /// The rules an atom draws itself, which is one for a fraction and none for a stack.
 let private rules(placed: Placed) =
@@ -29,8 +29,8 @@ let private glyphOf(placed: Placed) =
     | ValueSome glyph -> glyph
     | ValueNone -> failwith $"not one glyph: {placed.Pma}"
 
-let private nearly(expected: float32, actual: float32, message: string) =
-    Assert.True(abs (expected - actual) < 0.01f, $"{message}: expected {expected} but was {actual}")
+let private nearly(expected: float32<px>, actual: float32<px>, message: string) =
+    Assert.True(abs (expected - actual) < 0.01f<px>, $"{message}: expected {expected} but was {actual}")
 
 let private measurement =
     TestList(
@@ -39,16 +39,16 @@ let private measurement =
                 "aCharacterHasWidthAndRisesAboveTheBaseline",
                 fun () ->
                     let x = laid(c 'x')
-                    Assert.True(x.Width > 0f, "width")
-                    Assert.True(x.Ascent > 0f, "ascent")
-                    Assert.True(x.Descent >= 0f, "descent")
+                    Assert.True(x.Width > 0f<px>, "width")
+                    Assert.True(x.Ascent > 0f<px>, "ascent")
+                    Assert.True(x.Descent >= 0f<px>, "descent")
             )
             Test.Sync(
                 "anEmptyFormulaHasNoSize",
                 fun () ->
                     let empty = laid MA.Empty
-                    nearly(0f, empty.Width, "width")
-                    nearly(0f, empty.Height, "height")
+                    nearly(0f<px>, empty.Width, "width")
+                    nearly(0f<px>, empty.Height, "height")
             )
             Test.Sync(
                 "aRowOfOrdinariesIsAsWideAsItsPartsLessTheLeansTheySetUnder",
@@ -59,14 +59,14 @@ let private measurement =
                         letters
                         |> List.take (letters.Length - 1)
                         |> List.sumBy (fun letter -> letter.ItalicCorrection)
-                    Assert.True(tucked > 0f, "the test proves nothing unless one of the letters leans")
+                    Assert.True(tucked > 0f<px>, "the test proves nothing unless one of the letters leans")
                     nearly(parts - tucked, (laid(MA.String "abc")).Width, "row width")
             )
             Test.Sync(
                 "aRowKeepsTheReachOfALeanThatAWidthlessAtomFollows",
                 fun () ->
                     let f = laid(c 'f')
-                    Assert.True(f.ItalicCorrection > 0f, "italic f does not lean")
+                    Assert.True(f.ItalicCorrection > 0f<px>, "italic f does not lean")
                     let followed = laid(row [ c 'f'; MA.Overline MA.Empty ])
                     nearly(f.Width, followed.Width, "the row stopped short of the lean it drew")
             )
@@ -75,7 +75,7 @@ let private measurement =
                 fun () ->
                     let f = laid(c 'f')
                     let g = laid(c 'g')
-                    Assert.True(f.ItalicCorrection > 0f, "italic f does not lean")
+                    Assert.True(f.ItalicCorrection > 0f<px>, "italic f does not lean")
                     match (laid(MA.String "fg")).Pma with
                     | PlacedMA.Row children ->
                         nearly(f.Width - f.ItalicCorrection, children.[1].X, "g does not set under the lean")
@@ -92,7 +92,7 @@ let private measurement =
                     let crowded =
                         [ c 'a'; MA.Operator Operator.Plus; c 'b' ]
                         |> List.sumBy (fun ma -> (laid ma).Width)
-                    Assert.True(spaced.Width > crowded + 1f, $"{spaced.Width} is no wider than {crowded}")
+                    Assert.True(spaced.Width > crowded + 1f<px>, $"{spaced.Width} is no wider than {crowded}")
             )
             Test.Sync(
                 "aRelationIsGivenMoreRoomThanABinaryOperator",
@@ -161,8 +161,8 @@ let private structures =
                 "aFractionStraddlesTheBaseline",
                 fun () ->
                     let fraction = laid(MA.Frac(c '2', c '3'))
-                    Assert.True(fraction.Ascent > 0f, "ascent")
-                    Assert.True(fraction.Descent > 0f, "descent")
+                    Assert.True(fraction.Ascent > 0f<px>, "ascent")
+                    Assert.True(fraction.Descent > 0f<px>, "descent")
             )
             Test.Sync(
                 "aFractionIsSetShorterInlineThanOnItsOwnLine",
@@ -205,7 +205,7 @@ let private structures =
                 fun () ->
                     let rec nest(depth: int) = if depth = 0 then c 'x' else MA.Sqrt(nest (depth - 1))
                     let deep = laid(nest 8)
-                    Assert.True(deep.Height > 0f && deep.Height < 10000f, $"height {deep.Height}")
+                    Assert.True(deep.Height > 0f<px> && deep.Height < 10000f<px>, $"height {deep.Height}")
             )
             Test.Sync(
                 "anUnclosedBracketIsStillLaidOut",
@@ -234,7 +234,7 @@ let private repertoire =
                 [ for f in Enum.GetValues<MathFunction>() -> string f, f ],
                 fun f ->
                     // Not every name is letters: the indicator is 1 and the factorial is !.
-                    Assert.True((laid(MA.Function f)).Width > 0f, $"{f} is set as nothing")
+                    Assert.True((laid(MA.Function f)).Width > 0f<px>, $"{f} is set as nothing")
             )
             Test.CasesSync(
                 "everyClassifiedCharacterCanBeDrawn",
@@ -247,7 +247,7 @@ let private repertoire =
                 fun (name, chars) ->
                     for c in chars do
                         Assert.True(
-                            (laid (c |> MA.Char)).Width > 0f,
+                            (laid (c |> MA.Char)).Width > 0f<px>,
                             $"{name} holds {c}, which the repertoire cannot draw")
             )
         ]
@@ -323,7 +323,7 @@ let private bigOperators =
                 "anOperatorWithoutLimitsIsJustItsGlyph",
                 fun () ->
                     let bare = layout.Of(MA.BigOp(BigOperator.Sum, ValueNone, ValueNone), MathSize.Text)
-                    let advance = float32 BigOperators.sum.Glyph.Advance * 20f / float32 MathConstants.UnitsPerEm
+                    let advance = BigOperators.sum.Glyph.Advance * 20f<px> / MathConstants.UnitsPerEm
                     nearly(advance, bare.Width, "no limits, so none of the space that follows one")
             )
             Test.Sync(
@@ -331,7 +331,7 @@ let private bigOperators =
                 fun () ->
                     let lim = layout.Of(MA.BigOp(BigOperator.Limit, ValueNone, ValueNone), MathSize.Display)
                     let sum = layout.Of(MA.BigOp(BigOperator.Sum, ValueNone, ValueNone), MathSize.Display)
-                    Assert.True(lim.Width > 0f, "lim is drawn")
+                    Assert.True(lim.Width > 0f<px>, "lim is drawn")
                     Assert.True(lim.Height < sum.Height, "letters do not grow with display style as a glyph does")
             )
         ]
@@ -356,8 +356,8 @@ let private brackets =
                 fun bracket ->
                     let shortLeft, shortRight = sides(laid(MA.Paired(bracket, c 'x')))
                     let tallLeft, tallRight = sides(laid(MA.Paired(bracket, MA.Frac(MA.Frac(c 'a', c 'b'), c 'c'))))
-                    Assert.True(shortLeft.Width > 0f, $"{bracket} draws a left delimiter")
-                    Assert.True(shortRight.Width > 0f, $"{bracket} draws a right one")
+                    Assert.True(shortLeft.Width > 0f<px>, $"{bracket} draws a left delimiter")
+                    Assert.True(shortRight.Width > 0f<px>, $"{bracket} draws a right one")
                     Assert.True(tallLeft.Height > shortLeft.Height, $"{bracket}'s left delimiter grows")
                     Assert.True(tallRight.Height > shortRight.Height, $"{bracket}'s right one grows too")
             )
@@ -429,10 +429,10 @@ let private marks =
                         | ValueSome glyph -> glyph
                         | ValueNone -> failwith "the font has no italic d"
                     let mark, _ = accented(laid(MA.Accented(Accent.Hat, c 'd')))
-                    let expected = float32 (d.TopAccentAttachment - Accents.hat.TopAccentAttachment) * units
+                    let expected = (d.TopAccentAttachment - Accents.hat.TopAccentAttachment) * units
                     nearly(expected, mark.X, "the accent is not placed by the attachments")
                     Assert.True(
-                        d.TopAccentAttachment > d.Advance / 2,
+                        d.TopAccentAttachment > d.Advance / 2f,
                         "the test proves nothing if the attachment is the midpoint")
             )
             Test.Sync(
@@ -442,9 +442,9 @@ let private marks =
                     Assert.True(
                         (over(c 'b')).Y > (over(c 'x')).Y,
                         "the accent does not rise for the taller of the two letters")
-                    nearly(0f, (over(c '.')).Y, "a base shorter than the accent base height lifts nothing")
+                    nearly(0f<px>, (over(c '.')).Y, "a base shorter than the accent base height lifts nothing")
                     nearly(
-                        (laid(c 'b')).Ascent - float32 MathConstants.AccentBaseHeight * units,
+                        (laid(c 'b')).Ascent - MathConstants.AccentBaseHeight * units,
                         (over(c 'b')).Y,
                         "a taller base lifts the accent by more than its excess")
             )
@@ -534,7 +534,7 @@ let private tables =
                 fun () ->
                     let wide = MA.String "abc"
                     let table = laid(grid([ [ c 'x'; c 'y' ]; [ wide; c 'z' ] ], []))
-                    let expected = (laid wide).Width + 20f + max (laid(c 'y')).Width (laid(c 'z')).Width
+                    let expected = (laid wide).Width + 20f<px> + max (laid(c 'y')).Width (laid(c 'z')).Width
                     nearly(expected, table.Width, "the columns are not set by their widest cells")
             )
             Test.CasesSync(
@@ -567,7 +567,7 @@ let private tables =
                     let one = laid(grid([ [ c 'x' ] ], []))
                     let two = laid(grid([ [ c 'x' ]; [ c 'x' ] ], []))
                     Assert.True(two.Height > one.Height, "a second row adds no height")
-                    let axis = float32 MathConstants.AxisHeight * units
+                    let axis = MathConstants.AxisHeight * units
                     nearly(axis, (two.Ascent - two.Descent) / 2f, "the grid is not centred on the axis")
             )
             Test.Sync(
@@ -590,7 +590,7 @@ let private blackboard =
                 fun () ->
                     let letter = glyphOf(laid(MA.Blackboard 'F'))
                     Assert.Equal(Face.Blackboard, letter.Glyph.Face, "face")
-                    Assert.True(letter.Glyph.Advance > 0, "the glyph has no advance")
+                    Assert.True(letter.Glyph.Advance > 0f<du>, "the glyph has no advance")
             )
             Test.CasesSync(
                 "aLetterlikeSymbolIsTheSameLetterOfTheSameFace",

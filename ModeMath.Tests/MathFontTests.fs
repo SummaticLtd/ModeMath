@@ -58,10 +58,10 @@ let private data =
             Test.Sync(
                 "constantsComeFromLatinModernMath",
                 fun () ->
-                    Assert.Equal(1000, MathConstants.UnitsPerEm)
-                    Assert.Equal(250, MathConstants.AxisHeight)
-                    Assert.Equal(40, MathConstants.FractionRuleThickness)
-                    Assert.Equal(70, MathConstants.ScriptPercentScaleDown)
+                    Assert.Equal(1000f<du>, MathConstants.UnitsPerEm)
+                    Assert.Equal(250f<du>, MathConstants.AxisHeight)
+                    Assert.Equal(40f<du>, MathConstants.FractionRuleThickness)
+                    Assert.Equal(70f, MathConstants.ScriptPercentScaleDown)
             )
         ]
     )
@@ -89,9 +89,9 @@ let private metrics =
                 "theInkOfXSitsOnTheBaseline",
                 fun () ->
                     let x = upright 'x'
-                    Assert.True(x.Advance > 0, "advance")
-                    Assert.True(x.Top > 0, "top above the baseline")
-                    Assert.True(x.Bottom <= 0, "bottom on or below the baseline")
+                    Assert.True(x.Advance > 0f<du>, "advance")
+                    Assert.True(x.Top > 0f<du>, "top above the baseline")
+                    Assert.True(x.Bottom <= 0f<du>, "bottom on or below the baseline")
                     Assert.True(x.Top < MathConstants.UnitsPerEm, "top within the em")
             )
             Test.Sync(
@@ -99,11 +99,11 @@ let private metrics =
                 fun () ->
                     match Letters.italic 'f' with
                     | ValueNone -> Assert.Fail "the font has no italic f"
-                    | ValueSome f -> Assert.True(f.ItalicCorrection > 0, "italic correction")
+                    | ValueSome f -> Assert.True(f.ItalicCorrection > 0f<du>, "italic correction")
             )
             Test.Sync(
                 "digitsHaveNoItalicCorrection",
-                fun () -> Assert.Equal(0, (digit '0').ItalicCorrection)
+                fun () -> Assert.Equal(0f<du>, (digit '0').ItalicCorrection)
             )
         ]
     )
@@ -153,7 +153,7 @@ let private named =
                         match Letters.blackboard letter with
                         | ValueSome glyph ->
                             Assert.Equal(Face.Blackboard, glyph.Face, $"the face of {letter}")
-                            Assert.True(glyph.Advance > 0, $"{letter} has no advance")
+                            Assert.True(glyph.Advance > 0f<du>, $"{letter} has no advance")
                         | ValueNone -> Assert.Fail $"no blackboard {letter}"
             )
             Test.Sync(
@@ -164,9 +164,9 @@ let private named =
                             "vec", Accents.vec; "dot", Accents.dot; "doubleDot", Accents.doubleDot
                             "check", Accents.check; "acute", Accents.acute; "grave", Accents.grave
                             "breve", Accents.breve ] do
-                        Assert.Equal(0, accent.Advance, $"{name} takes an advance")
-                        Assert.True(accent.TopAccentAttachment < 0, $"{name} attaches right of its origin")
-                        Assert.True(accent.Top > 0, $"{name} draws no ink above the baseline")
+                        Assert.Equal(0f<du>, accent.Advance, $"{name} takes an advance")
+                        Assert.True(accent.TopAccentAttachment < 0f<du>, $"{name} attaches right of its origin")
+                        Assert.True(accent.Top > 0f<du>, $"{name} draws no ink above the baseline")
             )
             Test.Sync(
                 "theMinusSignIsNotTheHyphen",
@@ -182,7 +182,7 @@ let private named =
                 fun (name, stretchy: StretchyGlyph) ->
                     Assert.True(stretchy.SizeCount > 1, $"{name} offers one size only")
                     Assert.Equal(stretchy.Glyph.Id, (stretchy.Size 0).Glyph.Id, $"{name} size 0")
-                    let mutable previous = 0
+                    let mutable previous = 0f<du>
                     for i in 0 .. stretchy.SizeCount - 1 do
                         let size = stretchy.Size i
                         Assert.True(size.Advance >= previous, $"{name} size {i} shrank")
