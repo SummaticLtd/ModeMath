@@ -27,10 +27,10 @@ keeps whichever it likes and undo costs nothing.
 
 ```fsharp
 let editor = Editor(Layout 24f<px>, MA.Empty)
-let typed = editor.Type 'x'                      // ValueNone for a key the font cannot draw
-let divided = editor.InsertFraction              // over the term the cursor stands after
-let moved = editor.Move Direction.Left           // ValueNone at the end of the formula
-let clicked = editor.Click(x, y)                 // the cursor put where a point is
+let typed = editor.Type 'x' // ValueNone for a key the font cannot draw
+let divided = editor.InsertFraction // over the term the cursor stands after
+let moved = editor.Move Direction.Left // ValueNone at the start of the formula
+let clicked = editor.Click(x, y) // the cursor put where a point is
 ```
 
 ## LaTeX
