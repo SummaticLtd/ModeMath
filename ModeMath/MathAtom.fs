@@ -17,7 +17,6 @@ type MathFunction =
     | Exp = 9
     | Log = 10
     | Ln = 11
-    | Fact = 12
     | Sec = 13
     | Csc = 14
     | Cot = 15
@@ -30,6 +29,76 @@ type MathFunction =
     | Imaginary = 22
     | Gamma = 23
     | Sign = 24
+    | Arg = 25
+    | Det = 26
+    | Inf = 27
+    | Sup = 28
+    | Coth = 29
+    | Arsinh = 30
+    | Arcosh = 31
+    | Artanh = 32
+    | Deg = 33
+    | Dim = 34
+    | Gcd = 35
+    | Hom = 36
+    | Ker = 37
+    | Lg = 38
+    | Probability = 39
+    | LimInf = 40
+    | LimSup = 41
+    | Sech = 42
+    | Csch = 43
+
+/// What each function is called, which is the one place its spelling is kept.
+module MathFunctions =
+    let name(f: MathFunction) =
+        match f with
+        | MathFunction.Sin -> "sin"
+        | MathFunction.Cos -> "cos"
+        | MathFunction.Tan -> "tan"
+        | MathFunction.Asin -> "arcsin"
+        | MathFunction.Acos -> "arccos"
+        | MathFunction.Atan -> "arctan"
+        | MathFunction.Sinh -> "sinh"
+        | MathFunction.Cosh -> "cosh"
+        | MathFunction.Tanh -> "tanh"
+        | MathFunction.Exp -> "exp"
+        | MathFunction.Log -> "log"
+        | MathFunction.Ln -> "ln"
+        | MathFunction.Sec -> "sec"
+        | MathFunction.Csc -> "csc"
+        | MathFunction.Cot -> "cot"
+        | MathFunction.Min -> "min"
+        | MathFunction.Max -> "max"
+        | MathFunction.Erf -> "erf"
+        | MathFunction.Indicator -> "1"
+        | MathFunction.Identity -> "id"
+        | MathFunction.Real -> "Re"
+        | MathFunction.Imaginary -> "Im"
+        | MathFunction.Gamma -> "Γ"
+        | MathFunction.Sign -> "sgn"
+        | MathFunction.Arg -> "arg"
+        | MathFunction.Det -> "det"
+        | MathFunction.Inf -> "inf"
+        | MathFunction.Sup -> "sup"
+        | MathFunction.Coth -> "coth"
+        | MathFunction.Arsinh -> "arsinh"
+        | MathFunction.Arcosh -> "arcosh"
+        | MathFunction.Artanh -> "artanh"
+        | MathFunction.Deg -> "deg"
+        | MathFunction.Dim -> "dim"
+        | MathFunction.Gcd -> "gcd"
+        | MathFunction.Hom -> "hom"
+        | MathFunction.Ker -> "ker"
+        | MathFunction.Lg -> "lg"
+        | MathFunction.Probability -> "Pr"
+        | MathFunction.LimInf -> "liminf"
+        | MathFunction.LimSup -> "limsup"
+        | MathFunction.Sech -> "sech"
+        | MathFunction.Csch -> "csch"
+
+    /// Every function against its name, which is what a reader and a writer both work from.
+    let named = [| for f in System.Enum.GetValues<MathFunction>() -> struct (name f, f) |]
 
 /// Operators large enough to carry limits, which sit above and below them in display style.
 type BigOperator =
@@ -208,7 +277,7 @@ type MA =
                 for r in 0 .. cells.Rows - 1 do
                     for c in 0 .. cells.Cols - 1 do
                         walk cells.[r, c]
-            // A function name is set from the alphabet the font is generated to hold whole.
+            // A function is named from a closed set, every name of which the font is asked for by a test.
             | Function _ | UprightD | Space _ -> ()
         walk t
         found.ToImmutable()

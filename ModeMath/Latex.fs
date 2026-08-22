@@ -135,15 +135,14 @@ module internal Latexing =
             "uparrow", '↑'; "downarrow", '↓'; "longrightarrow", '⟶'; "longleftarrow", '⟵'
         ]
 
+    /// Every function under the name it is called by, with the spellings also written for a few.
+    /// ISO 80000-2 names the inverse hyperbolics for the area they take, not an arc.
     let private functions =
         [
-            "sin", MathFunction.Sin; "cos", MathFunction.Cos; "tan", MathFunction.Tan
-            "arcsin", MathFunction.Asin; "arccos", MathFunction.Acos; "arctan", MathFunction.Atan
-            "sinh", MathFunction.Sinh; "cosh", MathFunction.Cosh; "tanh", MathFunction.Tanh
-            "exp", MathFunction.Exp; "log", MathFunction.Log; "ln", MathFunction.Ln
-            "sec", MathFunction.Sec; "csc", MathFunction.Csc; "cot", MathFunction.Cot
-            "erf", MathFunction.Erf; "min", MathFunction.Min; "max", MathFunction.Max
-            "Re", MathFunction.Real; "Im", MathFunction.Imaginary
+            for struct (name, f) in MathFunctions.named do yield name, f
+            yield "arcsinh", MathFunction.Arsinh
+            yield "arccosh", MathFunction.Arcosh
+            yield "arctanh", MathFunction.Artanh
         ]
 
     let private bigOps =
@@ -381,14 +380,21 @@ module internal Latexing =
             | _ -> fail("a word in braces was expected", position)
 
         /// Words set upright, which the italic shapes of a formula are no substitute for.
-        member private _.Written(word: string, position: int) =
+        member private _.Upright(word: string, position: int) =
             let word = word |> String.filter inked
             for c in word do
                 if (Glyphs.upright c).IsNone then fail($"{c} is no character this sets upright", position)
-            MA.Text word
+            word
+
+        member private t.Written(word: string, position: int) = MA.Text(t.Upright(word, position))
 
         member private t.Named(name: string, position: int) : MA =
             match name with
+            | "operatorname" ->
+                let name = t.Words position
+                match functions |> List.tryFind (fun (spelling, _) -> spelling = name) with
+                | Some(_, f) -> MA.Function f
+                | None -> fail($"{name} is no function this knows", position)
             | "frac" | "dfrac" | "tfrac" -> MA.Frac(t.Argument(), t.Argument())
             | "binom" -> MA.Binom(t.Argument(), t.Argument())
             | "sqrt" ->

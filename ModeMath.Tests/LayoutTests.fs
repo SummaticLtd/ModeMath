@@ -289,10 +289,19 @@ let private repertoire =
             )
             Test.CasesSync(
                 "everyFunctionNameCanBeSet",
-                [ for f in Enum.GetValues<MathFunction>() -> string f, f ],
+                [ for struct (name, f) in MathFunctions.named -> name, f ],
                 fun f ->
-                    // Not every name is letters: the indicator is 1 and the factorial is !.
+                    // Not every name is letters: the indicator is 1 and the gamma function a capital.
                     Assert.True((laid(MA.Function f)).Width > 0f<px>, $"{f} is set as nothing")
+            )
+            Test.Sync(
+                "aFactorialClosesWhatItStandsAfter",
+                fun () ->
+                    // A binary with a close after it has nothing to bind, which is where the class tells.
+                    let gap(after: char) =
+                        (laid(MA.String("a+" + string after))).Width - (laid(c after)).Width
+                    nearly(gap ')', gap '!', "a factorial is spaced unlike a closing bracket")
+                    Assert.True(gap 'x' > gap '!', "the operator before it bound as it would an ordinary")
             )
             Test.Sync(
                 "aCharacterIsSpacedByTheClassItCarries",
