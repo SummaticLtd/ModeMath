@@ -18,7 +18,9 @@ bracket or script. What is left:
 `Latex.Read` reads a math-mode string into an `MA`. Writing one back out is still to come.
 
 It reads and draws whole 98.4% of the 17,220 distinct formulas in the SummaticApp content library.
-None of the rest draws a box: every formula it reads, it draws. What it turns down:
+Every formula it reads, it draws: a character the font cannot draw is refused where it stands, so
+that laying a formula out cannot fail. `Editor.Type` turns such a key down the same way, and
+`MA.Undrawable` answers for a formula built in code. What the reader turns down:
 
 | Turned down | Formulas | Why |
 |---|---|---|

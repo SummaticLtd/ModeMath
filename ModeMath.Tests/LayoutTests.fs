@@ -273,6 +273,20 @@ let private repertoire =
                             (fun () -> laid(c character) |> ignore),
                             $"{character} is outside the repertoire and must not lay out as nothing")
             )
+            Test.Sync(
+                "aFormulaSaysWhichOfItsCharactersCannotBeDrawn",
+                fun () ->
+                    // What a caller building a formula in code asks before drawing it.
+                    Assert.Equal(ImmutableArray<char>.Empty, (MA.String "x+1").Undrawable, "an ordinary formula")
+                    let awkward =
+                        MA.Row(
+                            [ MA.Char '☃'; MA.BoldVar '≤'; MA.Blackboard 'a'; MA.Text "ϵ" ]
+                                .ToImmutableArray())
+                    Assert.Equal(
+                        [ '☃'; '≤'; 'a'; 'ϵ' ],
+                        List.ofSeq awkward.Undrawable,
+                        "each character no alphabet of its kind holds")
+            )
             Test.CasesSync(
                 "everyFunctionNameCanBeSet",
                 [ for f in Enum.GetValues<MathFunction>() -> string f, f ],

@@ -439,7 +439,13 @@ let cursored(layout: Layout) =
             editor <- (editor.Move Direction.Right).Value
         editor
     let typed(editor: Editor, letters: string) =
-        letters |> Seq.fold (fun (e: Editor) letter -> e.Type letter) editor
+        letters
+        |> Seq.fold
+            (fun (e: Editor) letter ->
+                match e.Type letter with
+                | ValueSome typed -> typed
+                | ValueNone -> failwith $"{letter} cannot be typed")
+            editor
     [
         "CursorBeforeAFraction", rightwards(row [ c 'a'; frac(s "b+1", c 'c'); c 'd' ], 1)
         "CursorAfterALetterInTheNumerator", rightwards(row [ c 'a'; frac(s "b+1", c 'c'); c 'd' ], 3)

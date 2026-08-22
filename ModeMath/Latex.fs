@@ -37,14 +37,14 @@ module internal Latexing =
     /// Where Unicode's italic alphabets begin, against the letters a formula sets in italic anyway.
     let private italicised = [ 0x1D434, 'A', 26; 0x1D44E, 'a', 26; 0x1D6E2, 'Α', 25; 0x1D6FC, 'α', 25 ]
 
-    /// The letter a character beyond the basic plane stands for, or the replacement where it is none.
-    let private plain(codepoint: int) =
+    /// The letter a character beyond the basic plane stands for. No formula can hold any other.
+    let private plain(codepoint: int, position: int) =
         italicised
         |> List.tryPick (fun (first, letter, count) ->
             if codepoint >= first && codepoint < first + count then
                 Some(char (int letter + codepoint - first))
             else None)
-        |> Option.defaultValue '�'
+        |> Option.defaultWith (fun () -> fail($"U+{codepoint:X4} is no character this draws", position))
 
     /// The tokens a string is made of, paired with where each begins.
     let lex(latex: string) =
@@ -80,12 +80,14 @@ module internal Latexing =
                 if Char.IsHighSurrogate c && i < latex.Length && Char.IsLowSurrogate latex.[i] then
                     let codepoint = Char.ConvertToUtf32(c, latex.[i])
                     i <- i + 1
-                    take(Token.Char(plain codepoint))
+                    take(Token.Char(plain(codepoint, start)))
                 // A spreadsheet gives a box-drawing bar for the one a conditional probability is written with.
                 elif c = '│' then take(Token.Char '|')
                 elif Char.IsWhiteSpace c then ()
                 // A mark that gives no ink of its own, as a zero-width space does, is nothing to draw.
                 elif Char.GetUnicodeCategory c = Globalization.UnicodeCategory.Format then ()
+                // What the font cannot draw is refused here, so that laying a formula out cannot fail.
+                elif (Glyphs.variable c).IsNone then fail($"{c} is no character this draws", start)
                 else take(Token.Char c)
         tokens.ToImmutable()
 
@@ -367,6 +369,12 @@ module internal Latexing =
                 source.Substring(opening + 1, closing - opening - 1)
             | _ -> fail("a word in braces was expected", position)
 
+        /// Words set upright, which the italic shapes of a formula are no substitute for.
+        member private _.Written(word: string, position: int) =
+            for c in word do
+                if (Glyphs.upright c).IsNone then fail($"{c} is no character this sets upright", position)
+            MA.Text word
+
         member private t.Named(name: string, position: int) : MA =
             match name with
             | "frac" | "dfrac" | "tfrac" -> MA.Frac(t.Argument(), t.Argument())
@@ -381,10 +389,10 @@ module internal Latexing =
             | "right" -> fail("a right delimiter with no left one", position)
             | "begin" -> t.Environment(position)
             | "end" -> fail("an environment ends where none began", position)
-            | "text" | "textrm" -> MA.Text(t.Words position)
+            | "text" | "textrm" -> t.Written(t.Words position, position)
             | "mathrm" ->
                 let words = t.Words position
-                if words = "d" then MA.UprightD else MA.Text words
+                if words = "d" then MA.UprightD else t.Written(words, position)
             | "mathbf" | "boldsymbol" -> bold(t.Argument())
             | "mathbb" -> blackboard(t.Argument())
             | "color" | "textcolor" ->

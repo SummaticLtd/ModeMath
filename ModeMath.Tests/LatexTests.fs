@@ -194,6 +194,37 @@ let private reading =
                 ]
             )
             Test.Sync(
+                "aCharacterTheFontCannotDrawIsRefusedWhereItStands",
+                rejected [
+                    "a☃b"
+                    // Beyond the basic plane only the italic alphabet stands for anything a formula holds.
+                    "𝔄"
+                    // Text is set upright, and the italic shapes of a formula are no substitute.
+                    "\\text{ϵ}"
+                    "\\mathrm{ϕ}"
+                ]
+            )
+            Test.Sync(
+                "whereACharacterIsRefusedIsSaidAlongWithWhy",
+                fun () ->
+                    match Latex.Read "ab☃" with
+                    | Ok ma -> Assert.Fail $"read as {ma}"
+                    | Error error ->
+                        Assert.Equal(2, error.Position, "the character refused was not the one at fault")
+                        Assert.True(error.Message.Contains '☃', $"{error.Message} does not name it")
+            )
+            Test.Sync(
+                "everythingReadCanBeDrawn",
+                fun () ->
+                    // Refusing at the door is what lets laying a formula out be total.
+                    let readable =
+                        [ "x+1"; "\\frac{a}{b}"; "\\text{cost in £}"; "\\mathbf{v}_1"
+                          "\\mathbb{R}^n"; "\\sqrt[3]{x}"; "\\begin{matrix}a&b\\\\c&d\\end{matrix}"
+                          "\\mathrm{μg}"; "\\alpha\\uparrow\\circ\\triangle" ]
+                    for latex in readable do
+                        Assert.Equal(ImmutableArray<char>.Empty, (read latex).Undrawable, latex)
+            )
+            Test.Sync(
                 "everyNamedSymbolHasAGlyphToDrawIt",
                 fun () ->
                     let missing = System.Text.StringBuilder()
