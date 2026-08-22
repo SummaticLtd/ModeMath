@@ -977,6 +977,15 @@ let private cursors =
                     nearly(placeholder.Height, caret.Thickness, "the cursor did not fill the box")
             )
             Test.Sync(
+                "theCursorInAnEmptyFormulaIsTheBarItIsAmongAtoms",
+                fun () ->
+                    // An empty formula shows no box, so a cursor filling one would be nothing at all.
+                    let alone = (layout.Of(MACurs.AtStart MA.Empty)).Caret
+                    let among = (layout.Of(MACurs.AtEnd(MA.String "ab"))).Caret
+                    nearly(among.Width, alone.Width, "width")
+                    nearly(among.Thickness, alone.Thickness, "height")
+            )
+            Test.Sync(
                 "aCursorIsSmallerWhereTheAtomsAroundItAre",
                 fun () ->
                     // A caret takes its size from the atom it stands in, which a Placed now knows.

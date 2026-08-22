@@ -400,10 +400,12 @@ type PlacedCurs with
             | ValueNone -> wrong kind
         match curs with
         | MACurs.CursorOrEmpty ->
-            PlacedCurs(
-                placed,
-                PlacedMACurs.Fills(
-                    PlacedRule(placed.Width, placed.Ascent + placed.Descent, 0f<px>, -placed.Descent)))
+            let caret =
+                match placed.Pma with
+                // An empty formula shows no box to fill, so the cursor stands in it as a bar.
+                | PlacedMA.Row children when children.IsEmpty -> bar 0
+                | _ -> PlacedRule(placed.Width, placed.Ascent + placed.Descent, 0f<px>, -placed.Descent)
+            PlacedCurs(placed, PlacedMACurs.Fills caret)
         | MACurs.Row(before, inner, after) ->
             let count = before.Length
             if inner.IsCursorOrEmpty then
