@@ -35,17 +35,21 @@ type MainView() as t =
     let inserted(build: Editor -> Editor) =
         fun () -> formula.Editor <- build formula.Editor
 
+    /// A button is a key like any other, so it goes in the way a keyboard does.
+    let pressed(key: MathKey) =
+        inserted(fun editor -> editor.Press key |> ValueOption.defaultValue editor)
+
     let keys =
         let panel = StackPanel(Orientation = Orientation.Horizontal, Margin = Thickness 8.0)
         let add(caption: string, act: unit -> unit) = panel.Children.Add(button(caption, act))
-        add("a/b", inserted(fun e -> e.InsertFraction))
-        add("√", inserted(fun e -> e.InsertSqrt))
-        add("ⁿ√", inserted(fun e -> e.InsertRoot))
-        add("xʸ", inserted(fun e -> e.InsertSuperscript))
-        add("xᵧ", inserted(fun e -> e.InsertSubscript))
-        add("( )", inserted(fun e -> e.InsertBracket(Brackets.Matching Bracket.Normal)))
-        add("| |", inserted(fun e -> e.InsertBracket(Brackets.Matching Bracket.Line)))
-        add("clear", inserted(fun e -> Editor(Layout formula.FontSize, MA.Empty)))
+        add("a/b", pressed MathKey.Fraction)
+        add("√", pressed MathKey.Sqrt)
+        add("ⁿ√", pressed MathKey.Root)
+        add("xʸ", pressed MathKey.Superscript)
+        add("xᵧ", pressed MathKey.Subscript)
+        add("( )", pressed (MathKey.Open(Brackets.Matching Bracket.Normal)))
+        add("| |", pressed (MathKey.Open(Brackets.Matching Bracket.Line)))
+        add("clear", inserted(fun _ -> Editor(Layout formula.FontSize, MA.Empty)))
         panel
 
     let entry =

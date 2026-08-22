@@ -2,6 +2,26 @@ namespace ModeMath
 
 open System.Collections.Immutable
 
+/// A key an editor answers, which is every way a keyboard reaches a formula.
+[<RequireQualifiedAccess>]
+type MathKey =
+    /// A character itself, which is any the font can draw rather than a list of the ones it knows.
+    | Character of char
+    | Move of Direction
+    | Backspace
+    | Delete
+    | Fraction
+    | Sqrt
+    /// A root with a degree, which the cursor starts in.
+    | Root
+    | Superscript
+    | Subscript
+    /// An opening bracket, whose closing one is drawn faint until it is typed.
+    | Open of Brackets
+    | Close of Bracket
+    /// A bracket that opens and closes alike, as a vertical bar does.
+    | Bar of Bracket
+
 /// A formula being edited: laid out with the cursor in it, and what to lay it out again with.
 [<Sealed>]
 type Editor(layout: Layout, cursor: PlacedCurs) =
@@ -85,13 +105,13 @@ type Editor(layout: Layout, cursor: PlacedCurs) =
         Editor(layout, PlacedCurs.Nearest(cursor.Placed, x, y))
 
     /// ValueNone at that end of the formula, so a caller can pass the key on. Lays nothing out.
-    member _.Move(direction: Direction) =
+    member private _.Move(direction: Direction) =
         cursor.ToMACurs.Move direction
         |> ValueOption.map (fun moved -> Editor(layout, PlacedCurs.Of(moved, cursor.Placed)))
 
     /// A character typed at the cursor, which completes a function name where one is spelled out.
     /// ValueNone where the font cannot draw it, so that a caller can pass the key on.
-    member _.Type(character: char) =
+    member private _.Type(character: char) =
         if (Glyphs.variable character).IsNone then ValueNone
         else over((settled()).AddAlphanumeric character) |> ValueSome
 
@@ -100,23 +120,23 @@ type Editor(layout: Layout, cursor: PlacedCurs) =
 
     /// A fraction over the term before the cursor, which then stands in the denominator. Where no
     /// term stands there the fraction is empty and the cursor goes in the numerator instead.
-    member _.InsertFraction =
+    member private _.InsertFraction =
         let divided(numerator: MA) =
             if numerator.IsEmpty then MACurs.FracNum(MACurs.CursorOrEmpty, MA.Empty)
             else MACurs.FracDen(numerator, MACurs.CursorOrEmpty)
         over((settled()).ReplaceBefore(term, divided))
 
     /// A square root put in at the cursor, which then stands inside it.
-    member _.InsertSqrt = over((settled()).AddMACurs(MACurs.Sqrt MACurs.CursorOrEmpty))
+    member private _.InsertSqrt = over((settled()).AddMACurs(MACurs.Sqrt MACurs.CursorOrEmpty))
 
     /// A root put in at the cursor, which then stands in its degree.
-    member _.InsertRoot = over((settled()).AddMACurs(MACurs.RootNDegree(MACurs.CursorOrEmpty, MA.Empty)))
+    member private _.InsertRoot = over((settled()).AddMACurs(MACurs.RootNDegree(MACurs.CursorOrEmpty, MA.Empty)))
 
     /// An opening bracket typed at the cursor. A bracketed atom waiting for one takes it, whether
     /// the cursor stands in that atom or just before it, and what was before the cursor comes out of
     /// it. Otherwise what is after the cursor is taken into a new atom the cursor then starts, whose
     /// closing bracket is drawn tentative until one is typed.
-    member _.InsertBracket(brackets: Brackets) =
+    member private _.InsertBracket(brackets: Brackets) =
         let standing = cursor.ToMACurs
         let given(before: ImmutableArray<MA>, after: ImmutableArray<MA>) =
             struct (before, openingFirst (ValueSome brackets.Left) after)
@@ -135,7 +155,7 @@ type Editor(layout: Layout, cursor: PlacedCurs) =
     /// the cursor stands in that atom or just after it, and what was after the cursor comes out of
     /// it. Otherwise what is before the cursor is taken into a new atom the cursor then stands after,
     /// whose opening bracket is drawn tentative.
-    member _.CloseBracket(bracket: Bracket) =
+    member private _.CloseBracket(bracket: Bracket) =
         let standing = cursor.ToMACurs
         let given(before: ImmutableArray<MA>, after: ImmutableArray<MA>) =
             struct (closingLast (ValueSome bracket) before, after)
@@ -152,14 +172,14 @@ type Editor(layout: Layout, cursor: PlacedCurs) =
 
     /// A bracket that opens and closes alike, as a vertical bar does: it closes a bracketed atom of
     /// its own shape that is waiting for a closing bracket, and opens one otherwise.
-    member t.InsertBar(bracket: Bracket) =
+    member private t.InsertBar(bracket: Bracket) =
         match cursor.ToMACurs.Unclosed with
         | ValueSome brackets when brackets.Left = bracket -> t.CloseBracket bracket
         | ValueSome _ | ValueNone -> t.InsertBracket(Brackets.Matching bracket)
 
     /// A superscript on the atom before the cursor, which then stands in it. An atom already
     /// carrying one keeps it and is entered rather than being set under a second.
-    member _.InsertSuperscript =
+    member private _.InsertSuperscript =
         let superscripted(atom: MA) =
             match atom with
             | MA.ScriptSuper(main, super, sub) -> MACurs.ScriptSuper(main, MACurs.AtEnd super, sub)
@@ -169,7 +189,7 @@ type Editor(layout: Layout, cursor: PlacedCurs) =
 
     /// A subscript on the atom before the cursor, which then stands in it. An atom already carrying
     /// one keeps it and is entered rather than being set over a second.
-    member _.InsertSubscript =
+    member private _.InsertSubscript =
         let subscripted(atom: MA) =
             match atom with
             | MA.ScriptSuper(main, super, ValueSome sub) ->
@@ -181,13 +201,30 @@ type Editor(layout: Layout, cursor: PlacedCurs) =
         over((settled()).ReplaceBefore(one, subscripted))
 
     /// ValueNone where there is nothing to the left to delete, so that a caller can pass the key on.
-    member _.BackSpace =
+    member private _.BackSpace =
         match cursor.ToMACurs.BackSpace with
         | Choice1Of2 curs -> over curs |> ValueSome
         | Choice2Of2 _ -> ValueNone
 
     /// ValueNone where there is nothing to the right to delete.
-    member _.Delete =
+    member private _.Delete =
         match cursor.ToMACurs.Delete with
         | Choice1Of2 curs -> over curs |> ValueSome
         | Choice2Of2 _ -> ValueNone
+
+    /// The formula a key leaves behind. ValueNone where the key had nothing to do here, so that a
+    /// caller can pass it on to whatever else answers keys.
+    member t.Press(key: MathKey) : Editor voption =
+        match key with
+        | MathKey.Character character -> t.Type character
+        | MathKey.Move direction -> t.Move direction
+        | MathKey.Backspace -> t.BackSpace
+        | MathKey.Delete -> t.Delete
+        | MathKey.Fraction -> ValueSome t.InsertFraction
+        | MathKey.Sqrt -> ValueSome t.InsertSqrt
+        | MathKey.Root -> ValueSome t.InsertRoot
+        | MathKey.Superscript -> ValueSome t.InsertSuperscript
+        | MathKey.Subscript -> ValueSome t.InsertSubscript
+        | MathKey.Open brackets -> ValueSome(t.InsertBracket brackets)
+        | MathKey.Close bracket -> ValueSome(t.CloseBracket bracket)
+        | MathKey.Bar bracket -> ValueSome(t.InsertBar bracket)
