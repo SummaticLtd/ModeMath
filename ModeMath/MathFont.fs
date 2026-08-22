@@ -72,18 +72,20 @@ type MathFont =
             else high <- middle - 1
         found
 
+    /// A file the assembly carries, which it is built to hold and so is a fault to be without.
+    static member private OpenEmbedded(name: string): Stream =
+        match typeof<Glyph>.Assembly.GetManifestResourceStream name with
+        | NonNull stream -> stream
+        | Null -> failwith $"{name} was not embedded in the assembly"
+
     /// The file a face was generated from, whose glyph ids Glyph.Id refers to.
     static member OpenFontFile(face: Face): Stream =
-        let name =
-            match face with
-            | Face.Math -> "ModeMath.latinmodern-math.otf"
-            | Face.Blackboard -> "ModeMath.AMS-Capital-Blackboard-Bold.otf"
-        typeof<Glyph>.Assembly.GetManifestResourceStream name
+        match face with
+        | Face.Math -> MathFont.OpenEmbedded "ModeMath.latinmodern-math.otf"
+        | Face.Blackboard -> MathFont.OpenEmbedded "ModeMath.AMS-Capital-Blackboard-Bold.otf"
 
     /// The licence a face is redistributed under, which every copy of it has to carry.
     static member OpenLicenceFile(face: Face): Stream =
-        let name =
-            match face with
-            | Face.Math -> "ModeMath.GUST-FONT-LICENSE.txt"
-            | Face.Blackboard -> "ModeMath.AMSFONTS-OFL.txt"
-        typeof<Glyph>.Assembly.GetManifestResourceStream name
+        match face with
+        | Face.Math -> MathFont.OpenEmbedded "ModeMath.GUST-FONT-LICENSE.txt"
+        | Face.Blackboard -> MathFont.OpenEmbedded "ModeMath.AMSFONTS-OFL.txt"

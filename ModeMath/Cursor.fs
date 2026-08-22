@@ -617,7 +617,7 @@ type internal MACurs =
         | Sqrt x -> Sqrt(x.AddAlphanumeric c)
 
     override t.ToString() =
-        let props(name: string, xs: obj seq) =
+        let props(name: string, xs: objnull seq) =
             name + "(" + (xs |> Seq.map string |> String.concat ", ") + ")"
         let row(l: ImmutableArray<MA>) = l |> Seq.map string |> String.concat " "
         match t with
