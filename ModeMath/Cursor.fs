@@ -5,6 +5,7 @@ open System.Collections.Immutable
 open FSUtils
 
 module internal FunctionNames =
+    /// What typing a name out spells, longest spelling first so that arcsin is not taken for sin.
     let table =
         [|
             "sin", MathFunction.Sin
@@ -13,6 +14,9 @@ module internal FunctionNames =
             "asin", MathFunction.Asin
             "acos", MathFunction.Acos
             "atan", MathFunction.Atan
+            "arcsin", MathFunction.Asin
+            "arccos", MathFunction.Acos
+            "arctan", MathFunction.Atan
             "sinh", MathFunction.Sinh
             "cosh", MathFunction.Cosh
             "tanh", MathFunction.Tanh
@@ -25,7 +29,7 @@ module internal FunctionNames =
             "min", MathFunction.Min
             "max", MathFunction.Max
         |]
-        |> Array.sortByDescending (fun (name, _) -> name.Length)
+        |> Array.sortByDescending (fun (spelling, _) -> spelling.Length)
 
 /// Math formula Input with a cursor
 [<RequireQualifiedAccess>]
@@ -725,26 +729,26 @@ type internal MACurs =
                 match elements.[start + i] with
                 | MA.Char c -> c
                 | _ -> ' '))
-        let spelled(name: string) =
-            FunctionNames.table |> Array.tryPick (fun (spelling, fn) -> if spelling = name then Some fn else None)
-        /// The name the function standing before the letters was spelled with, if one stands there.
+        let spelled(letters: string) =
+            FunctionNames.table |> Array.tryPick (fun (spelling, f) ->
+                if spelling = letters then Some f else None)
+        /// The name of the function standing before the letters, if one stands there.
         let before =
             if start = 0 then None
             else
                 match elements.[start - 1] with
-                | MA.Function fn ->
-                    FunctionNames.table
-                    |> Array.tryPick (fun (spelling, found) -> if found = fn then Some spelling else None)
+                | MA.Function f -> Some(MathFunctions.name f)
                 | _ -> None
         let matched =
             FunctionNames.table
-            |> Array.tryFind (fun (name, _) -> letters.EndsWith(name, StringComparison.Ordinal))
+            |> Array.tryFind (fun (spelling, _) -> letters.EndsWith(spelling, StringComparison.Ordinal))
         match matched with
-        | Some(name, fn) -> (elements |> ImmArray.truncate (elements.Length - name.Length)).Add(MA.Function fn)
+        | Some(spelling, f) ->
+            (elements |> ImmArray.truncate (elements.Length - spelling.Length)).Add(MA.Function f)
         | None ->
             // A name no run of letters spells may be one a function before them goes on to spell.
             match before |> Option.bind (fun name -> spelled(name + letters)) with
-            | Some fn -> (elements |> ImmArray.truncate (start - 1)).Add(MA.Function fn)
+            | Some f -> (elements |> ImmArray.truncate (start - 1)).Add(MA.Function f)
             | None -> elements
 
     /// Adds a character at the cursor, replacing a completed function name with that function.

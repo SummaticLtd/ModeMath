@@ -118,6 +118,16 @@ let private reading =
                     "\\sin x", row [ MA.Function MathFunction.Sin; c 'x' ]
                     "\\sin^2 x", row [ MA.ScriptSuper(MA.Function MathFunction.Sin, c '2', ValueNone); c 'x' ]
                     "\\arcsin", MA.Function MathFunction.Asin
+                    "\\arg", MA.Function MathFunction.Arg
+                    "\\det", MA.Function MathFunction.Det
+                    // \operatorname names a function the same way a command of its own does.
+                    "\\operatorname{Im}", MA.Function MathFunction.Imaginary
+                    "\\operatorname{arcosh}x", row [ MA.Function MathFunction.Arcosh; c 'x' ]
+                    // ISO 80000-2 names the inverse hyperbolics for the area they take, not an arc.
+                    "\\arccosh", MA.Function MathFunction.Arcosh
+                    "\\arcsinh", MA.Function MathFunction.Arsinh
+                    "\\arctanh", MA.Function MathFunction.Artanh
+                    "\\artanh", MA.Function MathFunction.Artanh
                 ]
             )
             Test.Sync(
@@ -199,6 +209,8 @@ let private reading =
                     "x^_2"
                     "\\begin{matrix}a\\end{cases}"
                     "\\begin{smallmatrix}a\\end{smallmatrix}"
+                    // A function is named from a closed set, so a name outside it is not guessed at.
+                    "\\operatorname{Var}"
                     "\\color{fuchsias}{x}"
                     "\\"
                 ]

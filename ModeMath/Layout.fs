@@ -81,7 +81,8 @@ module internal Conventions =
     ]
 
     let opens = set [ '('; '['; '{'; '⟨' ]
-    let closes = set [ ')'; ']'; '}'; '⟩' ]
+    // A factorial closes what it stands after, as TeX classes the mark it is written with.
+    let closes = set [ ')'; ']'; '}'; '⟩'; '!' ]
     let punctuation = set [ ','; ';'; ':' ]
 
     /// ValueNone where the side carries no bracket at all.
@@ -151,34 +152,6 @@ module internal Conventions =
         | BigOperator.Sum | BigOperator.Product | BigOperator.Coproduct
         | BigOperator.Union | BigOperator.Intersection | BigOperator.Limit -> true
 
-    let functionName(f: MathFunction) =
-        match f with
-        | MathFunction.Sin -> "sin"
-        | MathFunction.Cos -> "cos"
-        | MathFunction.Tan -> "tan"
-        | MathFunction.Asin -> "arcsin"
-        | MathFunction.Acos -> "arccos"
-        | MathFunction.Atan -> "arctan"
-        | MathFunction.Sinh -> "sinh"
-        | MathFunction.Cosh -> "cosh"
-        | MathFunction.Tanh -> "tanh"
-        | MathFunction.Exp -> "exp"
-        | MathFunction.Log -> "log"
-        | MathFunction.Ln -> "ln"
-        | MathFunction.Fact -> "!"
-        | MathFunction.Sec -> "sec"
-        | MathFunction.Csc -> "csc"
-        | MathFunction.Cot -> "cot"
-        | MathFunction.Min -> "min"
-        | MathFunction.Max -> "max"
-        | MathFunction.Erf -> "erf"
-        | MathFunction.Indicator -> "1"
-        | MathFunction.Identity -> "id"
-        | MathFunction.Real -> "Re"
-        | MathFunction.Imaginary -> "Im"
-        | MathFunction.Gamma -> "Γ"
-        | MathFunction.Sign -> "sgn"
-
     let charClass(c: char) =
         if relations.Contains c then AtomClass.Relation
         elif binaries.Contains c then AtomClass.Binary
@@ -192,7 +165,6 @@ module internal Conventions =
         let both(atomClass: AtomClass) = ValueSome(struct (atomClass, atomClass))
         match ma with
         | MA.Char c -> both(charClass c)
-        | MA.Function MathFunction.Fact -> both AtomClass.Close
         | MA.Function _ -> both AtomClass.Operator
         | MA.Frac _ | MA.Stack _ | MA.Table _ -> both AtomClass.Inner
         | MA.Bracketed _ -> ValueSome(struct (AtomClass.Open, AtomClass.Close))
@@ -860,7 +832,7 @@ type Layout(fontSize: float32<px>) =
                 fun g -> PlacedMA.Blackboard(c, g))
         | MA.UprightD -> single(Symbols.uprightD, style, PlacedMA.UprightD)
         | MA.Function f ->
-            let letters = upright(Conventions.functionName f, style)
+            let letters = upright(MathFunctions.name f, style)
             atomOf(PlacedMA.Function(f, letters), letters.Width, 0f<px>, style)
         | MA.Frac(numerator, denominator) -> t.Fraction(numerator, denominator, style)
         | MA.ScriptSuper(main, super, sub) -> t.ScriptSuper(main, super, sub, style)

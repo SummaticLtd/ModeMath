@@ -345,7 +345,7 @@ let implemented = [
             c '='
             row [
                 bigOpSubSup(BigOperator.Sum, row [ c 'n'; c '='; c '0' ], c '∞')
-                frac(sup(c 'x', c 'n'), row [ c 'n'; fn MathFunction.Fact ])
+                frac(sup(c 'x', c 'n'), row [ c 'n'; c '!' ])
             ] ] ],
         [ Alignment.Right; Alignment.Centre; Alignment.Left ])
     "VectorProjection",

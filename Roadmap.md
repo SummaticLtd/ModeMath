@@ -17,7 +17,7 @@ bracket or script. What is left:
 
 `Latex.Read` reads a math-mode string into an `MA`. Writing one back out is still to come.
 
-It reads and draws 98.4% of the 17,220 distinct formulas in the SummaticApp content library.
+It reads and draws 98.8% of the 17,220 distinct formulas in the SummaticApp content library.
 Every formula it reads, it draws: a character the font cannot draw is refused where it stands, so
 that laying a formula out cannot fail. `Editor.Type` turns such a key down the same way, and
 `MA.Undrawable` answers for a formula built in code. What the reader turns down:
@@ -27,7 +27,6 @@ that laying a formula out cannot fail. `Editor.Type` turns such a key down the s
 | Alignment markers outside any environment | 100 | A house convention rather than LaTeX |
 | `\overbar` | 30 | A house macro for `\overline` |
 | `\bf` | 30 | Needs `Styled` |
-| `\arg`, `\det`, `\operatorname`, `\inf`, `\sup` | 58 | Needs open-ended function names |
 | `\choose` | 16 | The one infix command |
 | Malformed content | 38 | A trailing `\`, `s_{stop}_{b}`, `\l(`, an unclosed group |
 
@@ -38,10 +37,15 @@ needs a `MACurs` case.
 
 | Addition | LaTeX | Uses |
 |---|---|---|
-| Open-ended function names | `\operatorname`, `\det`, `\arg` | 99 |
 | `Styled` | `\bf`, `\it`, `\mathcal`, `\mathfrak` | 31 |
+| Limits on the operators that take them | `\det`, `\sup`, `\inf`, `\max`, `\min`, `\Pr`, `\gcd`, `\liminf`, `\limsup` | 0 |
 | Accents below | `\underdot` | 0 |
 | The double bar | `\Vert`, and the outer pair of a `Vmatrix` | 0 |
+
+`MathFunction` names every function LaTeX defines, which `\operatorname` resolves against as well.
+A name outside it is refused rather than guessed at, so a new one is a case here and nowhere else.
+TeX sets the limits of the operators above them in display style, as `MA.BigOp` does for `\lim`;
+those named above take scripts beside them instead, which is what `\max` and `\min` did before.
 
 Relations, binary operators and arrows are done, each carrying the TeX atom class that spaces it.
 `MA.Char` covers the symbols a formula names, `MA.BoldVar` covers `\mathbf`, `MA.Blackboard` reaches
