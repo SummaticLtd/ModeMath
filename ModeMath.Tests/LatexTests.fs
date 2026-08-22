@@ -172,6 +172,9 @@ let private reading =
                     "x^1^2"
                     "$x$"
                     "\\frac{1}"
+                    // A script is no argument, so a command asking for one is not given an empty base.
+                    "\\frac^2b"
+                    "x^_2"
                     "\\begin{matrix}a\\end{cases}"
                     "\\begin{smallmatrix}a\\end{smallmatrix}"
                     "\\color{fuchsias}{x}"

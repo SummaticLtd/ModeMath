@@ -258,7 +258,11 @@ module internal Latexing =
                 elements.Add(t.Atom())
             MA.OfElements(elements.ToImmutable())
 
-        member private t.Atom() = t.Scripted(t.Base())
+        member private t.Atom() =
+            match peek() with
+            // A script with nothing before it stands on an empty base, as {}^{14}C is written.
+            | ValueSome(Token.Super | Token.Sub) -> t.Scripted MA.Empty
+            | _ -> t.Scripted(t.Base())
 
         member private t.Base() : MA =
             let position = here()
@@ -270,8 +274,7 @@ module internal Latexing =
             | ValueSome(Token.Command name) ->
                 advance()
                 t.Named(name, position)
-            // A script with nothing before it stands on an empty base, as {}^{14}C is written.
-            | ValueSome(Token.Super | Token.Sub) -> MA.Empty
+            | ValueSome(Token.Super | Token.Sub) -> fail("a script where an atom was expected", position)
             | ValueSome Token.Close -> fail("a closing brace with no opening one", position)
             | ValueSome Token.Cell -> fail("an & outside a table", position)
             | ValueSome Token.Break -> fail("a row break outside a table", position)

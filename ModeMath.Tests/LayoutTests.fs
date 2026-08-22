@@ -71,6 +71,16 @@ let private measurement =
                     | other -> failwith $"an empty slot being edited drew {other}"
             )
             Test.Sync(
+                "anEmptyPartOfAnAtomNoCursorEntersShowsNoBoxEither",
+                fun () ->
+                    // Only a MACurs case names a slot, so nowhere else can a box be filled in.
+                    let hat = edited(MA.Accented(Accent.Hat, MA.Empty))
+                    match hat.Pma with
+                    | PlacedMA.Accented(_, _, x) ->
+                        Assert.Equal(0f<px>, x.Width, "an accent drew a box under itself")
+                    | other -> failwith $"not an accent: {other}"
+            )
+            Test.Sync(
                 "anEmptyFormulaBeingEditedIsNoSlotAndShowsNoBox",
                 fun () ->
                     let placed = edited MA.Empty

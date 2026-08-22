@@ -12,11 +12,14 @@ type MathSize =
 
 /// A size, with cramping, which stops superscripts rising to make room above.
 [<Struct>]
-type Style(size: MathSize, cramped: bool, editing: bool) =
+type internal Style(size: MathSize, cramped: bool, editing: bool) =
     member _.Size = size
     member _.Cramped = cramped
     /// Whether a cursor stands somewhere in the formula, which is what shows an empty slot its box.
     member _.Editing = editing
+
+    /// The same, for a part no cursor can be put in however the formula around it is being edited.
+    member _.Displayed = Style(size, cramped, false)
     member _.IsDisplay = size = MathSize.Display
 
     member _.ScaleFactor =
@@ -541,8 +544,8 @@ type Layout(fontSize: float32<px>) =
 
     member private t.BigOp(op: BigOperator, lower: MA voption, upper: MA voption, style: Style) =
         let operator = t.BigOperator(op, style)
-        let above = upper |> ValueOption.map (fun ma -> t.Of(ma, style.Superscript))
-        let below = lower |> ValueOption.map (fun ma -> t.Of(ma, style.Subscript))
+        let above = upper |> ValueOption.map (fun ma -> t.Of(ma, style.Displayed.Superscript))
+        let below = lower |> ValueOption.map (fun ma -> t.Of(ma, style.Displayed.Subscript))
         if style.IsDisplay && Conventions.takesLimits op then t.Limits(op, operator, below, above, style)
         else
             let struct (up, down, subscriptX, width) =
@@ -743,7 +746,7 @@ type Layout(fontSize: float32<px>) =
 
     /// The accent rises clear of a base taller than the height the font draws its accents for.
     member private t.Accented(accent: Accent, x: MA, style: Style) =
-        let b = t.Of(x, style.Cramp)
+        let b = t.Of(x, style.Displayed.Cramp)
         let s = scale style
         let glyph =
             match Conventions.accent accent with
@@ -760,7 +763,7 @@ type Layout(fontSize: float32<px>) =
     /// A mark grown to span the atom, set clear of its ink above or below.
     member private t.Spanned(spanning: Spanning, x: MA, style: Style) =
         let below = Conventions.spansBelow spanning
-        let b = t.Of(x, (if below then style else style.Cramp))
+        let b = t.Of(x, (if below then style.Displayed else style.Displayed.Cramp))
         let s = scale style
         let mark = t.Spanning(Conventions.spanning spanning, style, b.Width)
         let width = max b.Width mark.Width
@@ -776,7 +779,7 @@ type Layout(fontSize: float32<px>) =
 
     /// A rule over the atom, clear of its ink by the gap the font names.
     member private t.Overline(x: MA, style: Style) =
-        let b = t.Of(x, style.Cramp)
+        let b = t.Of(x, style.Displayed.Cramp)
         let s = scale style
         let thickness = MathConstants.OverbarRuleThickness * s
         let gap = MathConstants.OverbarVerticalGap * s
@@ -785,7 +788,7 @@ type Layout(fontSize: float32<px>) =
 
     /// A rule under the atom, clear of its ink by the gap the font names.
     member private t.Underline(x: MA, style: Style) =
-        let b = t.Of(x, style)
+        let b = t.Of(x, style.Displayed)
         let s = scale style
         let thickness = MathConstants.UnderbarRuleThickness * s
         let gap = MathConstants.UnderbarVerticalGap * s
@@ -794,8 +797,8 @@ type Layout(fontSize: float32<px>) =
 
     /// A fraction with no rule, where only the gap keeps the two apart.
     member private t.Stack(top: MA, bottom: MA, style: Style) =
-        let above = t.Of(top, style.Numerator)
-        let below = t.Of(bottom, style.Denominator)
+        let above = t.Of(top, style.Displayed.Numerator)
+        let below = t.Of(bottom, style.Displayed.Denominator)
         let s = scale style
         let value(displayStyle: float32<du>, textStyle: float32<du>) =
             (if style.IsDisplay then displayStyle else textStyle) * s
@@ -817,7 +820,7 @@ type Layout(fontSize: float32<px>) =
     /// A grid centred on the axis, its rows a line's leading apart and its columns an em apart.
     member private t.Table(cells: ImmA2D<MA>, alignments: ImmutableArray<Alignment>, style: Style) =
         let s = scale style
-        let placed = cells |> ImmA2D.map (fun cell -> t.Of(cell, style))
+        let placed = cells |> ImmA2D.map (fun cell -> t.Of(cell, style.Displayed))
         /// How far the tallest, deepest or widest cell of a row reaches.
         let furthest(row: int, reach: Placed -> float32<px>) =
             let mutable value = 0f<px>
@@ -895,7 +898,7 @@ type Layout(fontSize: float32<px>) =
         | MA.Space space ->
             atomOf(PlacedMA.Space space, eighteenths(Conventions.space space, style), 0f<px>, style)
         | MA.Coloured(colour, x) ->
-            let inner = t.Of(x, style)
+            let inner = t.Of(x, style.Displayed)
             atomOf(PlacedMA.Coloured(colour, inner), inner.Width, inner.ItalicCorrection, style)
 
     /// Laid out on a line of its own, where fractions and radicals are given their full height.
