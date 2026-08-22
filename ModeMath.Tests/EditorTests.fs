@@ -6,43 +6,38 @@ open ModeMath
 
 let private layout = Layout 20f<px>
 let private opened(ma: MA) = Editor(layout, ma)
-let private typing(editor: Editor, c: char) =
-    match editor.Type c with
-    | ValueSome typed -> typed
-    | ValueNone -> failwith $"{c} cannot be typed"
-
-let private typed(editor: Editor, s: string) = s |> Seq.fold (fun e c -> typing(e, c)) editor
 let private arr(xs: MA list) = xs.ToImmutableArray()
 
-let private moved(direction: Direction, editor: Editor) =
-    match editor.Move direction with
-    | ValueSome moved -> moved
-    | ValueNone -> failwith $"the cursor could not move {direction}"
+/// Which key a character in a case stands for. The arrows are < and >, backspace and delete the
+/// marks on their own keys, and the rest are the characters themselves.
+let private key(character: char) =
+    match character with
+    | '(' -> MathKey.Open BracketKey.Round
+    | '[' -> MathKey.Open BracketKey.Square
+    | ')' -> MathKey.Close BracketKey.Round
+    | ']' -> MathKey.Close BracketKey.Square
+    | '|' -> MathKey.Bar
+    | '/' -> MathKey.Fraction
+    | '\u221A' -> MathKey.Sqrt
+    | '\u221B' -> MathKey.Root
+    | '^' -> MathKey.Superscript
+    | '_' -> MathKey.Subscript
+    | '<' -> MathKey.Move Direction.Left
+    | '>' -> MathKey.Move Direction.Right
+    | '\u232B' -> MathKey.Backspace
+    | '\u2326' -> MathKey.Delete
+    | _ -> MathKey.Character character
 
-/// What one key does, so that a case is written as the keys pressed rather than the calls made.
-/// The arrows are < and >, backspace and delete the marks on their own keys.
-let private pressed(editor: Editor, key: char) =
-    let stepped(step: Editor voption) =
-        match step with
-        | ValueSome stepped -> stepped
-        | ValueNone -> failwith $"{key} had nothing to do"
-    match key with
-    | '(' -> editor.InsertBracket(Brackets.Matching Bracket.Normal)
-    | '[' -> editor.InsertBracket(Brackets.Matching Bracket.Square)
-    | ')' -> editor.CloseBracket Bracket.Normal
-    | ']' -> editor.CloseBracket Bracket.Square
-    | '|' -> editor.InsertBar Bracket.Line
-    | '/' -> editor.InsertFraction
-    | '\u221A' -> editor.InsertSqrt
-    | '^' -> editor.InsertSuperscript
-    | '_' -> editor.InsertSubscript
-    // The cursor put back at the start, as opening the formula afresh does.
-    | '↖' -> opened editor.Formula
-    | '<' -> moved(Direction.Left, editor)
-    | '>' -> moved(Direction.Right, editor)
-    | '\u232B' -> stepped editor.BackSpace
-    | '\u2326' -> stepped editor.Delete
-    | c -> typing(editor, c)
+let private pressed(editor: Editor, character: char) =
+    // The cursor put back at the start, which is opening the formula afresh rather than a key.
+    if character = '\u2196' then opened editor.Formula
+    else
+        match editor.Press(key character) with
+        | ValueSome pressed -> pressed
+        | ValueNone -> failwith $"{character} had nothing to do"
+
+let private typing(editor: Editor, c: char) = pressed(editor, c)
+let private typed(editor: Editor, s: string) = s |> Seq.fold (fun e c -> pressed(e, c)) editor
 
 /// The formula the keys leave behind, starting from nothing.
 let private pressing(keys: string) =
@@ -57,6 +52,7 @@ let rec private spell(ma: MA) =
     | MA.Function f -> $"fn{{{MathFunctions.name f}}}"
     | MA.Frac(numerator, denominator) -> $"frac{{{spell numerator}}}{{{spell denominator}}}"
     | MA.Sqrt x -> $"sqrt{{{spell x}}}"
+    | MA.RootN(degree, radicand) -> $"root{{{spell degree}}}{{{spell radicand}}}"
     | MA.ScriptSuper(main, super, ValueNone) -> $"{carrying main}^{{{spell super}}}"
     | MA.ScriptSuper(main, super, ValueSome sub) ->
         $"{carrying main}^{{{spell super}}}_{{{spell sub}}}"
@@ -97,6 +93,8 @@ let private editing =
                     "typingBuildsTheFormulaTyped", ("abc", "abc")
                     "typingAFunctionNameMakesTheFunction", ("sin", "fn{sin}")
                     "aSquareRootLeavesTheCursorInsideIt", ("\u221Ax", "sqrt{x}")
+                    "aRootLeavesTheCursorInItsDegree", ("\u221B3", "root{3}{}")
+                    "andTheRadicandComesAfterIt", ("\u221B3>x", "root{3}{x}")
                     "backspaceTakesBackWhatWasTyped", ("abc\u232B", "ab")
                     "deleteTakesBackWhatIsAhead", ("abc<\u2326", "ab")
                 ],
@@ -192,7 +190,10 @@ let private editing =
                 fun () ->
                     // Move gives the key back the same way where there is nowhere to go.
                     let editor = pressing "ab"
-                    Assert.Equal(ValueNone, editor.Type '\u2603', "a key with no glyph was taken in")
+                    Assert.Equal(
+                        ValueNone,
+                        editor.Press(MathKey.Character '\u2603'),
+                        "a key with no glyph was taken in")
                     Assert.Equal("abc", after "abc", "an ordinary key was not")
             )
             Test.Sync(
@@ -215,10 +216,13 @@ let private editing =
                 "aKeyWithNothingToDoIsPassedOn",
                 fun () ->
                     let empty = opened MA.Empty
-                    Assert.True(empty.BackSpace.IsNone, "backspace on an empty formula")
-                    Assert.True(empty.Delete.IsNone, "delete on an empty formula")
-                    Assert.True((pressing "ab").Move(Direction.Right).IsNone, "right at the end")
-                    Assert.True((opened(MA.String "ab")).Move(Direction.Left).IsNone, "left at the start")
+                    Assert.True(empty.Press(MathKey.Backspace).IsNone, "backspace on an empty formula")
+                    Assert.True(empty.Press(MathKey.Delete).IsNone, "delete on an empty formula")
+                    let atTheEnd = pressing "ab"
+                    Assert.True(atTheEnd.Press(MathKey.Move Direction.Right).IsNone, "right at the end")
+                    Assert.True(
+                        (opened(MA.String "ab")).Press(MathKey.Move Direction.Left).IsNone,
+                        "left at the start")
             )
         ]
     )
@@ -230,8 +234,8 @@ let private laying =
                 "movingTheCursorLaysNothingOut",
                 fun () ->
                     // The formula does not change, so the tree it was laid out as is kept as it is.
-                    let editor = typed(opened MA.Empty, "abc")
-                    let after = moved(Direction.Right, moved(Direction.Left, editor))
+                    let editor = pressing "abc"
+                    let after = pressed(pressed(editor, '<'), '>')
                     Assert.True(
                         obj.ReferenceEquals(editor.Placed.Pma, after.Placed.Pma),
                         "moving the cursor laid the formula out again")
@@ -273,8 +277,7 @@ let private laying =
             Test.Sync(
                 "whatIsEditedStaysFlat",
                 fun () ->
-                    let editor = (typed(opened MA.Empty, "ab")).InsertFraction
-                    let filled = typed(editor, "cd")
+                    let filled = pressing "ab/cd"
                     Assert.Equal(filled.Formula.Flatten, filled.Formula, "the formula held a nested row")
             )
         ]

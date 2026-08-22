@@ -436,13 +436,14 @@ let cursored(layout: Layout) =
     let rightwards(formula: MA, times: int) =
         let mutable editor = Editor(layout, formula)
         for _ in 1 .. times do
-            editor <- (editor.Move Direction.Right).Value
+            editor <- (editor.Press(MathKey.Move Direction.Right)).Value
         editor
+    let pressing(key: MathKey) = ((Editor(layout, MA.Empty)).Press key).Value
     let typed(editor: Editor, letters: string) =
         letters
         |> Seq.fold
             (fun (e: Editor) letter ->
-                match e.Type letter with
+                match e.Press(MathKey.Character letter) with
                 | ValueSome typed -> typed
                 | ValueNone -> failwith $"{letter} cannot be typed")
             editor
@@ -451,8 +452,8 @@ let cursored(layout: Layout) =
         "CursorAfterALetterInTheNumerator", rightwards(row [ c 'a'; frac(s "b+1", c 'c'); c 'd' ], 3)
         "CursorInAnEmptyFormula", Editor(layout, MA.Empty)
         "CursorInABracketNotYetClosed",
-        typed((Editor(layout, MA.Empty)).InsertBracket(Brackets.Matching Bracket.Normal), "x+1")
-        "CursorInAnEmptySlot", (Editor(layout, MA.Empty)).InsertFraction
+        typed(pressing(MathKey.Open BracketKey.Round), "x+1")
+        "CursorInAnEmptySlot", pressing MathKey.Fraction
         "CursorOverATypedFunction", typed(Editor(layout, MA.Empty), "cos")
     ]
 

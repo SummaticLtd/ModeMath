@@ -26,6 +26,22 @@ type private SkiaDrawing(bounds: Rect, draw: SKCanvas -> unit) =
                 draw lease.SkCanvas
             | Null -> ()
 
+/// What a character typed stands for, which is the key itself where it builds no atom.
+module private Character =
+    let key(character: char) =
+        match character with
+        | '/' -> MathKey.Fraction
+        | '^' -> MathKey.Superscript
+        | '_' -> MathKey.Subscript
+        | '(' -> MathKey.Open BracketKey.Round
+        | '[' -> MathKey.Open BracketKey.Square
+        | '{' -> MathKey.Open BracketKey.Curly
+        | ')' -> MathKey.Close BracketKey.Round
+        | ']' -> MathKey.Close BracketKey.Square
+        | '}' -> MathKey.Close BracketKey.Curly
+        | '|' -> MathKey.Bar
+        | _ -> MathKey.Character character
+
 /// The formula being edited, drawn at a margin from the top left and taking the keys typed at it.
 type FormulaView() as t =
     inherit Control()
@@ -77,49 +93,32 @@ type FormulaView() as t =
         redraw()
         e.Handled <- true
 
+    /// A key given to the formula, which keeps what it makes of it and says whether it was wanted.
+    member private _.Press(key: MathKey) =
+        match editor.Press key with
+        | ValueSome pressed ->
+            editor <- pressed
+            redraw()
+            true
+        | ValueNone -> false
+
     override _.OnTextInput(e: TextInputEventArgs) =
         match e.Text with
         | NonNull text ->
             for character in text do
-                editor <- t.Typed character
-            redraw()
-            e.Handled <- true
+                if t.Press(Character.key character) then e.Handled <- true
         | Null -> ()
 
-    /// One character typed, which the keys that build an atom take before the formula sees them.
-    member private _.Typed(character: char) =
-        match character with
-        | '/' -> editor.InsertFraction
-        | '^' -> editor.InsertSuperscript
-        | '_' -> editor.InsertSubscript
-        | '(' -> editor.InsertBracket(Brackets.Matching Bracket.Normal)
-        | '[' -> editor.InsertBracket(Brackets.Matching Bracket.Square)
-        | '{' -> editor.InsertBracket(Brackets.Matching Bracket.Curly)
-        | ')' -> editor.CloseBracket Bracket.Normal
-        | ']' -> editor.CloseBracket Bracket.Square
-        | '}' -> editor.CloseBracket Bracket.Curly
-        | '|' -> editor.InsertBar Bracket.Line
-        | _ -> editor.Type character |> ValueOption.defaultValue editor
-
     override _.OnKeyDown(e: KeyEventArgs) =
-        let moved(direction: Direction) =
-            match editor.Move direction with
-            | ValueSome moved -> editor <- moved
-            | ValueNone -> ()
-        let removed(gone: Editor voption) =
-            match gone with
-            | ValueSome gone -> editor <- gone
-            | ValueNone -> ()
-        match e.Key with
-        | Key.Left -> moved Direction.Left
-        | Key.Right -> moved Direction.Right
-        | Key.Up -> moved Direction.Up
-        | Key.Down -> moved Direction.Down
-        | Key.Back -> removed editor.BackSpace
-        | Key.Delete -> removed editor.Delete
-        | _ -> ()
-        match e.Key with
-        | Key.Left | Key.Right | Key.Up | Key.Down | Key.Back | Key.Delete ->
-            redraw()
-            e.Handled <- true
-        | _ -> ()
+        let key =
+            match e.Key with
+            | Key.Left -> ValueSome(MathKey.Move Direction.Left)
+            | Key.Right -> ValueSome(MathKey.Move Direction.Right)
+            | Key.Up -> ValueSome(MathKey.Move Direction.Up)
+            | Key.Down -> ValueSome(MathKey.Move Direction.Down)
+            | Key.Back -> ValueSome MathKey.Backspace
+            | Key.Delete -> ValueSome MathKey.Delete
+            | _ -> ValueNone
+        match key with
+        | ValueSome key -> e.Handled <- t.Press key
+        | ValueNone -> ()
