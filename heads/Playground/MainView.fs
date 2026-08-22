@@ -71,13 +71,3 @@ type MainView() as t =
         layout.Children.Add formula
         t.Content <- layout
         t.AttachedToVisualTree.Add(fun _ -> formula.Focus() |> ignore)
-
-    /// What the reader said about the string last put in, which is empty where it read one.
-    member _.Complaint = complaint.Text
-
-    /// The string the reader is given, which pressing Enter or the read button hands it.
-    member _.Latex
-        with get () = latex.Text
-        and set (value: string) = latex.Text <- value
-
-    member _.Formula = formula.Formula

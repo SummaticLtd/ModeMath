@@ -3,16 +3,11 @@
 `Playground` is the editor as a page: the formula, keys for what typing cannot reach, and a box to
 read LaTeX into it. Type to enter atoms, click to put the cursor, arrows to move it.
 
-| Head | Run |
-|---|---|
-| Desktop | `dotnet run --project heads/Playground.Desktop` |
-| Tests | `dotnet run --project heads/Playground.Tests` |
+Run it with `dotnet run --project heads/Playground.Desktop`.
 
-`Playground` holds the page whole, so a browser head over `Avalonia.Browser` would be a project
-around it rather than a rewrite of it.
-
-The tests run headless Avalonia over the real Skia, so a captured frame holds the pixels a screen
-would.
+It is a demo rather than part of the library, and nothing here is tested. `Playground` holds the
+page whole, so a browser head over `Avalonia.Browser` would be a project around it rather than a
+rewrite of it.
 
 ## Why the versions are pinned together
 
