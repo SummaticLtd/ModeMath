@@ -16,11 +16,12 @@ type MathKey =
     | Root
     | Superscript
     | Subscript
-    /// An opening bracket, whose closing one is drawn faint until it is typed.
-    | Open of Brackets
+    /// An opening bracket, whose closing one is drawn faint in the same shape until one is typed.
+    | Open of Bracket
+    /// A closing bracket, which need not be the shape the group was opened with.
     | Close of Bracket
-    /// A bracket that opens and closes alike, as a vertical bar does.
-    | Bar of Bracket
+    /// The bar, which opens and closes alike and so is neither on its own.
+    | Bar
 
 /// A formula being edited: laid out with the cursor in it, and what to lay it out again with.
 [<Sealed>]
@@ -136,19 +137,22 @@ type Editor(layout: Layout, cursor: PlacedCurs) =
     /// the cursor stands in that atom or just before it, and what was before the cursor comes out of
     /// it. Otherwise what is after the cursor is taken into a new atom the cursor then starts, whose
     /// closing bracket is drawn tentative until one is typed.
-    member private _.InsertBracket(brackets: Brackets) =
+    member private _.InsertBracket(bracket: Bracket) =
         let standing = cursor.ToMACurs
         let given(before: ImmutableArray<MA>, after: ImmutableArray<MA>) =
-            struct (before, openingFirst (ValueSome brackets.Left) after)
+            struct (before, openingFirst (ValueSome bracket) after)
         let taken = standing.Rewrite given
         if taken <> standing then over taken
         else
             let curs = settled()
-            match curs.OpenBracket brackets.Left with
+            match curs.OpenBracket bracket with
             | ValueSome opened -> over opened
             | ValueNone ->
                 let enclosing(inner: MA) =
-                    MACurs.Bracketed(brackets, MACurs.AtStart inner, BracketCompletion.Left)
+                    MACurs.Bracketed(
+                        Brackets.Matching bracket,
+                        MACurs.AtStart inner,
+                        BracketCompletion.Left)
                 over(curs.ReplaceAfter enclosing)
 
     /// A closing bracket typed at the cursor. A bracketed atom waiting for one takes it, whether
@@ -170,12 +174,12 @@ type Editor(layout: Layout, cursor: PlacedCurs) =
                     MACurs.AtEnd(MA.Bracketed(Brackets.Matching bracket, inner, BracketCompletion.Right))
                 over(curs.ReplaceBefore(all, enclosed))
 
-    /// A bracket that opens and closes alike, as a vertical bar does: it closes a bracketed atom of
-    /// its own shape that is waiting for a closing bracket, and opens one otherwise.
-    member private t.InsertBar(bracket: Bracket) =
+    /// The bar, which opens and closes alike: it closes a bar group waiting for its closing bar,
+    /// and opens one otherwise.
+    member private t.InsertBar =
         match cursor.ToMACurs.Unclosed with
-        | ValueSome brackets when brackets.Left = bracket -> t.CloseBracket bracket
-        | ValueSome _ | ValueNone -> t.InsertBracket(Brackets.Matching bracket)
+        | ValueSome brackets when brackets.Left = Bracket.Line -> t.CloseBracket Bracket.Line
+        | ValueSome _ | ValueNone -> t.InsertBracket Bracket.Line
 
     /// A superscript on the atom before the cursor, which then stands in it. An atom already
     /// carrying one keeps it and is entered rather than being set under a second.
@@ -225,6 +229,6 @@ type Editor(layout: Layout, cursor: PlacedCurs) =
         | MathKey.Root -> ValueSome t.InsertRoot
         | MathKey.Superscript -> ValueSome t.InsertSuperscript
         | MathKey.Subscript -> ValueSome t.InsertSubscript
-        | MathKey.Open brackets -> ValueSome(t.InsertBracket brackets)
+        | MathKey.Open bracket -> ValueSome(t.InsertBracket bracket)
         | MathKey.Close bracket -> ValueSome(t.CloseBracket bracket)
-        | MathKey.Bar bracket -> ValueSome(t.InsertBar bracket)
+        | MathKey.Bar -> ValueSome t.InsertBar
