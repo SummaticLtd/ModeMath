@@ -81,14 +81,16 @@ type Editor(layout: Layout, cursor: PlacedCurs) =
     member _.InsertRoot = over(cursor.ToMACurs.AddMACurs(MACurs.RootNDegree(MACurs.CursorOrEmpty, MA.Empty)))
 
     /// An opening bracket typed at the cursor. Where the atom it stands in is waiting for one, that
-    /// is where it goes and what was before it comes out; otherwise a new atom is put in and the
-    /// cursor stands inside it, with its closing bracket drawn tentative until one is typed.
+    /// is where it goes and what was before it comes out. Otherwise what is after it is taken into
+    /// a new atom whose closing bracket is drawn tentative, and the cursor stands at its start.
     member _.InsertBracket(brackets: Brackets) =
         let curs = cursor.ToMACurs
         match curs.OpenBracket brackets.Left with
         | ValueSome opened -> over opened
         | ValueNone ->
-            over(curs.AddMACurs(MACurs.Bracketed(brackets, MACurs.CursorOrEmpty, BracketCompletion.Left)))
+            let enclosing(inner: MA) =
+                MACurs.Bracketed(brackets, MACurs.AtStart inner, BracketCompletion.Left)
+            over(curs.ReplaceAfter enclosing)
 
     /// A closing bracket typed at the cursor, which closes the bracketed atom it stands in and then
     /// stands after it. Where it stands in none, what is before it is taken into a new one whose

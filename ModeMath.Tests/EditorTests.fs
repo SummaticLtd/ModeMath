@@ -115,6 +115,28 @@ let private editing =
                         "the cursor did not stand after the group")
             )
             Test.Sync(
+                "anOpeningBracketWithNoGroupToOpenTakesWhatIsAfterItIn",
+                fun () ->
+                    let mutable start = typed(opened MA.Empty, "a+b")
+                    for _ in 1 .. 3 do
+                        start <- moved(Direction.Left, start)
+                    let opening = start.InsertBracket(Brackets.Matching Bracket.Normal)
+                    Assert.Equal(
+                        MA.Bracketed(
+                            Brackets.Matching Bracket.Normal,
+                            MA.String "a+b",
+                            BracketCompletion.Left),
+                        opening.Formula,
+                        "the group did not take in what was after the cursor")
+                    Assert.Equal(
+                        MA.Bracketed(
+                            Brackets.Matching Bracket.Normal,
+                            MA.String "xa+b",
+                            BracketCompletion.Left),
+                        (opening.Type 'x').Formula,
+                        "the cursor did not stand at the start of the group")
+            )
+            Test.Sync(
                 "anOpeningBracketGoesWhereTheCursorIsInAGroupWaitingForOne",
                 fun () ->
                     // The tentative bracket is drawn at the start, but it is typed where it belongs.
@@ -133,6 +155,31 @@ let private editing =
                             arr [ MA.Char 'a'; MA.Char '+'; MA.RoundBracket(MA.String "xb+c") ]).Flatten,
                         (opening.Type 'x').Formula,
                         "the cursor did not stand inside the group it opened")
+            )
+            Test.Sync(
+                "anOpeningBracketOpensAGroupOfItsOwnFromInsideAnAtomOfOne",
+                fun () ->
+                    // The group is waiting for a bracket, but a slot inside one of its atoms cannot
+                    // be split from it, so a group is opened in that slot instead.
+                    let divided = typed((typed(opened MA.Empty, "1")).InsertFraction, "2")
+                    let group = (typed(moved(Direction.Right, divided), "x")).CloseBracket Bracket.Normal
+                    let mutable inside = group
+                    for _ in 1 .. 4 do
+                        inside <- moved(Direction.Left, inside)
+                    let opened = inside.InsertBracket(Brackets.Matching Bracket.Normal)
+                    Assert.Equal(
+                        MA.Bracketed(
+                            Brackets.Matching Bracket.Normal,
+                            MA.Row2(
+                                MA.Frac(
+                                    MA.Char '1',
+                                    MA.Bracketed(
+                                        Brackets.Matching Bracket.Normal,
+                                        MA.Char '2',
+                                        BracketCompletion.Left)),
+                                MA.Char 'x'),
+                            BracketCompletion.Right),
+                        opened.Formula)
             )
             Test.Sync(
                 "aClosingBracketNeedNotBeTheOneTheGroupWasOpenedWith",
@@ -193,12 +240,10 @@ let private editing =
                     Assert.Equal(
                         MA.Bracketed(
                             Brackets.Matching Bracket.Line,
-                            MA.Row2(
-                                MA.Bracketed(
-                                    Brackets.Matching Bracket.Line,
-                                    MA.Empty,
-                                    BracketCompletion.Left),
-                                MA.Char 'x'),
+                            MA.Bracketed(
+                                Brackets.Matching Bracket.Line,
+                                MA.Char 'x',
+                                BracketCompletion.Left),
                             BracketCompletion.Completed),
                         barred)
             )

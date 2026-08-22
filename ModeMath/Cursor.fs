@@ -568,6 +568,25 @@ type internal MACurs =
         | RootNMain(_, x) -> x.Unclosed
         | Sqrt x -> x.Unclosed
 
+    /// Replaces the atoms after the cursor with one built from all of them, and stands in it.
+    member t.ReplaceAfter(build: MA -> MACurs): MACurs =
+        let again(curs: MACurs) = curs.ReplaceAfter build
+        match t with
+        | CursorOrEmpty -> build MA.Empty
+        | Row(before, inner, after) ->
+            if not inner.IsCursorOrEmpty then MACurs.MakeRow(before, again inner, after)
+            else MACurs.MakeRow(before, build(MA.OfElements after), ImmutableArray.Empty)
+        | ScriptMainSuper(main, super, sub) -> ScriptMainSuper(again main, super, sub)
+        | ScriptMainSub(main, sub) -> ScriptMainSub(again main, sub)
+        | ScriptSuper(main, super, sub) -> ScriptSuper(main, again super, sub)
+        | ScriptSub(main, super, sub) -> ScriptSub(main, super, again sub)
+        | FracNum(n, d) -> FracNum(again n, d)
+        | FracDen(n, d) -> FracDen(n, again d)
+        | Bracketed(b, inner, bc) -> Bracketed(b, again inner, bc)
+        | RootNDegree(n, x) -> RootNDegree(again n, x)
+        | RootNMain(n, x) -> RootNMain(n, again x)
+        | Sqrt x -> Sqrt(again x)
+
     /// The atoms before the cursor in the slot it stands among, and that slot from the cursor on.
     /// ValueNone where the cursor stands inside an atom rather than among them.
     member t.Split: struct (ImmutableArray<MA> * MACurs) voption =
