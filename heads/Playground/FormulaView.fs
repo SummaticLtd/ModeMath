@@ -33,12 +33,12 @@ module private Character =
         | '/' -> MathKey.Fraction
         | '^' -> MathKey.Superscript
         | '_' -> MathKey.Subscript
-        | '(' -> MathKey.Open Bracket.Normal
-        | '[' -> MathKey.Open Bracket.Square
-        | '{' -> MathKey.Open Bracket.Curly
-        | ')' -> MathKey.Close Bracket.Normal
-        | ']' -> MathKey.Close Bracket.Square
-        | '}' -> MathKey.Close Bracket.Curly
+        | '(' -> MathKey.Open BracketKey.Round
+        | '[' -> MathKey.Open BracketKey.Square
+        | '{' -> MathKey.Open BracketKey.Curly
+        | ')' -> MathKey.Close BracketKey.Round
+        | ']' -> MathKey.Close BracketKey.Square
+        | '}' -> MathKey.Close BracketKey.Curly
         | '|' -> MathKey.Bar
         | _ -> MathKey.Character character
 

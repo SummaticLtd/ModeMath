@@ -12,10 +12,10 @@ let private arr(xs: MA list) = xs.ToImmutableArray()
 /// marks on their own keys, and the rest are the characters themselves.
 let private key(character: char) =
     match character with
-    | '(' -> MathKey.Open Bracket.Normal
-    | '[' -> MathKey.Open Bracket.Square
-    | ')' -> MathKey.Close Bracket.Normal
-    | ']' -> MathKey.Close Bracket.Square
+    | '(' -> MathKey.Open BracketKey.Round
+    | '[' -> MathKey.Open BracketKey.Square
+    | ')' -> MathKey.Close BracketKey.Round
+    | ']' -> MathKey.Close BracketKey.Square
     | '|' -> MathKey.Bar
     | '/' -> MathKey.Fraction
     | '\u221A' -> MathKey.Sqrt

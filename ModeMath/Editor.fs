@@ -2,6 +2,20 @@ namespace ModeMath
 
 open System.Collections.Immutable
 
+/// A bracket a key types, which is a shape whose opening and closing forms are keys of their own.
+type BracketKey =
+    | Round = 0
+    | Square = 1
+    | Curly = 2
+
+module private BracketKeys =
+    /// The shape it types.
+    let shape(key: BracketKey) =
+        match key with
+        | BracketKey.Round -> Bracket.Normal
+        | BracketKey.Square -> Bracket.Square
+        | BracketKey.Curly -> Bracket.Curly
+
 /// A key an editor answers, which is every way a keyboard reaches a formula.
 [<RequireQualifiedAccess>]
 type MathKey =
@@ -17,9 +31,9 @@ type MathKey =
     | Superscript
     | Subscript
     /// An opening bracket, whose closing one is drawn faint in the same shape until one is typed.
-    | Open of Bracket
+    | Open of BracketKey
     /// A closing bracket, which need not be the shape the group was opened with.
-    | Close of Bracket
+    | Close of BracketKey
     /// The bar, which opens and closes alike and so is neither on its own.
     | Bar
 
@@ -229,6 +243,6 @@ type Editor(layout: Layout, cursor: PlacedCurs) =
         | MathKey.Root -> ValueSome t.InsertRoot
         | MathKey.Superscript -> ValueSome t.InsertSuperscript
         | MathKey.Subscript -> ValueSome t.InsertSubscript
-        | MathKey.Open bracket -> ValueSome(t.InsertBracket bracket)
-        | MathKey.Close bracket -> ValueSome(t.CloseBracket bracket)
+        | MathKey.Open key -> ValueSome(t.InsertBracket(BracketKeys.shape key))
+        | MathKey.Close key -> ValueSome(t.CloseBracket(BracketKeys.shape key))
         | MathKey.Bar -> ValueSome t.InsertBar

@@ -47,8 +47,8 @@ type MainView() as t =
         add("ⁿ√", pressed MathKey.Root)
         add("xʸ", pressed MathKey.Superscript)
         add("xᵧ", pressed MathKey.Subscript)
-        add("( )", pressed (MathKey.Open Bracket.Normal))
-        add("| |", pressed (MathKey.Open Bracket.Line))
+        add("( )", pressed (MathKey.Open BracketKey.Round))
+        add("| |", pressed MathKey.Bar)
         add("clear", inserted(fun _ -> Editor(Layout formula.FontSize, MA.Empty)))
         panel
 

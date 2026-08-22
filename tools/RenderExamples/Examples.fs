@@ -452,7 +452,7 @@ let cursored(layout: Layout) =
         "CursorAfterALetterInTheNumerator", rightwards(row [ c 'a'; frac(s "b+1", c 'c'); c 'd' ], 3)
         "CursorInAnEmptyFormula", Editor(layout, MA.Empty)
         "CursorInABracketNotYetClosed",
-        typed(pressing(MathKey.Open Bracket.Normal), "x+1")
+        typed(pressing(MathKey.Open BracketKey.Round), "x+1")
         "CursorInAnEmptySlot", pressing MathKey.Fraction
         "CursorOverATypedFunction", typed(Editor(layout, MA.Empty), "cos")
     ]
