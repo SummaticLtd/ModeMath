@@ -10,30 +10,46 @@ let private layout = Layout 20f<px>
 let private c(character: char) = MA.Char character
 let private row(elements: MA list) = MA.Row(elements.ToImmutableArray())
 let private grid(cells: MA list list) = ImmA2D.fromJagged cells
+let private cells = grid [ [ c 'a'; c 'b' ]; [ c 'c'; c 'd' ] ]
 
 let private read(latex: string) =
     match Latex.Read latex with
     | Ok ma -> ma
     | Error error -> failwith $"{latex}: {error}"
 
-let private same(pairs: (string * MA) list) =
-    fun () ->
-        for latex, expected in pairs do
-            Assert.Equal(expected, read latex, latex)
+/// A case for every item, named by what it stands for.
+let private named(items: 'a list) = items |> List.map (fun item -> string item, item)
 
-let private rejected(strings: string list) =
-    fun () ->
-        for latex in strings do
+/// A case for every string read, named by the LaTeX it stands for.
+let private same(name: string, pairs: (string * MA) list) =
+    Test.CasesSync(
+        name,
+        pairs |> List.map (fun (latex, expected) -> latex, (latex, expected)),
+        fun (latex, expected) -> Assert.Equal(expected, read latex, latex))
+
+/// The same for the strings that are refused rather than read.
+let private rejected(name: string, strings: string list) =
+    Test.CasesSync(
+        name,
+        named strings,
+        fun latex ->
             match Latex.Read latex with
             | Ok ma -> Assert.Fail $"{latex} was read as {ma}"
-            | Error _ -> ()
+            | Error _ -> ())
+
+/// A case for every formula written out, named by the formula itself.
+let private writes(name: string, pairs: (MA * string) list) =
+    Test.CasesSync(
+        name,
+        pairs |> List.map (fun (formula, expected) -> string formula, (formula, expected)),
+        fun (formula, expected) -> Assert.Equal(expected, Latex.Write formula, string formula))
 
 let private reading =
     TestList(
         "Reading LaTeX",
-        [   Test.Sync(
+        [   same(
                 "charactersStandForThemselvesAndSpacesForNothing",
-                same [
+                [
                     "ab", MA.String "ab"
                     "a b", MA.String "ab"
                     "a+b", row [ c 'a'; c '+'; c 'b' ]
@@ -42,9 +58,9 @@ let private reading =
                     "", MA.Empty
                 ]
             )
-            Test.Sync(
+            same(
                 "aNamedSymbolStandsForItsCharacter",
-                same [
+                [
                     "\\alpha\\beta", row [ c 'α'; c 'β' ]
                     "\\alpha x", row [ c 'α'; c 'x' ]
                     "\\infty", c '∞'
@@ -73,9 +89,9 @@ let private reading =
                     "\\cosθ", row [ MA.Function MathFunction.Cos; c 'θ' ]
                 ]
             )
-            Test.Sync(
+            same(
                 "chooseStandsBetweenWhatItSetsOverAndUnder",
-                same [
+                [
                     // The one infix command, which takes what is on either side of it rather than after.
                     "{8 \\choose 6}", MA.Binom(c '8', c '6')
                     "n \\choose k", MA.Binom(c 'n', c 'k')
@@ -87,17 +103,17 @@ let private reading =
                     "{n \\choose {a \\choose b}}", MA.Binom(c 'n', MA.Binom(c 'a', c 'b'))
                 ]
             )
-            Test.Sync(
+            same(
                 "aHouseMacroIsReadAsWhatItStandsFor",
-                same [
+                [
                     "\\overbar{Y}", MA.Overline(c 'Y')
                     "\\bf{F}", MA.BoldVar 'F'
                     "\\bullet", c '•'
                 ]
             )
-            Test.Sync(
+            same(
                 "aScriptGoesOnTheAtomBeforeIt",
-                same [
+                [
                     "x^2", MA.ScriptSuper(c 'x', c '2', ValueNone)
                     "x_i", MA.ScriptSub(c 'x', c 'i')
                     "x^2_i", MA.ScriptSuper(c 'x', c '2', ValueSome(c 'i'))
@@ -109,18 +125,18 @@ let private reading =
                     "^2", MA.ScriptSuper(MA.Empty, c '2', ValueNone)
                 ]
             )
-            Test.Sync(
+            same(
                 "aLargeOperatorTakesItsScriptsAsLimits",
-                same [
+                [
                     "\\sum_{i=0}^n",
                     MA.BigOp(BigOperator.Sum, ValueSome(row [ c 'i'; c '='; c '0' ]), ValueSome(c 'n'))
                     "\\int_0^\\infty", MA.BigOp(BigOperator.Integral, ValueSome(c '0'), ValueSome(c '∞'))
                     "\\int", MA.BigOp(BigOperator.Integral, ValueNone, ValueNone)
                 ]
             )
-            Test.Sync(
+            same(
                 "aCommandTakesTheGroupOrTheOneAtomAfterIt",
-                same [
+                [
                     "\\frac{a}{b}", MA.Frac(c 'a', c 'b')
                     "\\frac ab", MA.Frac(c 'a', c 'b')
                     "\\frac{a+1}{b}", MA.Frac(row [ c 'a'; c '+'; c '1' ], c 'b')
@@ -134,9 +150,9 @@ let private reading =
                     "\\overbrace{x+1}", MA.Spanned(Spanning.Overbrace, row [ c 'x'; c '+'; c '1' ])
                 ]
             )
-            Test.Sync(
+            same(
                 "aFunctionNameIsOneAtomAndTakesNoArgument",
-                same [
+                [
                     "\\sin x", row [ MA.Function MathFunction.Sin; c 'x' ]
                     "\\sin^2 x", row [ MA.ScriptSuper(MA.Function MathFunction.Sin, c '2', ValueNone); c 'x' ]
                     "\\arcsin", MA.Function MathFunction.Asin
@@ -152,9 +168,9 @@ let private reading =
                     "\\artanh", MA.Function MathFunction.Artanh
                 ]
             )
-            Test.Sync(
+            same(
                 "onlyAMarkedPairBracketsAFormula",
-                same [
+                [
                     "\\left(\\frac{1}{2}\\right)", MA.RoundBracket(MA.Frac(c '1', c '2'))
                     "\\left[0,1\\right)",
                     MA.Bracketed(
@@ -169,9 +185,9 @@ let private reading =
                     "(x)", row [ c '('; c 'x'; c ')' ]
                 ]
             )
-            Test.Sync(
+            same(
                 "wordsInBracesKeepTheirSpacesAndTheirCase",
-                same [
+                [
                     "\\text{if } x", row [ MA.Text "if "; c 'x' ]
                     "\\mathrm{d}x", row [ MA.UprightD; c 'x' ]
                     "\\mathrm{sech}", MA.Text "sech"
@@ -184,9 +200,9 @@ let private reading =
                     "\\mathbf{2θ}", row [ c '2'; c 'θ' ]
                 ]
             )
-            Test.Sync(
+            same(
                 "aTableIsReadFromItsCellsAndItsRowBreaks",
-                same [
+                [
                     "\\begin{pmatrix}a&b\\\\c&d\\end{pmatrix}",
                     MA.RoundBracket(MA.Matrix(grid [ [ c 'a'; c 'b' ]; [ c 'c'; c 'd' ] ]))
                     "\\begin{matrix}a\\end{matrix}", MA.Matrix(grid [ [ c 'a' ] ])
@@ -205,18 +221,18 @@ let private reading =
                         ImmutableArray.Create(Alignment.Left, Alignment.Right))
                 ]
             )
-            Test.Sync(
+            same(
                 "spacesAndColoursAreReadAsTheyAreWritten",
-                same [
+                [
                     "a\\,b", row [ c 'a'; MA.Space Space.Thin; c 'b' ]
                     "a\\qquad b", row [ c 'a'; MA.Space Space.QQuad; c 'b' ]
                     "\\color{red}{x}", MA.Coloured(Color.Red, c 'x')
                     "\\textcolor{#0000FF}{x}", MA.Coloured(Color.FromArgb(255, 0, 0, 255), c 'x')
                 ]
             )
-            Test.Sync(
+            rejected(
                 "whatIsNotUnderstoodIsRefusedRatherThanGuessedAt",
-                rejected [
+                [
                     "\\foo"
                     "\\alphax"
                     "{a"
@@ -239,9 +255,9 @@ let private reading =
                     "\\"
                 ]
             )
-            Test.Sync(
+            rejected(
                 "aCharacterTheFontCannotDrawIsRefusedWhereItStands",
-                rejected [
+                [
                     "a☃b"
                     // Beyond the basic plane only the italic alphabet stands for anything a formula holds.
                     "𝔄"
@@ -259,16 +275,21 @@ let private reading =
                         Assert.Equal(2, error.Position, "the character refused was not the one at fault")
                         Assert.True(error.Message.Contains '☃', $"{error.Message} does not name it")
             )
-            Test.Sync(
+            // Refusing at the door is what lets laying a formula out be total.
+            Test.CasesSync(
                 "everythingReadCanBeDrawn",
-                fun () ->
-                    // Refusing at the door is what lets laying a formula out be total.
-                    let readable =
-                        [ "x+1"; "\\frac{a}{b}"; "\\text{cost in £}"; "\\mathbf{v}_1"
-                          "\\mathbb{R}^n"; "\\sqrt[3]{x}"; "\\begin{matrix}a&b\\\\c&d\\end{matrix}"
-                          "\\mathrm{μg}"; "\\alpha\\uparrow\\circ\\triangle" ]
-                    for latex in readable do
-                        Assert.Equal(ImmutableArray<char>.Empty, (read latex).Undrawable, latex)
+                named [
+                    "x+1"
+                    "\\frac{a}{b}"
+                    "\\text{cost in £}"
+                    "\\mathbf{v}_1"
+                    "\\mathbb{R}^n"
+                    "\\sqrt[3]{x}"
+                    "\\begin{matrix}a&b\\\\c&d\\end{matrix}"
+                    "\\mathrm{μg}"
+                    "\\alpha\\uparrow\\circ\\triangle"
+                ],
+                fun latex -> Assert.Equal(ImmutableArray<char>.Empty, (read latex).Undrawable, latex)
             )
             Test.Sync(
                 "everyNamedSymbolHasAGlyphToDrawIt",
@@ -290,41 +311,33 @@ let private reading =
 let private writing =
     TestList(
         "Writing LaTeX",
-        [   Test.Sync(
+        [   writes(
                 "everyArgumentIsWrittenInBraces",
-                fun () ->
-                    let written =
-                        [
-                            MA.ScriptSub(c 'f', c 'x'), "f_{x}"
-                            MA.ScriptSuper(c 'x', c '2', ValueSome(c 'i')), "x^{2}_{i}"
-                            MA.Frac(c '1', c '2'), @"\frac{1}{2}"
-                            MA.Sqrt(c 'x'), @"\sqrt{x}"
-                            MA.RootN(c '3', c 'x'), @"\sqrt[{3}]{x}"
-                            MA.Accented(Accent.Hat, c 'y'), @"\hat{y}"
-                            MA.BoldVar 'v', @"\mathbf{v}"
-                            MA.Text "in metres", @"\text{in metres}"
-                            MA.BigOp(BigOperator.Sum, ValueSome(c 'i'), ValueSome(c 'n')), @"\sum_{i}^{n}"
-                            // What a script goes on is braced only where it is more than one atom.
-                            MA.ScriptSuper(MA.String "ab", c '2', ValueNone), "{ab}^{2}"
-                            MA.ScriptSub(MA.ScriptSuper(c 'x', c '2', ValueNone), c 'i'), "{x^{2}}_{i}"
-                        ]
-                    for formula, expected in written do
-                        Assert.Equal(expected, Latex.Write formula, string formula)
+                [
+                    MA.ScriptSub(c 'f', c 'x'), "f_{x}"
+                    MA.ScriptSuper(c 'x', c '2', ValueSome(c 'i')), "x^{2}_{i}"
+                    MA.Frac(c '1', c '2'), @"\frac{1}{2}"
+                    MA.Sqrt(c 'x'), @"\sqrt{x}"
+                    MA.RootN(c '3', c 'x'), @"\sqrt[{3}]{x}"
+                    MA.Accented(Accent.Hat, c 'y'), @"\hat{y}"
+                    MA.BoldVar 'v', @"\mathbf{v}"
+                    MA.Text "in metres", @"\text{in metres}"
+                    MA.BigOp(BigOperator.Sum, ValueSome(c 'i'), ValueSome(c 'n')), @"\sum_{i}^{n}"
+                    // What a script goes on is braced only where it is more than one atom.
+                    MA.ScriptSuper(MA.String "ab", c '2', ValueNone), "{ab}^{2}"
+                    MA.ScriptSub(MA.ScriptSuper(c 'x', c '2', ValueNone), c 'i'), "{x^{2}}_{i}"
+                ]
             )
-            Test.Sync(
+            writes(
                 "aControlWordIsKeptFromRunningIntoWhatFollowsIt",
-                fun () ->
-                    let written =
-                        [
-                            row [ c 'α'; c 'x' ], @"\alpha x"
-                            row [ MA.Function MathFunction.Sin; c 'x' ], @"\sin x"
-                            // Letters of a formula are no control word, so nothing stands between them.
-                            MA.String "abc", "abc"
-                            // A backslash ends the word before it, so no space is needed either.
-                            row [ c 'α'; c 'β' ], @"\alpha\beta"
-                        ]
-                    for formula, expected in written do
-                        Assert.Equal(expected, Latex.Write formula, string formula)
+                [
+                    row [ c 'α'; c 'x' ], @"\alpha x"
+                    row [ MA.Function MathFunction.Sin; c 'x' ], @"\sin x"
+                    // Letters of a formula are no control word, so nothing stands between them.
+                    MA.String "abc", "abc"
+                    // A backslash ends the word before it, so no space is needed either.
+                    row [ c 'α'; c 'β' ], @"\alpha\beta"
+                ]
             )
             Test.Sync(
                 "aCharacterLatexKeepsForItselfIsWrittenUnderABackslash",
@@ -344,51 +357,48 @@ let private writing =
                         read(Latex.Write waiting),
                         "a tentative bracket read back as something other than a completed pair")
             )
-            Test.Sync(
+            Test.CasesSync(
                 "everyKindOfAtomIsWrittenSoItReadsBackTheSame",
-                fun () ->
-                    let grid = ImmA2D.fromJagged [ [ c 'a'; c 'b' ]; [ c 'c'; c 'd' ] ]
-                    let atoms =
-                        [
-                            MA.Row(ImmutableArray.Create(c 'x', c '+', c '1'))
-                            c 'x'
-                            c 'α'
-                            MA.BoldVar 'v'
-                            MA.Blackboard 'R'
-                            MA.UprightD
-                            MA.ScriptSuper(c 'x', c '2', ValueSome(c 'i'))
-                            MA.ScriptSub(c 'f', c 'x')
-                            MA.Frac(c '1', c '2')
-                            MA.Function MathFunction.Sin
-                            MA.RoundBracket(MA.String "x+1")
-                            MA.Bracketed(Brackets(Bracket.Curly, Bracket.None), c 'x', BracketCompletion.Completed)
-                            MA.Bracketed(Brackets(Bracket.Square, Bracket.Angle), c 'x', BracketCompletion.Completed)
-                            MA.RootN(c '3', c 'x')
-                            MA.Sqrt(c 'x')
-                            MA.BigOp(BigOperator.Sum, ValueSome(c 'i'), ValueSome(c 'n'))
-                            MA.BigOp(BigOperator.Integral, ValueNone, ValueNone)
-                            MA.Accented(Accent.Hat, c 'y')
-                            MA.Overline(c 'Y')
-                            MA.Underline(c 'Y')
-                            MA.Stack(c 'n', c 'k')
-                            MA.Binom(c 'n', c 'k')
-                            MA.Matrix grid
-                            MA.Cases grid
-                            MA.Table(grid, ImmutableArray.Create(Alignment.Right, Alignment.Centre))
-                            MA.Spanned(Spanning.Overbrace, MA.String "ab")
-                            MA.Coloured(Color.Red, c 'x')
-                            MA.Coloured(Color.FromArgb(255, 1, 2, 3), c 'x')
-                            MA.Coloured(Color.FromArgb(128, 1, 2, 3), c 'x')
-                            MA.RootN(c ']', c 'x')
-                            c '^'
-                            MA.Text "$5 {a} 100%"
-                            MA.Text "in metres"
-                            MA.Space Space.Thin
-                            MA.String "{&$_%#}"
-                        ]
-                    for formula in atoms do
-                        let written = Latex.Write formula
-                        Assert.Equal(formula.Flatten, read written, written)
+                named [
+                    MA.Row(ImmutableArray.Create(c 'x', c '+', c '1'))
+                    c 'x'
+                    c 'α'
+                    MA.BoldVar 'v'
+                    MA.Blackboard 'R'
+                    MA.UprightD
+                    MA.ScriptSuper(c 'x', c '2', ValueSome(c 'i'))
+                    MA.ScriptSub(c 'f', c 'x')
+                    MA.Frac(c '1', c '2')
+                    MA.Function MathFunction.Sin
+                    MA.RoundBracket(MA.String "x+1")
+                    MA.Bracketed(Brackets(Bracket.Curly, Bracket.None), c 'x', BracketCompletion.Completed)
+                    MA.Bracketed(Brackets(Bracket.Square, Bracket.Angle), c 'x', BracketCompletion.Completed)
+                    MA.RootN(c '3', c 'x')
+                    MA.Sqrt(c 'x')
+                    MA.BigOp(BigOperator.Sum, ValueSome(c 'i'), ValueSome(c 'n'))
+                    MA.BigOp(BigOperator.Integral, ValueNone, ValueNone)
+                    MA.Accented(Accent.Hat, c 'y')
+                    MA.Overline(c 'Y')
+                    MA.Underline(c 'Y')
+                    MA.Stack(c 'n', c 'k')
+                    MA.Binom(c 'n', c 'k')
+                    MA.Matrix cells
+                    MA.Cases cells
+                    MA.Table(cells, ImmutableArray.Create(Alignment.Right, Alignment.Centre))
+                    MA.Spanned(Spanning.Overbrace, MA.String "ab")
+                    MA.Coloured(Color.Red, c 'x')
+                    MA.Coloured(Color.FromArgb(255, 1, 2, 3), c 'x')
+                    MA.Coloured(Color.FromArgb(128, 1, 2, 3), c 'x')
+                    MA.RootN(c ']', c 'x')
+                    c '^'
+                    MA.Text "$5 {a} 100%"
+                    MA.Text "in metres"
+                    MA.Space Space.Thin
+                    MA.String "{&$_%#}"
+                ],
+                fun formula ->
+                    let written = Latex.Write formula
+                    Assert.Equal(formula.Flatten, read written, written)
             )
         ]
     )
