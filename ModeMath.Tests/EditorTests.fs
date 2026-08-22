@@ -48,6 +48,8 @@ let private pressing(keys: string) =
 let rec private spell(ma: MA) =
     match ma with
     | MA.Row elements -> elements |> Seq.map spell |> String.concat ""
+    // The marks the spelling uses are keys of their own, save these, which would read as spelling.
+    | MA.Char('{' | '}' | '~' as c) -> failwith $"the tests cannot spell a literal {c}"
     | MA.Char c -> string c
     | MA.Function f -> $"fn{{{MathFunctions.name f}}}"
     | MA.Frac(numerator, denominator) -> $"frac{{{spell numerator}}}{{{spell denominator}}}"
