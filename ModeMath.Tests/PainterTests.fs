@@ -94,8 +94,11 @@ let private painting =
                     let placed, withCursor = drawnWithCursor curs
                     let _, without = drawn formula
                     let ink(pixels: SKColor[,]) =
-                        seq { for x in 0 .. Array2D.length1 pixels - 1 do
-                                for y in 0 .. Array2D.length2 pixels - 1 -> pixels.[x, y] }
+                        seq {
+                            for x in 0 .. Array2D.length1 pixels - 1 do
+                                for y in 0 .. Array2D.length2 pixels - 1 do
+                                    yield pixels.[x, y]
+                        }
                         |> Seq.filter black
                         |> Seq.length
                     Assert.True(

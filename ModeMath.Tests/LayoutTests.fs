@@ -23,17 +23,21 @@ let private units = 20f<px> / MathConstants.UnitsPerEm
 
 /// The rules an atom draws itself, which is one for a fraction and none for a stack.
 let private rules(placed: Placed) =
-    [ for part in placed.Parts do
-        match part with
-        | Part.Rule(rule, _) -> yield rule
-        | Part.Glyph _ | Part.Child _ | Part.Painted _ -> () ]
+    [
+        for part in placed.Parts do
+            match part with
+            | Part.Rule(rule, _) -> yield rule
+            | Part.Glyph _ | Part.Child _ | Part.Painted _ -> ()
+    ]
 
 /// Every glyph an atom draws, in the order it draws them.
 let private drawnGlyphs(placed: Placed) =
-    [ for part in placed.Parts do
-        match part with
-        | Part.Glyph(glyph, _) -> yield glyph.Glyph.Id
-        | Part.Rule _ | Part.Child _ | Part.Painted _ -> () ]
+    [
+        for part in placed.Parts do
+            match part with
+            | Part.Glyph(glyph, _) -> yield glyph.Glyph.Id
+            | Part.Rule _ | Part.Child _ | Part.Painted _ -> ()
+    ]
 
 let private glyphOf(placed: Placed) =
     match placed.Pma.SingleGlyph with
@@ -96,7 +100,7 @@ let private measurement =
             Test.Sync(
                 "aRowOfOrdinariesIsAsWideAsItsPartsLessTheLeansTheySetUnder",
                 fun () ->
-                    let letters = [ for character in "abc" -> laid(c character) ]
+                    let letters = [ for character in "abc" do yield laid(c character) ]
                     let parts = letters |> List.sumBy (fun letter -> letter.Width)
                     let tucked =
                         letters
@@ -289,7 +293,7 @@ let private repertoire =
             )
             Test.CasesSync(
                 "everyFunctionNameCanBeSet",
-                [ for struct (name, f) in MathFunctions.named -> name, f ],
+                [ for struct (name, f) in MathFunctions.named do yield name, f ],
                 fun f ->
                     // Not every name is letters: the indicator is 1 and the gamma function a capital.
                     Assert.True((laid(MA.Function f)).Width > 0f<px>, $"{f} is set as nothing")
@@ -424,7 +428,7 @@ let private bigOperators =
     )
 
 /// The glyphs a mark is drawn from, so that a delimiter can be told from its neighbour.
-let private glyphIds(mark: PlacedGlyphs) = [ for glyph in mark.Glyphs -> glyph.Glyph.Id ]
+let private glyphIds(mark: PlacedGlyphs) = [ for glyph in mark.Glyphs do yield glyph.Glyph.Id ]
 
 /// The delimiters a bracketed formula was drawn with, which surround its content.
 let private sides(placed: Placed) =
@@ -628,7 +632,7 @@ let private words =
         [   Test.Sync(
                 "textIsSetInTheUprightLetters",
                 fun () ->
-                    let drawn = [ for glyph in (lettersOf(laid(MA.Text "ab"))).Glyphs -> glyph.Glyph.Id ]
+                    let drawn = [ for glyph in (lettersOf(laid(MA.Text "ab"))).Glyphs do yield glyph.Glyph.Id ]
                     let upright(character: char) =
                         match Letters.upright character with
                         | ValueSome glyph -> glyph.Id
@@ -1016,7 +1020,7 @@ let private cursors =
                 "theCursorMovesRightwardsAsItIsStepped",
                 fun () ->
                     let formula = MA.String "abc" |> flat
-                    let xs = [ for curs in positions formula -> (layout.Of curs).Caret.X ]
+                    let xs = [ for curs in positions formula do yield (layout.Of curs).Caret.X ]
                     for pair in List.pairwise xs do
                         let previous, next = pair
                         Assert.True(next > previous, $"the cursor did not move: {previous} then {next}")
