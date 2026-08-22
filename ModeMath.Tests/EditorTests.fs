@@ -26,7 +26,7 @@ let private key(character: char) =
     | '>' -> MathKey.Move Direction.Right
     | '\u232B' -> MathKey.Backspace
     | '\u2326' -> MathKey.Delete
-    | character -> MathKey.Character character
+    | _ -> MathKey.Character character
 
 let private pressed(editor: Editor, character: char) =
     // The cursor put back at the start, which is opening the formula afresh rather than a key.

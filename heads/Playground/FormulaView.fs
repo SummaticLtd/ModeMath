@@ -40,7 +40,7 @@ module private Character =
         | ']' -> MathKey.Close Bracket.Square
         | '}' -> MathKey.Close Bracket.Curly
         | '|' -> MathKey.Bar
-        | character -> MathKey.Character character
+        | _ -> MathKey.Character character
 
 /// The formula being edited, drawn at a margin from the top left and taking the keys typed at it.
 type FormulaView() as t =
