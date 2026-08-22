@@ -223,6 +223,31 @@ let private editing =
                         "the cursor did not stand after the group")
             )
             Test.Sync(
+                "aClosingBracketNeverWritesOverOneAlreadyThere",
+                fun () ->
+                    let round = MA.RoundBracket(MA.String "xy")
+                    let mutable inside = opened round
+                    for _ in 1 .. 3 do
+                        inside <- moved(Direction.Right, inside)
+                    Assert.Equal(
+                        MA.RoundBracket(
+                            MA.Bracketed(
+                                Brackets.Matching Bracket.Square,
+                                MA.String "xy",
+                                BracketCompletion.Right)),
+                        (inside.CloseBracket Bracket.Square).Formula,
+                        "the closing bracket already there was written over")
+                    // The group the cursor stands in is closed, so the bar belongs to the one around it.
+                    let bars = MA.Bracketed(Brackets.Matching Bracket.Line, round, BracketCompletion.Left)
+                    let mutable barred = opened bars
+                    for _ in 1 .. 3 do
+                        barred <- moved(Direction.Right, barred)
+                    Assert.Equal(
+                        MA.Bracketed(Brackets.Matching Bracket.Line, round, BracketCompletion.Completed),
+                        (barred.InsertBar Bracket.Line).Formula,
+                        "the bar closed the group it stood in rather than the one waiting")
+            )
+            Test.Sync(
                 "aBracketTypedPastAGroupWaitingForOneIsTheOneItWaitedFor",
                 fun () ->
                     let group = MA.String "a+b+c"

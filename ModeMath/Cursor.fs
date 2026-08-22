@@ -668,9 +668,13 @@ type internal MACurs =
         | Bracketed(b, inner, completion) ->
             match closed inner with
             | ValueSome inner -> Bracketed(b, inner, completion) |> ValueSome
+            // A bracket already standing there is never written over: only its own match steps out past it.
+            | ValueNone when completion.RightCompleted ->
+                if right = b.Right then MA.Bracketed(b, inner.ToMA, completion) |> MACurs.AtEnd |> ValueSome
+                else ValueNone
             | ValueNone ->
                 let closing(inner: MA) = MA.Bracketed(Brackets(b.Left, right), inner, BracketCompletion.Completed)
-                match (if completion.RightCompleted then ValueNone else inner.Split) with
+                match inner.Split with
                 | ValueNone -> closing(inner.ToMA) |> MACurs.AtEnd |> ValueSome
                 | ValueSome(struct (before, after)) ->
                     MACurs.MakeRow(
