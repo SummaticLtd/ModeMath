@@ -132,6 +132,7 @@ module internal Latexing =
             "angle", '∠'; "ell", 'ℓ'; "nabla", '∇'; "forall", '∀'; "exists", '∃'
             "dagger", '†'; "degree", '°'; "backslash", '\\'
             "circ", '∘'; "triangle", '△'; "square", '□'; "pounds", '£'
+            "bullet", '•'; "circlearrowright", '↻'
             "uparrow", '↑'; "downarrow", '↓'; "longrightarrow", '⟶'; "longleftarrow", '⟵'
         ]
 
@@ -288,11 +289,24 @@ module internal Latexing =
             | _ -> false
 
         /// The atoms up to the end of the string or the token that closes what they stand in.
-        member t.Formula() =
+        member t.Formula() = t.Formula false
+
+        /// The same, under a \choose that has already taken what stands before it.
+        member private t.Formula(chosenAlready: bool) =
             let elements = ImmutableArray.CreateBuilder<MA>()
-            while not t.Ends do
-                elements.Add(t.Atom())
-            MA.OfElements(elements.ToImmutable())
+            let mutable chosen = ValueNone
+            while chosen.IsNone && not t.Ends do
+                let position = here()
+                match peek() with
+                // The one infix command: what it stands between is what it sets over and under.
+                | ValueSome(Token.Command "choose") ->
+                    if chosenAlready then fail("a second \\choose in one group", position)
+                    advance()
+                    chosen <- ValueSome(MA.OfElements(elements.ToImmutable()))
+                | _ -> elements.Add(t.Atom())
+            match chosen with
+            | ValueSome top -> MA.Binom(top, t.Formula true)
+            | ValueNone -> MA.OfElements(elements.ToImmutable())
 
         member private t.Atom() =
             match peek() with
@@ -401,7 +415,7 @@ module internal Latexing =
                 match t.Degree() with
                 | ValueSome degree -> MA.RootN(degree, t.Argument())
                 | ValueNone -> MA.Sqrt(t.Argument())
-            | "overline" -> MA.Overline(t.Argument())
+            | "overline" | "overbar" -> MA.Overline(t.Argument())
             | "underline" -> MA.Underline(t.Argument())
             | "left" -> t.Bracketed(position)
             | "right" -> fail("a right delimiter with no left one", position)
@@ -411,7 +425,7 @@ module internal Latexing =
             | "mathrm" ->
                 let words = t.Words position
                 if words = "d" then MA.UprightD else t.Written(words, position)
-            | "mathbf" | "boldsymbol" -> bold(t.Argument())
+            | "mathbf" | "boldsymbol" | "bf" -> bold(t.Argument())
             | "mathbb" -> blackboard(t.Argument())
             | "color" | "textcolor" ->
                 let colour = t.Colour position
