@@ -310,4 +310,4 @@ let private navigation =
         ]
     )
 
-let tests = TestFolder("ModeMath", [ editing; navigation ])
+let tests = TestFolder("Cursor", [ editing; navigation ])
