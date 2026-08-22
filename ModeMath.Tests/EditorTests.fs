@@ -115,6 +115,26 @@ let private editing =
                         "the cursor did not stand after the group")
             )
             Test.Sync(
+                "anOpeningBracketGoesWhereTheCursorIsInAGroupWaitingForOne",
+                fun () ->
+                    // The tentative bracket is drawn at the start, but it is typed where it belongs.
+                    let stray = (typed(opened MA.Empty, "a+b+c")).CloseBracket Bracket.Normal
+                    let mutable before = stray
+                    for _ in 1 .. 4 do
+                        before <- moved(Direction.Left, before)
+                    let opening = before.InsertBracket(Brackets.Matching Bracket.Normal)
+                    Assert.Equal(
+                        MA.Row(
+                            arr [ MA.Char 'a'; MA.Char '+'; MA.RoundBracket(MA.String "b+c") ]).Flatten,
+                        opening.Formula,
+                        "the group did not take its opening bracket at the cursor")
+                    Assert.Equal(
+                        MA.Row(
+                            arr [ MA.Char 'a'; MA.Char '+'; MA.RoundBracket(MA.String "xb+c") ]).Flatten,
+                        (opening.Type 'x').Formula,
+                        "the cursor did not stand inside the group it opened")
+            )
+            Test.Sync(
                 "aClosingBracketNeedNotBeTheOneTheGroupWasOpenedWith",
                 fun () ->
                     let editor = (opened MA.Empty).InsertBracket(Brackets.Matching Bracket.Square)

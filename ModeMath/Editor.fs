@@ -80,10 +80,15 @@ type Editor(layout: Layout, cursor: PlacedCurs) =
     /// A root put in at the cursor, which then stands in its degree.
     member _.InsertRoot = over(cursor.ToMACurs.AddMACurs(MACurs.RootNDegree(MACurs.CursorOrEmpty, MA.Empty)))
 
-    /// An opening bracket put in at the cursor, which then stands inside it. Its closing bracket is
-    /// drawn as tentative until one is typed, and is whichever one that turns out to be.
+    /// An opening bracket typed at the cursor. Where the atom it stands in is waiting for one, that
+    /// is where it goes and what was before it comes out; otherwise a new atom is put in and the
+    /// cursor stands inside it, with its closing bracket drawn tentative until one is typed.
     member _.InsertBracket(brackets: Brackets) =
-        over(cursor.ToMACurs.AddMACurs(MACurs.Bracketed(brackets, MACurs.CursorOrEmpty, BracketCompletion.Left)))
+        let curs = cursor.ToMACurs
+        match curs.OpenBracket brackets.Left with
+        | ValueSome opened -> over opened
+        | ValueNone ->
+            over(curs.AddMACurs(MACurs.Bracketed(brackets, MACurs.CursorOrEmpty, BracketCompletion.Left)))
 
     /// A closing bracket typed at the cursor, which closes the bracketed atom it stands in and then
     /// stands after it. Where it stands in none, what is before it is taken into a new one whose

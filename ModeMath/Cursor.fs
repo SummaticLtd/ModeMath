@@ -568,6 +568,49 @@ type internal MACurs =
         | RootNMain(_, x) -> x.Unclosed
         | Sqrt x -> x.Unclosed
 
+    /// The atoms before the cursor in the slot it stands among, and that slot from the cursor on.
+    /// ValueNone where the cursor stands inside an atom rather than among them.
+    member t.Split: struct (ImmutableArray<MA> * MACurs) voption =
+        match t with
+        | CursorOrEmpty -> ValueSome(struct (ImmutableArray.Empty, CursorOrEmpty))
+        | Row(before, CursorOrEmpty, after) ->
+            ValueSome(struct (before, MACurs.MakeRow(ImmutableArray.Empty, CursorOrEmpty, after)))
+        | Row _ | ScriptMainSuper _ | ScriptMainSub _ | ScriptSuper _ | ScriptSub _ | FracNum _
+        | FracDen _ | Bracketed _ | RootNDegree _ | RootNMain _ | Sqrt _ -> ValueNone
+
+    /// Opens the innermost bracketed atom the cursor stands among with the bracket given, leaving
+    /// what was before the cursor outside it. ValueNone where no such atom waits for one.
+    member t.OpenBracket(left: Bracket): MACurs voption =
+        let opened(inner: MACurs) = inner.OpenBracket left
+        match t with
+        | CursorOrEmpty -> ValueNone
+        | Row(before, inner, after) ->
+            opened inner |> ValueOption.map (fun inner -> MACurs.MakeRow(before, inner, after))
+        | Bracketed(b, inner, completion) ->
+            match opened inner with
+            | ValueSome inner -> Bracketed(b, inner, completion) |> ValueSome
+            | ValueNone ->
+                match (if completion.LeftCompleted then ValueNone else inner.Split) with
+                | ValueNone -> ValueNone
+                | ValueSome(struct (before, rest)) ->
+                    MACurs.MakeRow(
+                        before,
+                        Bracketed(Brackets(left, b.Right), rest, BracketCompletion.Completed),
+                        ImmutableArray.Empty)
+                    |> ValueSome
+        | ScriptMainSuper(main, super, sub) ->
+            opened main |> ValueOption.map (fun main -> ScriptMainSuper(main, super, sub))
+        | ScriptMainSub(main, sub) -> opened main |> ValueOption.map (fun main -> ScriptMainSub(main, sub))
+        | ScriptSuper(main, super, sub) ->
+            opened super |> ValueOption.map (fun super -> ScriptSuper(main, super, sub))
+        | ScriptSub(main, super, sub) ->
+            opened sub |> ValueOption.map (fun sub -> ScriptSub(main, super, sub))
+        | FracNum(n, d) -> opened n |> ValueOption.map (fun n -> FracNum(n, d))
+        | FracDen(n, d) -> opened d |> ValueOption.map (fun d -> FracDen(n, d))
+        | RootNDegree(n, x) -> opened n |> ValueOption.map (fun n -> RootNDegree(n, x))
+        | RootNMain(n, x) -> opened x |> ValueOption.map (fun x -> RootNMain(n, x))
+        | Sqrt x -> opened x |> ValueOption.map (fun x -> Sqrt x)
+
     /// Closes the innermost bracketed atom the cursor stands in with the bracket given, leaving the
     /// cursor after it. ValueNone where the cursor stands in no bracketed atom at all.
     member t.CloseBracket(right: Bracket): MACurs voption =
