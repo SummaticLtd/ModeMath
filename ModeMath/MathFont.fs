@@ -48,6 +48,7 @@ module Letters =
         if c >= 'a' && c <= 'z' then Alphabet.at(Alphabets.uprightSmall, int c - int 'a')
         elif c >= 'A' && c <= 'Z' then Alphabet.at(Alphabets.uprightCapital, int c - int 'A')
         elif c >= 'Α' && c <= 'Ω' then Alphabet.at(Alphabets.uprightGreekCapital, int c - 0x0391)
+        elif c >= 'α' && c <= 'ω' then Alphabet.at(Alphabets.uprightGreekSmall, int c - 0x03B1)
         else ValueNone
 
 module Digits =

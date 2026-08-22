@@ -11,52 +11,43 @@ bracket or script. What is left:
 |---|---|
 | Selection | Tracked separately: #3 |
 | Up and down by where the atoms are | `Move` is structural, so leaving a denominator ignores the point it left from |
-| Putting a bracket around what is already there | Typing `(` before a formula should be able to take it in |
 | Undo | The editor is a value, so a caller can keep the old ones. Nothing here does it for them |
 
 ## 2. LaTeX
 
 `Latex.Read` reads a math-mode string into an `MA`. Writing one back out is still to come.
 
-It reads 98.0% of the 17,220 distinct formulas in the SummaticApp content library, and lays out
-97.4%. What it turns down, by how often the library asks for it:
+It reads and draws whole 98.4% of the 17,220 distinct formulas in the SummaticApp content library.
+None of the rest draws a box: every formula it reads, it draws. What it turns down:
 
-| Turned down | Uses | Why |
+| Turned down | Formulas | Why |
 |---|---|---|
-| Alignment markers outside any environment | 97 | A house convention rather than LaTeX |
-| `\overbar`, `\blue`, `\green`, `\gray` | 37 | House macros |
-| `\bf`, `\it` | 33 | Needs `Styled` |
-| `\arg`, `\det`, `\operatorname`, `\inf`, `\sup` | 60 | Needs open-ended function names |
-| `\circ`, `\triangle`, `\uparrow`, `\downarrow`, `\longrightarrow` | 74 | No glyph, see below |
-| `\choose` | 14 | The one infix command |
-
-## TODO: glyphs the font data leaves out
-
-`MathFont.OfChar` finds no glyph for `∘ ∣ ↑ ↓ △ ⟶ ⌈ ⌊ £ – µ`, and laying one out throws. The
-stretchy delimiters among them are in the font under another mechanism; the rest may be a gap in
-what `MathTableGen` emits.
+| Alignment markers outside any environment | 100 | A house convention rather than LaTeX |
+| `\overbar` | 30 | A house macro for `\overline` |
+| `\bf` | 30 | Needs `Styled` |
+| `\arg`, `\det`, `\operatorname`, `\inf`, `\sup` | 58 | Needs open-ended function names |
+| `\choose` | 16 | The one infix command |
+| Malformed content | 38 | A trailing `\`, `s_{stop}_{b}`, `\l(`, an unclosed group |
 
 ## 3. Remaining mathematics
 
 All display-only. The cursor treats each as one unit, stepping over it and deleting it whole, so none
 needs a `MACurs` case.
 
-Ordered by use in the SummaticApp content library.
+| Addition | LaTeX | Uses |
+|---|---|---|
+| Open-ended function names | `\operatorname`, `\det`, `\arg` | 99 |
+| `Styled` | `\bf`, `\it`, `\mathcal`, `\mathfrak` | 31 |
+| Accents below | `\underdot` | 0 |
+| The double bar | `\Vert`, and the outer pair of a `Vmatrix` | 0 |
 
-| Addition | LaTeX |
-|---|---|
-| `Styled` | `\mathbf`, `\mathcal`, `\mathfrak`, `\it` |
-| Relations and arrows | `\leq`, `\Rightarrow`, `\approx`, `\in`, `\to` |
-| Binary operators | `\ast`, `\cap`, `\pm`, `\cup`, `\div` |
-| Accents below | `\underdot` |
-| The double bar | `\Vert`, and the outer pair of a `Vmatrix` |
-| Open-ended function names | `\operatorname`, `\det`, `\arg` |
+Relations, binary operators and arrows are done, each carrying the TeX atom class that spaces it.
+`MA.Char` covers the symbols a formula names, `MA.BoldVar` covers `\mathbf`, `MA.Blackboard` reaches
+all 26 capitals with `ℂ ℍ ℕ ℙ ℚ ℝ ℤ` drawn from the same face, and `MA.Text` covers `\mathrm` over a
+word as well as `\text`.
 
-Relations and binary operators carry a TeX atom class, which sets the spacing around them.
-
-`MA.Char` already covers `\infty`, `\partial`, `\emptyset`, `\therefore` and the
-ellipses, and `\mathbb` is done: `MA.Blackboard` reaches all 26 capitals and `ℂ ℍ ℕ ℙ ℚ ℝ ℤ` are drawn
-from the same face. `MA.Text` covers `\mathrm` over a word as well as `\text`.
+Uses are counts in the SummaticApp content library, which asks for no `\mathcal`, `\mathfrak`,
+`\mathtt` or `\mathsf` at all.
 
 ## TODO: an efficient colour
 

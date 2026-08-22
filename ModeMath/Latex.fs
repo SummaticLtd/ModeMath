@@ -34,6 +34,18 @@ module internal Latexing =
     /// A letter a control word may be spelled with, which θ is not though .NET counts it one.
     let private spells(c: char) = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
 
+    /// Where Unicode's italic alphabets begin, against the letters a formula sets in italic anyway.
+    let private italicised = [ 0x1D434, 'A', 26; 0x1D44E, 'a', 26; 0x1D6E2, 'Α', 25; 0x1D6FC, 'α', 25 ]
+
+    /// The letter a character beyond the basic plane stands for, or the replacement where it is none.
+    let private plain(codepoint: int) =
+        italicised
+        |> List.tryPick (fun (first, letter, count) ->
+            if codepoint >= first && codepoint < first + count then
+                Some(char (int letter + codepoint - first))
+            else None)
+        |> Option.defaultValue '�'
+
     /// The tokens a string is made of, paired with where each begins.
     let lex(latex: string) =
         let tokens = ImmutableArray.CreateBuilder<struct (Token * int)>()
@@ -64,7 +76,17 @@ module internal Latexing =
             | '_' -> take Token.Sub
             | '&' -> take Token.Cell
             | '$' -> fail("a formula is read in math mode already", start)
-            | _ -> if not(Char.IsWhiteSpace c) then take(Token.Char c)
+            | _ ->
+                if Char.IsHighSurrogate c && i < latex.Length && Char.IsLowSurrogate latex.[i] then
+                    let codepoint = Char.ConvertToUtf32(c, latex.[i])
+                    i <- i + 1
+                    take(Token.Char(plain codepoint))
+                // A spreadsheet gives a box-drawing bar for the one a conditional probability is written with.
+                elif c = '│' then take(Token.Char '|')
+                elif Char.IsWhiteSpace c then ()
+                // A mark that gives no ink of its own, as a zero-width space does, is nothing to draw.
+                elif Char.GetUnicodeCategory c = Globalization.UnicodeCategory.Format then ()
+                else take(Token.Char c)
         tokens.ToImmutable()
 
     let private greek =
@@ -96,6 +118,8 @@ module internal Latexing =
             "Longleftrightarrow", '⟺'; "supset", '⊃'; "supseteq", '⊇'; "perp", '⊥'; "parallel", '∥'
             "angle", '∠'; "ell", 'ℓ'; "nabla", '∇'; "forall", '∀'; "exists", '∃'
             "dagger", '†'; "degree", '°'; "backslash", '\\'
+            "circ", '∘'; "triangle", '△'; "square", '□'; "pounds", '£'
+            "uparrow", '↑'; "downarrow", '↓'; "longrightarrow", '⟶'; "longleftarrow", '⟵'
         ]
 
     let private functions =

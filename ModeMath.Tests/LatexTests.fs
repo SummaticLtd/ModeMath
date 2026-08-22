@@ -50,6 +50,18 @@ let private reading =
                     "\\infty", c '∞'
                     "\\cdot", c '⋅'
                     "\\leq", c '≤'
+                    "\\circ", c '∘'
+                    "\\triangle", c '△'
+                    "\\uparrow\\downarrow", row [ c '↑'; c '↓' ]
+                    "\\longrightarrow", c '⟶'
+                    "\\pounds", c '£'
+                    // A word processor writes its variables in the italic alphabet Unicode holds.
+                    "𝑠𝑜𝑐", MA.String "soc"
+                    "𝐴𝜋", row [ c 'A'; c 'π' ]
+                    // A mark that gives no ink of its own is nothing to draw.
+                    "a​b", MA.String "ab"
+                    // A spreadsheet writes the bar of a conditional probability as a drawing rule.
+                    "P(A│B)", read "P(A|B)"
                     // Only the 26 letters spell a command, so \cosθ is a function and a letter.
                     "\\cosθ", row [ MA.Function MathFunction.Cos; c 'θ' ]
                 ]
