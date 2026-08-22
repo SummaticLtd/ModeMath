@@ -17,6 +17,9 @@ let private read(latex: string) =
     | Ok ma -> ma
     | Error error -> failwith $"{latex}: {error}"
 
+/// A case for every item, named by what it stands for.
+let private named(items: 'a list) = items |> List.map (fun item -> string item, item)
+
 /// A case for every string read, named by the LaTeX it stands for.
 let private same(name: string, pairs: (string * MA) list) =
     Test.CasesSync(
@@ -28,7 +31,7 @@ let private same(name: string, pairs: (string * MA) list) =
 let private rejected(name: string, strings: string list) =
     Test.CasesSync(
         name,
-        strings |> List.map (fun latex -> latex, latex),
+        named strings,
         fun latex ->
             match Latex.Read latex with
             | Ok ma -> Assert.Fail $"{latex} was read as {ma}"
@@ -275,10 +278,17 @@ let private reading =
             // Refusing at the door is what lets laying a formula out be total.
             Test.CasesSync(
                 "everythingReadCanBeDrawn",
-                [ for latex in
-                    [ "x+1"; "\\frac{a}{b}"; "\\text{cost in £}"; "\\mathbf{v}_1"
-                      "\\mathbb{R}^n"; "\\sqrt[3]{x}"; "\\begin{matrix}a&b\\\\c&d\\end{matrix}"
-                      "\\mathrm{μg}"; "\\alpha\\uparrow\\circ\\triangle" ] -> latex, latex ],
+                named [
+                    "x+1"
+                    "\\frac{a}{b}"
+                    "\\text{cost in £}"
+                    "\\mathbf{v}_1"
+                    "\\mathbb{R}^n"
+                    "\\sqrt[3]{x}"
+                    "\\begin{matrix}a&b\\\\c&d\\end{matrix}"
+                    "\\mathrm{μg}"
+                    "\\alpha\\uparrow\\circ\\triangle"
+                ],
                 fun latex -> Assert.Equal(ImmutableArray<char>.Empty, (read latex).Undrawable, latex)
             )
             Test.Sync(
@@ -349,44 +359,43 @@ let private writing =
             )
             Test.CasesSync(
                 "everyKindOfAtomIsWrittenSoItReadsBackTheSame",
-                [ for formula in
-                    [
-                        MA.Row(ImmutableArray.Create(c 'x', c '+', c '1'))
-                        c 'x'
-                        c 'α'
-                        MA.BoldVar 'v'
-                        MA.Blackboard 'R'
-                        MA.UprightD
-                        MA.ScriptSuper(c 'x', c '2', ValueSome(c 'i'))
-                        MA.ScriptSub(c 'f', c 'x')
-                        MA.Frac(c '1', c '2')
-                        MA.Function MathFunction.Sin
-                        MA.RoundBracket(MA.String "x+1")
-                        MA.Bracketed(Brackets(Bracket.Curly, Bracket.None), c 'x', BracketCompletion.Completed)
-                        MA.Bracketed(Brackets(Bracket.Square, Bracket.Angle), c 'x', BracketCompletion.Completed)
-                        MA.RootN(c '3', c 'x')
-                        MA.Sqrt(c 'x')
-                        MA.BigOp(BigOperator.Sum, ValueSome(c 'i'), ValueSome(c 'n'))
-                        MA.BigOp(BigOperator.Integral, ValueNone, ValueNone)
-                        MA.Accented(Accent.Hat, c 'y')
-                        MA.Overline(c 'Y')
-                        MA.Underline(c 'Y')
-                        MA.Stack(c 'n', c 'k')
-                        MA.Binom(c 'n', c 'k')
-                        MA.Matrix cells
-                        MA.Cases cells
-                        MA.Table(cells, ImmutableArray.Create(Alignment.Right, Alignment.Centre))
-                        MA.Spanned(Spanning.Overbrace, MA.String "ab")
-                        MA.Coloured(Color.Red, c 'x')
-                        MA.Coloured(Color.FromArgb(255, 1, 2, 3), c 'x')
-                        MA.Coloured(Color.FromArgb(128, 1, 2, 3), c 'x')
-                        MA.RootN(c ']', c 'x')
-                        c '^'
-                        MA.Text "$5 {a} 100%"
-                        MA.Text "in metres"
-                        MA.Space Space.Thin
-                        MA.String "{&$_%#}"
-                    ] -> string formula, formula ],
+                named [
+                    MA.Row(ImmutableArray.Create(c 'x', c '+', c '1'))
+                    c 'x'
+                    c 'α'
+                    MA.BoldVar 'v'
+                    MA.Blackboard 'R'
+                    MA.UprightD
+                    MA.ScriptSuper(c 'x', c '2', ValueSome(c 'i'))
+                    MA.ScriptSub(c 'f', c 'x')
+                    MA.Frac(c '1', c '2')
+                    MA.Function MathFunction.Sin
+                    MA.RoundBracket(MA.String "x+1")
+                    MA.Bracketed(Brackets(Bracket.Curly, Bracket.None), c 'x', BracketCompletion.Completed)
+                    MA.Bracketed(Brackets(Bracket.Square, Bracket.Angle), c 'x', BracketCompletion.Completed)
+                    MA.RootN(c '3', c 'x')
+                    MA.Sqrt(c 'x')
+                    MA.BigOp(BigOperator.Sum, ValueSome(c 'i'), ValueSome(c 'n'))
+                    MA.BigOp(BigOperator.Integral, ValueNone, ValueNone)
+                    MA.Accented(Accent.Hat, c 'y')
+                    MA.Overline(c 'Y')
+                    MA.Underline(c 'Y')
+                    MA.Stack(c 'n', c 'k')
+                    MA.Binom(c 'n', c 'k')
+                    MA.Matrix cells
+                    MA.Cases cells
+                    MA.Table(cells, ImmutableArray.Create(Alignment.Right, Alignment.Centre))
+                    MA.Spanned(Spanning.Overbrace, MA.String "ab")
+                    MA.Coloured(Color.Red, c 'x')
+                    MA.Coloured(Color.FromArgb(255, 1, 2, 3), c 'x')
+                    MA.Coloured(Color.FromArgb(128, 1, 2, 3), c 'x')
+                    MA.RootN(c ']', c 'x')
+                    c '^'
+                    MA.Text "$5 {a} 100%"
+                    MA.Text "in metres"
+                    MA.Space Space.Thin
+                    MA.String "{&$_%#}"
+                ],
                 fun formula ->
                     let written = Latex.Write formula
                     Assert.Equal(formula.Flatten, read written, written)
