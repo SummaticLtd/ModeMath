@@ -20,6 +20,9 @@ type Editor(layout: Layout, cursor: PlacedCurs) =
     /// The one atom a script goes on.
     let one(before: ImmutableArray<MA>) = min 1 before.Length
 
+    /// Everything a closing bracket with no opening one takes in.
+    let all(before: ImmutableArray<MA>) = before.Length
+
     /// The term a fraction takes up, which reaches back to whatever last broke one.
     let term(before: ImmutableArray<MA>) =
         let mutable count = 0
@@ -77,9 +80,29 @@ type Editor(layout: Layout, cursor: PlacedCurs) =
     /// A root put in at the cursor, which then stands in its degree.
     member _.InsertRoot = over(cursor.ToMACurs.AddMACurs(MACurs.RootNDegree(MACurs.CursorOrEmpty, MA.Empty)))
 
-    /// A bracketed group put in at the cursor, which then stands inside it.
+    /// An opening bracket put in at the cursor, which then stands inside it. Its closing bracket is
+    /// drawn as tentative until one is typed, and is whichever one that turns out to be.
     member _.InsertBracket(brackets: Brackets) =
-        over(cursor.ToMACurs.AddMACurs(MACurs.Bracketed(brackets, MACurs.CursorOrEmpty, BracketCompletion.Completed)))
+        over(cursor.ToMACurs.AddMACurs(MACurs.Bracketed(brackets, MACurs.CursorOrEmpty, BracketCompletion.Left)))
+
+    /// A closing bracket typed at the cursor, which closes the bracketed atom it stands in and then
+    /// stands after it. Where it stands in none, what is before it is taken into a new one whose
+    /// opening bracket is drawn as tentative.
+    member _.CloseBracket(bracket: Bracket) =
+        let curs = cursor.ToMACurs
+        match curs.CloseBracket bracket with
+        | ValueSome closed -> over closed
+        | ValueNone ->
+            let enclosed(inner: MA) =
+                MACurs.AtEnd(MA.Bracketed(Brackets.Matching bracket, inner, BracketCompletion.Right))
+            over(curs.ReplaceBefore(all, enclosed))
+
+    /// A bracket that opens and closes alike, as a vertical bar does: it closes a bracketed atom of
+    /// its own shape that is waiting for a closing bracket, and opens one otherwise.
+    member t.InsertBar(bracket: Bracket) =
+        match cursor.ToMACurs.Unclosed with
+        | ValueSome brackets when brackets.Left = bracket -> t.CloseBracket bracket
+        | ValueSome _ | ValueNone -> t.InsertBracket(Brackets.Matching bracket)
 
     /// A superscript on the atom before the cursor, which then stands in it. An atom already
     /// carrying one keeps it and is entered rather than being set under a second.

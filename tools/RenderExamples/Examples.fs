@@ -444,6 +444,8 @@ let cursored(layout: Layout) =
         "CursorBeforeAFraction", rightwards(row [ c 'a'; frac(s "b+1", c 'c'); c 'd' ], 1)
         "CursorAfterALetterInTheNumerator", rightwards(row [ c 'a'; frac(s "b+1", c 'c'); c 'd' ], 3)
         "CursorInAnEmptyFormula", Editor(layout, MA.Empty)
+        "CursorInABracketNotYetClosed",
+        typed((Editor(layout, MA.Empty)).InsertBracket(Brackets.Matching Bracket.Normal), "x+1")
         "CursorInAnEmptySlot", (Editor(layout, MA.Empty)).InsertFraction
         "CursorOverATypedFunction", typed(Editor(layout, MA.Empty), "cos")
     ]

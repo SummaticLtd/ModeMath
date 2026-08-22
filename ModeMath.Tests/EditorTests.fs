@@ -77,6 +77,112 @@ let private editing =
                         (typed((Editor.AtEnd(layout, bracketed)).InsertFraction, "c")).Formula)
             )
             Test.Sync(
+                "anOpeningBracketLeavesItsClosingOneToBeTyped",
+                fun () ->
+                    let editor = (typed(opened MA.Empty, "abc")).InsertBracket(Brackets.Matching Bracket.Normal)
+                    Assert.Equal(
+                        MA.Row(
+                            arr [
+                                MA.String "abc"
+                                MA.Bracketed(
+                                    Brackets.Matching Bracket.Normal,
+                                    MA.Char 'd',
+                                    BracketCompletion.Left)
+                            ]).Flatten,
+                        (typed(editor, "d")).Formula)
+            )
+            Test.Sync(
+                "aClosingBracketClosesTheGroupTheCursorStandsInAndStandsAfterIt",
+                fun () ->
+                    let editor = (typed(opened MA.Empty, "abc")).InsertBracket(Brackets.Matching Bracket.Normal)
+                    let closed = (typed(editor, "d")).CloseBracket Bracket.Normal
+                    Assert.Equal(
+                        MA.Row(
+                            arr [
+                                MA.String "abc"
+                                MA.RoundBracket(MA.Char 'd')
+                            ]).Flatten,
+                        closed.Formula,
+                        "the group was not closed")
+                    Assert.Equal(
+                        MA.Row(
+                            arr [
+                                MA.String "abc"
+                                MA.RoundBracket(MA.Char 'd')
+                                MA.Char 'e'
+                            ]).Flatten,
+                        (closed.Type 'e').Formula,
+                        "the cursor did not stand after the group")
+            )
+            Test.Sync(
+                "aClosingBracketNeedNotBeTheOneTheGroupWasOpenedWith",
+                fun () ->
+                    let editor = (opened MA.Empty).InsertBracket(Brackets.Matching Bracket.Square)
+                    let closed = (typed(editor, "0")).CloseBracket Bracket.Normal
+                    Assert.Equal(
+                        MA.Bracketed(
+                            Brackets(Bracket.Square, Bracket.Normal),
+                            MA.Char '0',
+                            BracketCompletion.Completed),
+                        closed.Formula)
+            )
+            Test.Sync(
+                "aClosingBracketReachesOutOfASlotToTheGroupAroundIt",
+                fun () ->
+                    // The cursor stands in the denominator, and the bracket to close is outside it.
+                    let editor = (opened MA.Empty).InsertBracket(Brackets.Matching Bracket.Normal)
+                    let divided = typed((typed(editor, "1")).InsertFraction, "2")
+                    Assert.Equal(
+                        MA.RoundBracket(MA.Frac(MA.Char '1', MA.Char '2')),
+                        (divided.CloseBracket Bracket.Normal).Formula)
+            )
+            Test.Sync(
+                "aClosingBracketWithNoGroupToCloseTakesWhatIsBeforeItIn",
+                fun () ->
+                    let closed = (typed(opened MA.Empty, "abc")).CloseBracket Bracket.Normal
+                    Assert.Equal(
+                        MA.Bracketed(
+                            Brackets.Matching Bracket.Normal,
+                            MA.String "abc",
+                            BracketCompletion.Right),
+                        closed.Formula)
+            )
+            Test.Sync(
+                "aBarClosesTheGroupItStandsInRatherThanOpeningAnother",
+                fun () ->
+                    let opening = (opened MA.Empty).InsertBar Bracket.Line
+                    let filled = typed(opening, "x")
+                    Assert.Equal(
+                        MA.Bracketed(Brackets.Matching Bracket.Line, MA.Char 'x', BracketCompletion.Left),
+                        filled.Formula,
+                        "the first bar did not open a group")
+                    Assert.Equal(
+                        MA.Bracketed(
+                            Brackets.Matching Bracket.Line,
+                            MA.Char 'x',
+                            BracketCompletion.Completed),
+                        (filled.InsertBar Bracket.Line).Formula,
+                        "the second bar did not close it")
+            )
+            Test.Sync(
+                "aBarInsideAGroupAlreadyClosedOpensAnotherRatherThanClosingItTwice",
+                fun () ->
+                    let bars = MA.Bracketed(Brackets.Matching Bracket.Line, MA.Char 'x', BracketCompletion.Completed)
+                    let inside = moved(Direction.Right, opened bars)
+                    let barred = (inside.InsertBar Bracket.Line).Formula
+                    Assert.Equal(
+                        MA.Bracketed(
+                            Brackets.Matching Bracket.Line,
+                            MA.Row2(
+                                MA.Bracketed(
+                                    Brackets.Matching Bracket.Line,
+                                    MA.Empty,
+                                    BracketCompletion.Left),
+                                MA.Char 'x'),
+                            BracketCompletion.Completed),
+                        barred)
+            )
+            Test.Sync(
                 "aSquareRootLeavesTheCursorInsideIt",
                 fun () ->
                     let editor = (opened MA.Empty).InsertSqrt

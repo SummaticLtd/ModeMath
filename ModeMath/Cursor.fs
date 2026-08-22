@@ -549,6 +549,53 @@ type internal MACurs =
         | RootNMain(n, x) -> RootNMain(n, again x)
         | Sqrt x -> Sqrt(again x)
 
+    /// The pair of the innermost bracketed atom the cursor stands in, where its closing bracket
+    /// is still to be typed. ValueNone where the cursor stands in no such atom.
+    member t.Unclosed: Brackets voption =
+        match t with
+        | CursorOrEmpty -> ValueNone
+        | Row(_, inner, _) -> inner.Unclosed
+        | Bracketed(b, inner, completion) ->
+            match inner.Unclosed with
+            | ValueSome found -> ValueSome found
+            | ValueNone -> if completion.RightCompleted then ValueNone else ValueSome b
+        | ScriptMainSuper(main, _, _) | ScriptMainSub(main, _) -> main.Unclosed
+        | ScriptSuper(_, super, _) -> super.Unclosed
+        | ScriptSub(_, _, sub) -> sub.Unclosed
+        | FracNum(n, _) -> n.Unclosed
+        | FracDen(_, d) -> d.Unclosed
+        | RootNDegree(n, _) -> n.Unclosed
+        | RootNMain(_, x) -> x.Unclosed
+        | Sqrt x -> x.Unclosed
+
+    /// Closes the innermost bracketed atom the cursor stands in with the bracket given, leaving the
+    /// cursor after it. ValueNone where the cursor stands in no bracketed atom at all.
+    member t.CloseBracket(right: Bracket): MACurs voption =
+        let closed(inner: MACurs) = inner.CloseBracket right
+        match t with
+        | CursorOrEmpty -> ValueNone
+        | Row(before, inner, after) ->
+            closed inner |> ValueOption.map (fun inner -> MACurs.MakeRow(before, inner, after))
+        | Bracketed(b, inner, completion) ->
+            match closed inner with
+            | ValueSome inner -> Bracketed(b, inner, completion) |> ValueSome
+            | ValueNone ->
+                MA.Bracketed(Brackets(b.Left, right), inner.ToMA, BracketCompletion.Completed)
+                |> MACurs.AtEnd
+                |> ValueSome
+        | ScriptMainSuper(main, super, sub) ->
+            closed main |> ValueOption.map (fun main -> ScriptMainSuper(main, super, sub))
+        | ScriptMainSub(main, sub) -> closed main |> ValueOption.map (fun main -> ScriptMainSub(main, sub))
+        | ScriptSuper(main, super, sub) ->
+            closed super |> ValueOption.map (fun super -> ScriptSuper(main, super, sub))
+        | ScriptSub(main, super, sub) ->
+            closed sub |> ValueOption.map (fun sub -> ScriptSub(main, super, sub))
+        | FracNum(n, d) -> closed n |> ValueOption.map (fun n -> FracNum(n, d))
+        | FracDen(n, d) -> closed d |> ValueOption.map (fun d -> FracDen(n, d))
+        | RootNDegree(n, x) -> closed n |> ValueOption.map (fun n -> RootNDegree(n, x))
+        | RootNMain(n, x) -> closed x |> ValueOption.map (fun x -> RootNMain(n, x))
+        | Sqrt x -> closed x |> ValueOption.map (fun x -> Sqrt x)
+
     /// Adds an MACurs naively
     member t.AddMACurs(addition: MACurs): MACurs =
         match t with
