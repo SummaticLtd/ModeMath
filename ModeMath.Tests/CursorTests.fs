@@ -97,36 +97,23 @@ let private editing =
                 [ "x", "x"; "xy", "xy"; "q1", "q1" ],
                 fun s -> Assert.Equal(typed s, backspaced ((typed s).AddAlphanumeric 'w'))
             )
-            Test.Sync(
-                "trailingFunctionNameBecomesFunction",
-                fun () -> Assert.Equal(MA.Function MathFunction.Sin, (typed "sin").ToMA)
-            )
-            Test.Sync(
-                "longestFunctionNameWins",
-                fun () -> Assert.Equal(MA.Function MathFunction.Asin, (typed "asin").ToMA)
-            )
-            Test.Sync(
-                "aFunctionGoesOnIntoTheLongerNameItStarts",
-                fun () ->
+            Test.CasesSync(
+                "lettersTypedOutSpellTheFunctionTheyName",
+                [
+                    "aTrailingNameBecomesTheFunction", ("sin", MA.Function MathFunction.Sin)
+                    "theLongestNameWins", ("asin", MA.Function MathFunction.Asin)
                     // cos is a function by its third letter, and has to become cosh on the fourth.
-                    Assert.Equal(MA.Function MathFunction.Cosh, (typed "cosh").ToMA)
-                    Assert.Equal(MA.Function MathFunction.Sinh, (typed "sinh").ToMA)
-                    Assert.Equal(MA.Function MathFunction.Tanh, (typed "tanh").ToMA)
-            )
-            Test.Sync(
-                "aLetterThatSpellsNoLongerNameIsLeftBesideTheFunction",
-                fun () ->
-                    Assert.Equal(
-                        MA.Row2(MA.Function MathFunction.Cos, MA.Char 'x'),
-                        (typed "cosx").ToMA)
-                    Assert.Equal(
-                        MA.Row(arr [ MA.Function MathFunction.Cos; MA.Char 'e'; MA.Char 'c' ]),
-                        (typed "cosec").ToMA)
-            )
-            Test.Sync(
-                "functionNameRecognisedOnlyAtEndOfLetterRun",
-                fun () ->
-                    Assert.Equal(MA.Row2(MA.Char '2', MA.Function MathFunction.Cos), (typed "2cos").ToMA)
+                    "aFunctionGoesOnIntoTheLongerNameItStarts", ("cosh", MA.Function MathFunction.Cosh)
+                    "andSoForTheOtherTwo", ("sinh", MA.Function MathFunction.Sinh)
+                    "andTheThird", ("tanh", MA.Function MathFunction.Tanh)
+                    "aLetterSpellingNoLongerNameIsLeftBesideIt",
+                    ("cosx", MA.Row2(MA.Function MathFunction.Cos, MA.Char 'x'))
+                    "andSoIsARunOfThem",
+                    ("cosec", MA.Row(arr [ MA.Function MathFunction.Cos; MA.Char 'e'; MA.Char 'c' ]))
+                    "aNameIsReadOnlyAtTheEndOfARunOfLetters",
+                    ("2cos", MA.Row2(MA.Char '2', MA.Function MathFunction.Cos))
+                ],
+                fun (letters, expected) -> Assert.Equal(expected, (typed letters).ToMA, letters)
             )
             Test.Sync(
                 "backspaceAtStartOfDenominatorDissolvesFraction",

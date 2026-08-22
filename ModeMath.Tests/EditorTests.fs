@@ -19,424 +19,197 @@ let private moved(direction: Direction, editor: Editor) =
     | ValueSome moved -> moved
     | ValueNone -> failwith $"the cursor could not move {direction}"
 
+/// What one key does, so that a case is written as the keys pressed rather than the calls made.
+/// The arrows are < and >, backspace and delete the marks on their own keys.
+let private pressed(editor: Editor, key: char) =
+    let stepped(step: Editor voption) =
+        match step with
+        | ValueSome stepped -> stepped
+        | ValueNone -> failwith $"{key} had nothing to do"
+    match key with
+    | '(' -> editor.InsertBracket(Brackets.Matching Bracket.Normal)
+    | '[' -> editor.InsertBracket(Brackets.Matching Bracket.Square)
+    | ')' -> editor.CloseBracket Bracket.Normal
+    | ']' -> editor.CloseBracket Bracket.Square
+    | '|' -> editor.InsertBar Bracket.Line
+    | '/' -> editor.InsertFraction
+    | '\u221A' -> editor.InsertSqrt
+    | '^' -> editor.InsertSuperscript
+    | '_' -> editor.InsertSubscript
+    // The cursor put back at the start, as opening the formula afresh does.
+    | '↖' -> opened editor.Formula
+    | '<' -> moved(Direction.Left, editor)
+    | '>' -> moved(Direction.Right, editor)
+    | '\u232B' -> stepped editor.BackSpace
+    | '\u2326' -> stepped editor.Delete
+    | c -> typing(editor, c)
+
+/// The formula the keys leave behind, starting from nothing.
+let private pressing(keys: string) =
+    keys |> Seq.fold (fun editor key -> pressed(editor, key)) (opened MA.Empty)
+
+/// A formula written out for a test to compare against, a bracket still waiting for its pair
+/// marked with the ~ it is drawn faint by.
+let rec private spell(ma: MA) =
+    match ma with
+    | MA.Row elements -> elements |> Seq.map spell |> String.concat ""
+    | MA.Char c -> string c
+    | MA.Function f -> $"fn{{{MathFunctions.name f}}}"
+    | MA.Frac(numerator, denominator) -> $"frac{{{spell numerator}}}{{{spell denominator}}}"
+    | MA.Sqrt x -> $"sqrt{{{spell x}}}"
+    | MA.ScriptSuper(main, super, ValueNone) -> $"{carrying main}^{{{spell super}}}"
+    | MA.ScriptSuper(main, super, ValueSome sub) ->
+        $"{carrying main}^{{{spell super}}}_{{{spell sub}}}"
+    | MA.ScriptSub(main, sub) -> $"{carrying main}_{{{spell sub}}}"
+    | MA.Bracketed(brackets, inner, completion) ->
+        let side(bracket: Bracket, opening: bool, completed: bool) =
+            let drawn =
+                match bracket, opening with
+                | Bracket.Normal, true -> "("
+                | Bracket.Normal, false -> ")"
+                | Bracket.Square, true -> "["
+                | Bracket.Square, false -> "]"
+                | Bracket.Line, _ -> "|"
+                | other, _ -> failwith $"the tests cannot spell {other}"
+            if completed then drawn else $"~{drawn}~"
+        side(brackets.Left, true, completion.LeftCompleted)
+        + spell inner
+        + side(brackets.Right, false, completion.RightCompleted)
+    | other -> failwith $"the tests cannot spell {other}"
+
+/// What a script goes on, braced where it is more than the one atom, so that {ab}^2 is not read
+/// as a^2 beside b.
+and private carrying(ma: MA) =
+    match ma with
+    | MA.Row elements when elements.Length = 1 -> carrying elements.[0]
+    | MA.Row _ | MA.ScriptSuper _ | MA.ScriptSub _ -> $"{{{spell ma}}}"
+    | _ -> spell ma
+
+/// The formula the keys leave behind, written out.
+let private after(keys: string) = spell (pressing keys).Formula
+
 let private editing =
     TestList(
         "Editing",
-        [   Test.Sync(
-                "typingBuildsTheFormulaTyped",
-                fun () -> Assert.Equal(MA.String "abc", (typed(opened MA.Empty, "abc")).Formula)
+        [   Test.CasesSync(
+                "theKeysPressedBuildTheFormula",
+                [
+                    "typingBuildsTheFormulaTyped", ("abc", "abc")
+                    "typingAFunctionNameMakesTheFunction", ("sin", "fn{sin}")
+                    "aSquareRootLeavesTheCursorInsideIt", ("\u221Ax", "sqrt{x}")
+                    "backspaceTakesBackWhatWasTyped", ("abc\u232B", "ab")
+                    "deleteTakesBackWhatIsAhead", ("abc<\u2326", "ab")
+                ],
+                fun (keys, expected) -> Assert.Equal(expected, after keys, keys)
             )
-            Test.Sync(
-                "typingAFunctionNameMakesTheFunction",
-                fun () -> Assert.Equal(MA.Function MathFunction.Sin, (typed(opened MA.Empty, "sin")).Formula)
+            Test.CasesSync(
+                "aFractionTakesUpTheTermBeforeIt",
+                [
+                    "withNoTermBeforeItTheCursorStartsInTheNumerator", ("/1", "frac{1}{}")
+                    "aRunOfLettersIsOneTerm", ("ab/c", "frac{ab}{c}")
+                    "aTermDoesNotReachAcrossWhatDividesOne", ("a+b/c", "a+frac{b}{c}")
+                    "aScriptIsOneAtomSoTheWholeOfItIsTakenUp", ("x^2>/c", "frac{x^{2}}{c}")
+                    // Brackets face their neighbours as an opening and a closing atom, but a pair is one.
+                    "aBracketedGroupIsTakenUpWhole", ("(x+1)/c", "frac{(x+1)}{c}")
+                ],
+                fun (keys, expected) -> Assert.Equal(expected, after keys, keys)
+            )
+            Test.CasesSync(
+                "aScriptGoesOnTheAtomBeforeIt",
+                [
+                    "onTheOneAtomBeforeItRatherThanTheTerm", ("ab^2", "ab^{2}")
+                    "aSuperscriptGoesOnWhatTheCursorStandsAfter", ("x^2", "x^{2}")
+                    "aSubscriptJoinsTheSuperscriptTheAtomCarries", ("x^2>_i", "x^{2}_{i}")
+                    "aSuperscriptJoinsTheSubscriptTheAtomCarries", ("x_i>^2", "x^{2}_{i}")
+                    "aSecondSuperscriptGoesIntoTheOneAlreadyThere", ("x^2>^3", "x^{23}")
+                    "aScriptWithNothingBeforeItIsSetOnAnEmptySlot", ("^2", "{}^{2}")
+                ],
+                fun (keys, expected) -> Assert.Equal(expected, after keys, keys)
+            )
+            Test.CasesSync(
+                "aBracketGoesWhereItIsTyped",
+                [
+                    "anOpeningBracketLeavesItsClosingOneToBeTyped", ("abc(d", "abc(d~)~")
+                    "aClosingBracketClosesTheGroupTheCursorStandsIn", ("abc(d)", "abc(d)")
+                    "andTheCursorThenStandsAfterIt", ("abc(d)e", "abc(d)e")
+                    "anOpeningBracketWithNoGroupToOpenTakesWhatIsAfterItIn", ("a+b<<<(", "(a+b~)~")
+                    "andTheCursorThenStandsAtTheStartOfIt", ("a+b<<<(x", "(xa+b~)~")
+                    // The tentative bracket is drawn at the end, but it is typed where it belongs.
+                    "aClosingBracketGoesWhereTheCursorIsInAGroupWaitingForOne", ("(a+b+c<<)", "(a+b)+c")
+                    "andTheCursorThenStandsAfterTheGroup", ("(a+b+c<<)x", "(a+b)x+c")
+                    // The tentative bracket is drawn at the start, but it is typed where it belongs.
+                    "anOpeningBracketGoesWhereTheCursorIsInAGroupWaitingForOne", ("a+b+c)<<<<(", "a+(b+c)")
+                    "andTheCursorThenStandsInsideTheGroup", ("a+b+c)<<<<(x", "a+(xb+c)")
+                    "aClosingBracketNeedNotBeTheOneTheGroupWasOpenedWith", ("[0)", "[0)")
+                    // The cursor stands in the denominator, and the bracket to close is outside it.
+                    "aClosingBracketReachesOutOfASlotToTheGroupAroundIt", ("(1/2)", "(frac{1}{2})")
+                    "aClosingBracketWithNoGroupToCloseTakesWhatIsBeforeItIn", ("abc)", "~(~abc)")
+                    // Only a tentative bracket is still to be placed; a typed one has been.
+                    "aClosingBracketLeavesOneAlreadyTypedWhereItStands", ("(ab)<<)", "(ab)")
+                    "andTheCursorThenStandsAfterThatGroup", ("(ab)<<)x", "(ab)x")
+                    "aClosingBracketNeverWritesOverOneAlreadyThere", ("(xy)<]", "(~[~xy])")
+                    // A group waiting for a bracket cannot be split from a slot inside one of its atoms.
+                    "anOpeningBracketOpensAGroupOfItsOwnFromInsideAnAtomOfOne",
+                    ("1/2>x)<<<<(", "~(~frac{1}{(2~)~}x)")
+                ],
+                fun (keys, expected) -> Assert.Equal(expected, after keys, keys)
+            )
+            Test.CasesSync(
+                "aBracketTypedPastAGroupWaitingForOneIsTheOneItWaitedFor",
+                [
+                    "aClosingBracketPastAGroupWaitingForOne", ("(a+b+c>)", "(a+b+c)")
+                    "theBracketTypedRatherThanTheOneDrawnTentative", ("(a+b+c>]", "(a+b+c]")
+                    "anOpeningBracketBeforeAGroupWaitingForOne", ("a+b+c)\u2196(", "(a+b+c)")
+                    "anythingPutPastAGroupWaitingForItsClosingBracketSettlesIt", ("(a+b+c>+", "(a+b+c)+")
+                    "anythingPutBeforeAGroupWaitingForItsOpeningBracketSettlesIt",
+                    ("a+b+c)\u2196+", "+(a+b+c)")
+                ],
+                fun (keys, expected) -> Assert.Equal(expected, after keys, keys)
+            )
+            Test.CasesSync(
+                "aBarOpensAGroupOrClosesTheOneItStandsIn",
+                [
+                    "theFirstBarOpensAGroup", ("|x", "|x~|~")
+                    "theSecondClosesIt", ("|x|", "|x|")
+                    // The group the cursor stands in is closed, so the bar belongs to the one around it.
+                    "aBarClosesTheGroupWaitingRatherThanOneAlreadyClosed", ("|(xy)<|", "|(xy)|")
+                    "aBarInsideAGroupAlreadyClosedOpensAnother", ("|x|<<|", "||x~|~|")
+                ],
+                fun (keys, expected) -> Assert.Equal(expected, after keys, keys)
             )
             Test.Sync(
                 "aCharacterGoesInWhereTheCursorWasPutByAClick",
                 fun () ->
-                    let editor = typed(opened MA.Empty, "ac")
-                    let placed = editor.Placed
+                    let editor = pressing "ac"
                     let midway =
-                        match placed.Pma with
+                        match editor.Placed.Pma with
                         | PlacedMA.Row children -> children.[1].X
                         | other -> failwith $"not a row: {other}"
-                    let clicked = editor.Click(midway, 0f<px>)
-                    Assert.Equal(MA.String "abc", typing(clicked, 'b').Formula)
-            )
-            Test.Sync(
-                "aFractionWithNoTermBeforeItLeavesTheCursorInItsNumerator",
-                fun () ->
-                    let editor = (opened MA.Empty).InsertFraction
-                    Assert.Equal(MA.Frac(MA.Char '1', MA.Empty), typing(editor, '1').Formula)
-            )
-            Test.Sync(
-                "aFractionTakesTheTermBeforeItUpIntoItsNumerator",
-                fun () ->
-                    let divided(before: string) =
-                        (typed(typed(opened MA.Empty, before).InsertFraction, "c")).Formula
-                    Assert.Equal(MA.Frac(MA.String "ab", MA.Char 'c'), divided "ab", "ab")
-                    Assert.Equal(
-                        MA.Row(arr [ MA.Char 'a'; MA.Char '+'; MA.Frac(MA.Char 'b', MA.Char 'c') ]),
-                        divided "a+b",
-                        "a term does not reach across what divides one")
-                    let script = MA.ScriptSuper(MA.Char 'x', MA.Char '2', ValueNone)
-                    Assert.Equal(
-                        MA.Frac(script, MA.Char 'c'),
-                        (typed((Editor.AtEnd(layout, script)).InsertFraction, "c")).Formula,
-                        "a script is one atom, so the whole of it is taken up")
-            )
-            Test.Sync(
-                "aScriptGoesOnTheOneAtomBeforeItRatherThanTheTerm",
-                fun () ->
-                    let editor = typed(opened MA.Empty, "ab").InsertSuperscript
-                    Assert.Equal(
-                        MA.Row(arr [ MA.Char 'a'; MA.ScriptSuper(MA.Char 'b', MA.Char '2', ValueNone) ]),
-                        (typed(editor, "2")).Formula)
-            )
-            Test.Sync(
-                "aFractionTakesUpABracketedGroupWhole",
-                fun () ->
-                    // Brackets face their neighbours as an opening and a closing atom, but a pair is one.
-                    let bracketed = MA.RoundBracket(MA.String "x+1")
-                    Assert.Equal(
-                        MA.Frac(bracketed, MA.Char 'c'),
-                        (typed((Editor.AtEnd(layout, bracketed)).InsertFraction, "c")).Formula)
-            )
-            Test.Sync(
-                "anOpeningBracketLeavesItsClosingOneToBeTyped",
-                fun () ->
-                    let editor = (typed(opened MA.Empty, "abc")).InsertBracket(Brackets.Matching Bracket.Normal)
-                    Assert.Equal(
-                        MA.Row(
-                            arr [
-                                MA.String "abc"
-                                MA.Bracketed(
-                                    Brackets.Matching Bracket.Normal,
-                                    MA.Char 'd',
-                                    BracketCompletion.Left)
-                            ]).Flatten,
-                        (typed(editor, "d")).Formula)
-            )
-            Test.Sync(
-                "aClosingBracketClosesTheGroupTheCursorStandsInAndStandsAfterIt",
-                fun () ->
-                    let editor = (typed(opened MA.Empty, "abc")).InsertBracket(Brackets.Matching Bracket.Normal)
-                    let closed = (typed(editor, "d")).CloseBracket Bracket.Normal
-                    Assert.Equal(
-                        MA.Row(
-                            arr [
-                                MA.String "abc"
-                                MA.RoundBracket(MA.Char 'd')
-                            ]).Flatten,
-                        closed.Formula,
-                        "the group was not closed")
-                    Assert.Equal(
-                        MA.Row(
-                            arr [
-                                MA.String "abc"
-                                MA.RoundBracket(MA.Char 'd')
-                                MA.Char 'e'
-                            ]).Flatten,
-                        typing(closed, 'e').Formula,
-                        "the cursor did not stand after the group")
-            )
-            Test.Sync(
-                "anOpeningBracketWithNoGroupToOpenTakesWhatIsAfterItIn",
-                fun () ->
-                    let mutable start = typed(opened MA.Empty, "a+b")
-                    for _ in 1 .. 3 do
-                        start <- moved(Direction.Left, start)
-                    let opening = start.InsertBracket(Brackets.Matching Bracket.Normal)
-                    Assert.Equal(
-                        MA.Bracketed(
-                            Brackets.Matching Bracket.Normal,
-                            MA.String "a+b",
-                            BracketCompletion.Left),
-                        opening.Formula,
-                        "the group did not take in what was after the cursor")
-                    Assert.Equal(
-                        MA.Bracketed(
-                            Brackets.Matching Bracket.Normal,
-                            MA.String "xa+b",
-                            BracketCompletion.Left),
-                        typing(opening, 'x').Formula,
-                        "the cursor did not stand at the start of the group")
-            )
-            Test.Sync(
-                "anOpeningBracketGoesWhereTheCursorIsInAGroupWaitingForOne",
-                fun () ->
-                    // The tentative bracket is drawn at the start, but it is typed where it belongs.
-                    let stray = (typed(opened MA.Empty, "a+b+c")).CloseBracket Bracket.Normal
-                    let mutable before = stray
-                    for _ in 1 .. 4 do
-                        before <- moved(Direction.Left, before)
-                    let opening = before.InsertBracket(Brackets.Matching Bracket.Normal)
-                    Assert.Equal(
-                        MA.Row(
-                            arr [ MA.Char 'a'; MA.Char '+'; MA.RoundBracket(MA.String "b+c") ]).Flatten,
-                        opening.Formula,
-                        "the group did not take its opening bracket at the cursor")
-                    Assert.Equal(
-                        MA.Row(
-                            arr [ MA.Char 'a'; MA.Char '+'; MA.RoundBracket(MA.String "xb+c") ]).Flatten,
-                        typing(opening, 'x').Formula,
-                        "the cursor did not stand inside the group it opened")
-            )
-            Test.Sync(
-                "anOpeningBracketOpensAGroupOfItsOwnFromInsideAnAtomOfOne",
-                fun () ->
-                    // The group is waiting for a bracket, but a slot inside one of its atoms cannot
-                    // be split from it, so a group is opened in that slot instead.
-                    let divided = typed((typed(opened MA.Empty, "1")).InsertFraction, "2")
-                    let group = (typed(moved(Direction.Right, divided), "x")).CloseBracket Bracket.Normal
-                    let mutable inside = group
-                    for _ in 1 .. 4 do
-                        inside <- moved(Direction.Left, inside)
-                    let opened = inside.InsertBracket(Brackets.Matching Bracket.Normal)
-                    Assert.Equal(
-                        MA.Bracketed(
-                            Brackets.Matching Bracket.Normal,
-                            MA.Row2(
-                                MA.Frac(
-                                    MA.Char '1',
-                                    MA.Bracketed(
-                                        Brackets.Matching Bracket.Normal,
-                                        MA.Char '2',
-                                        BracketCompletion.Left)),
-                                MA.Char 'x'),
-                            BracketCompletion.Right),
-                        opened.Formula)
-            )
-            Test.Sync(
-                "aClosingBracketGoesWhereTheCursorIsInAGroupWaitingForOne",
-                fun () ->
-                    // The tentative bracket is drawn at the end, but it is typed where it belongs.
-                    let waiting =
-                        typed((opened MA.Empty).InsertBracket(Brackets.Matching Bracket.Normal), "a+b+c")
-                    let mutable before = waiting
-                    for _ in 1 .. 2 do
-                        before <- moved(Direction.Left, before)
-                    let closed = before.CloseBracket Bracket.Normal
-                    Assert.Equal(
-                        MA.Row(
-                            arr [ MA.RoundBracket(MA.String "a+b"); MA.Char '+'; MA.Char 'c' ]).Flatten,
-                        closed.Formula,
-                        "the group did not take its closing bracket at the cursor")
-                    Assert.Equal(
-                        MA.Row(
-                            arr [
-                                MA.RoundBracket(MA.String "a+b")
-                                MA.Char 'x'
-                                MA.Char '+'
-                                MA.Char 'c'
-                            ]).Flatten,
-                        typing(closed, 'x').Formula,
-                        "the cursor did not stand after the group")
-            )
-            Test.Sync(
-                "aClosingBracketLeavesOneAlreadyTypedWhereItStands",
-                fun () ->
-                    // Only a tentative bracket is still to be placed; a typed one has been.
-                    let group = MA.RoundBracket(MA.String "ab")
-                    let mutable inside = opened group
-                    for _ in 1 .. 2 do
-                        inside <- moved(Direction.Right, inside)
-                    let closed = inside.CloseBracket Bracket.Normal
-                    Assert.Equal(group, closed.Formula, "the closing bracket moved to the cursor")
-                    Assert.Equal(
-                        MA.Row2(group, MA.Char 'x'),
-                        typing(closed, 'x').Formula,
-                        "the cursor did not stand after the group")
-            )
-            Test.Sync(
-                "aClosingBracketNeverWritesOverOneAlreadyThere",
-                fun () ->
-                    let round = MA.RoundBracket(MA.String "xy")
-                    let mutable inside = opened round
-                    for _ in 1 .. 3 do
-                        inside <- moved(Direction.Right, inside)
-                    Assert.Equal(
-                        MA.RoundBracket(
-                            MA.Bracketed(
-                                Brackets.Matching Bracket.Square,
-                                MA.String "xy",
-                                BracketCompletion.Right)),
-                        (inside.CloseBracket Bracket.Square).Formula,
-                        "the closing bracket already there was written over")
-                    // The group the cursor stands in is closed, so the bar belongs to the one around it.
-                    let bars = MA.Bracketed(Brackets.Matching Bracket.Line, round, BracketCompletion.Left)
-                    let mutable barred = opened bars
-                    for _ in 1 .. 3 do
-                        barred <- moved(Direction.Right, barred)
-                    Assert.Equal(
-                        MA.Bracketed(Brackets.Matching Bracket.Line, round, BracketCompletion.Completed),
-                        (barred.InsertBar Bracket.Line).Formula,
-                        "the bar closed the group it stood in rather than the one waiting")
-            )
-            Test.Sync(
-                "aBracketTypedPastAGroupWaitingForOneIsTheOneItWaitedFor",
-                fun () ->
-                    let group = MA.String "a+b+c"
-                    let waiting =
-                        moved(
-                            Direction.Right,
-                            typed((opened MA.Empty).InsertBracket(Brackets.Matching Bracket.Normal), "a+b+c"))
-                    Assert.Equal(
-                        MA.RoundBracket group,
-                        (waiting.CloseBracket Bracket.Normal).Formula,
-                        "a closing bracket past a group waiting for one")
-                    Assert.Equal(
-                        MA.Bracketed(
-                            Brackets(Bracket.Normal, Bracket.Square),
-                            group,
-                            BracketCompletion.Completed),
-                        (waiting.CloseBracket Bracket.Square).Formula,
-                        "the bracket typed rather than the one drawn tentative")
-                    let stray = opened((typed(opened MA.Empty, "a+b+c")).CloseBracket(Bracket.Normal).Formula)
-                    Assert.Equal(
-                        MA.RoundBracket group,
-                        (stray.InsertBracket(Brackets.Matching Bracket.Normal)).Formula,
-                        "an opening bracket before a group waiting for one")
-            )
-            Test.Sync(
-                "anythingPutPastATentativeBracketSettlesIt",
-                fun () ->
-                    let group = MA.String "a+b+c"
-                    let waiting =
-                        moved(
-                            Direction.Right,
-                            typed((opened MA.Empty).InsertBracket(Brackets.Matching Bracket.Normal), "a+b+c"))
-                    Assert.Equal(
-                        MA.Row2(MA.RoundBracket group, MA.Char '+'),
-                        typing(waiting, '+').Formula,
-                        "a group waiting for its closing bracket")
-                    let stray = opened((typed(opened MA.Empty, "a+b+c")).CloseBracket(Bracket.Normal).Formula)
-                    Assert.Equal(
-                        MA.Row2(MA.Char '+', MA.RoundBracket group),
-                        typing(stray, '+').Formula,
-                        "a group waiting for its opening bracket")
-            )
-            Test.Sync(
-                "aClosingBracketNeedNotBeTheOneTheGroupWasOpenedWith",
-                fun () ->
-                    let editor = (opened MA.Empty).InsertBracket(Brackets.Matching Bracket.Square)
-                    let closed = (typed(editor, "0")).CloseBracket Bracket.Normal
-                    Assert.Equal(
-                        MA.Bracketed(
-                            Brackets(Bracket.Square, Bracket.Normal),
-                            MA.Char '0',
-                            BracketCompletion.Completed),
-                        closed.Formula)
-            )
-            Test.Sync(
-                "aClosingBracketReachesOutOfASlotToTheGroupAroundIt",
-                fun () ->
-                    // The cursor stands in the denominator, and the bracket to close is outside it.
-                    let editor = (opened MA.Empty).InsertBracket(Brackets.Matching Bracket.Normal)
-                    let divided = typed((typed(editor, "1")).InsertFraction, "2")
-                    Assert.Equal(
-                        MA.RoundBracket(MA.Frac(MA.Char '1', MA.Char '2')),
-                        (divided.CloseBracket Bracket.Normal).Formula)
-            )
-            Test.Sync(
-                "aClosingBracketWithNoGroupToCloseTakesWhatIsBeforeItIn",
-                fun () ->
-                    let closed = (typed(opened MA.Empty, "abc")).CloseBracket Bracket.Normal
-                    Assert.Equal(
-                        MA.Bracketed(
-                            Brackets.Matching Bracket.Normal,
-                            MA.String "abc",
-                            BracketCompletion.Right),
-                        closed.Formula)
-            )
-            Test.Sync(
-                "aBarClosesTheGroupItStandsInRatherThanOpeningAnother",
-                fun () ->
-                    let opening = (opened MA.Empty).InsertBar Bracket.Line
-                    let filled = typed(opening, "x")
-                    Assert.Equal(
-                        MA.Bracketed(Brackets.Matching Bracket.Line, MA.Char 'x', BracketCompletion.Left),
-                        filled.Formula,
-                        "the first bar did not open a group")
-                    Assert.Equal(
-                        MA.Bracketed(
-                            Brackets.Matching Bracket.Line,
-                            MA.Char 'x',
-                            BracketCompletion.Completed),
-                        (filled.InsertBar Bracket.Line).Formula,
-                        "the second bar did not close it")
-            )
-            Test.Sync(
-                "aBarInsideAGroupAlreadyClosedOpensAnotherRatherThanClosingItTwice",
-                fun () ->
-                    let bars = MA.Bracketed(Brackets.Matching Bracket.Line, MA.Char 'x', BracketCompletion.Completed)
-                    let inside = moved(Direction.Right, opened bars)
-                    let barred = (inside.InsertBar Bracket.Line).Formula
-                    Assert.Equal(
-                        MA.Bracketed(
-                            Brackets.Matching Bracket.Line,
-                            MA.Bracketed(
-                                Brackets.Matching Bracket.Line,
-                                MA.Char 'x',
-                                BracketCompletion.Left),
-                            BracketCompletion.Completed),
-                        barred)
+                    Assert.Equal("abc", spell (typing(editor.Click(midway, 0f<px>), 'b')).Formula)
             )
             Test.Sync(
                 "aCharacterTheFontCannotDrawIsNotTypedAtAll",
                 fun () ->
                     // Move gives the key back the same way where there is nowhere to go.
-                    let editor = typed(opened MA.Empty, "ab")
-                    Assert.Equal(ValueNone, editor.Type '☃', "a key with no glyph was taken in")
-                    Assert.Equal(MA.String "abc", (typing(editor, 'c')).Formula, "an ordinary key was not")
-            )
-            Test.Sync(
-                "aSquareRootLeavesTheCursorInsideIt",
-                fun () ->
-                    let editor = (opened MA.Empty).InsertSqrt
-                    Assert.Equal(MA.Sqrt(MA.Char 'x'), typing(editor, 'x').Formula)
-            )
-            Test.Sync(
-                "aSuperscriptGoesOnWhatTheCursorStandsAfter",
-                fun () ->
-                    let editor = (typed(opened MA.Empty, "x")).InsertSuperscript
-                    Assert.Equal(
-                        MA.ScriptSuper(MA.Char 'x', MA.Char '2', ValueNone),
-                        typing(editor, '2').Formula)
-            )
-            Test.Sync(
-                "aSubscriptJoinsTheSuperscriptTheAtomAlreadyCarries",
-                fun () ->
-                    let squared = Editor.AtEnd(layout, MA.ScriptSuper(MA.Char 'x', MA.Char '2', ValueNone))
-                    Assert.Equal(
-                        MA.ScriptSuper(MA.Char 'x', MA.Char '2', ValueSome(MA.Char 'i')),
-                        typing(squared.InsertSubscript, 'i').Formula)
-            )
-            Test.Sync(
-                "aSuperscriptJoinsTheSubscriptTheAtomAlreadyCarries",
-                fun () ->
-                    let indexed = Editor.AtEnd(layout, MA.ScriptSub(MA.Char 'x', MA.Char 'i'))
-                    Assert.Equal(
-                        MA.ScriptSuper(MA.Char 'x', MA.Char '2', ValueSome(MA.Char 'i')),
-                        typing(indexed.InsertSuperscript, '2').Formula)
-            )
-            Test.Sync(
-                "aSecondSuperscriptGoesIntoTheOneAlreadyThere",
-                fun () ->
-                    let squared = Editor.AtEnd(layout, MA.ScriptSuper(MA.Char 'x', MA.Char '2', ValueNone))
-                    Assert.Equal(
-                        MA.ScriptSuper(MA.Char 'x', MA.String "23", ValueNone),
-                        typing(squared.InsertSuperscript, '3').Formula)
-            )
-            Test.Sync(
-                "aScriptWithNothingBeforeItIsSetOnAnEmptySlot",
-                fun () ->
-                    let editor = (opened MA.Empty).InsertSuperscript
-                    Assert.Equal(
-                        MA.ScriptSuper(MA.Empty, MA.Char '2', ValueNone),
-                        typing(editor, '2').Formula)
+                    let editor = pressing "ab"
+                    Assert.Equal(ValueNone, editor.Type '\u2603', "a key with no glyph was taken in")
+                    Assert.Equal("abc", after "abc", "an ordinary key was not")
             )
             Test.Sync(
                 "aFormulaPutInAtTheCursorIsLeftBehindIt",
                 fun () ->
                     let editor = (opened MA.Empty).Insert(MA.String "xy")
-                    Assert.Equal(MA.String "xyz", typing(editor, 'z').Formula)
-            )
-            Test.Sync(
-                "backspaceTakesBackWhatWasTyped",
-                fun () ->
-                    match (typed(opened MA.Empty, "abc")).BackSpace with
-                    | ValueSome editor -> Assert.Equal(MA.String "ab", editor.Formula)
-                    | ValueNone -> Assert.Fail "backspace found nothing to take back"
+                    Assert.Equal("xyz", spell (typing(editor, 'z')).Formula)
             )
             Test.Sync(
                 "aClickAtAPointThatIsNoNumberKeepsTheFormula",
                 fun () ->
                     // A caller working the point out through a scale of zero must not lose the lot.
-                    let editor = typed(opened MA.Empty, "ab")
+                    let editor = pressing "ab"
                     let nowhere = System.Single.NaN * 1f<px>
-                    Assert.Equal(MA.String "zab", (typing(editor.Click(nowhere, nowhere), 'z')).Formula)
+                    Assert.Equal("zab", spell (typing(editor.Click(nowhere, nowhere), 'z')).Formula)
                     let far = System.Single.PositiveInfinity * 1f<px>
-                    Assert.Equal(MA.String "zab", (typing(editor.Click(far, 0f<px>), 'z')).Formula)
+                    Assert.Equal("zab", spell (typing(editor.Click(far, 0f<px>), 'z')).Formula)
             )
             Test.Sync(
                 "aKeyWithNothingToDoIsPassedOn",
@@ -444,8 +217,7 @@ let private editing =
                     let empty = opened MA.Empty
                     Assert.True(empty.BackSpace.IsNone, "backspace on an empty formula")
                     Assert.True(empty.Delete.IsNone, "delete on an empty formula")
-                    let atTheEnd = typed(opened MA.Empty, "ab")
-                    Assert.True((atTheEnd.Move Direction.Right).IsNone, "right at the end")
+                    Assert.True((pressing "ab").Move(Direction.Right).IsNone, "right at the end")
                     Assert.True((opened(MA.String "ab")).Move(Direction.Left).IsNone, "left at the start")
             )
         ]
