@@ -26,7 +26,6 @@ type private SkiaDrawing(bounds: Rect, draw: SKCanvas -> unit) =
                 draw lease.SkCanvas
             | Null -> ()
 
-/// The formula being edited, drawn at a margin from the top left and taking the keys typed at it.
 /// What a character typed stands for, which is the key itself where it builds no atom.
 module private Character =
     let key(character: char) =
@@ -43,6 +42,7 @@ module private Character =
         | '|' -> MathKey.Bar
         | character -> MathKey.Character character
 
+/// The formula being edited, drawn at a margin from the top left and taking the keys typed at it.
 type FormulaView() as t =
     inherit Control()
 
@@ -106,8 +106,7 @@ type FormulaView() as t =
         match e.Text with
         | NonNull text ->
             for character in text do
-                t.Press(Character.key character) |> ignore
-            e.Handled <- true
+                if t.Press(Character.key character) then e.Handled <- true
         | Null -> ()
 
     override _.OnKeyDown(e: KeyEventArgs) =
