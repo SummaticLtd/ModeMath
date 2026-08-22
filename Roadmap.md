@@ -15,7 +15,9 @@ bracket or script. What is left:
 
 ## 2. LaTeX
 
-`Latex.Read` reads a math-mode string into an `MA`. Writing one back out is still to come.
+`Latex.Read` reads a math-mode string into an `MA` and `Latex.Write` writes one back out, every
+argument in braces. Every one of the 17,085 formulas the content library reads is written back out
+and read again as the same formula.
 
 It reads and draws 99.2% of the 17,220 distinct formulas in the SummaticApp content library.
 Every formula it reads, it draws: a character the font cannot draw is refused where it stands, so
@@ -24,7 +26,7 @@ that laying a formula out cannot fail. `Editor.Type` turns such a key down the s
 
 | Turned down | Formulas | Why |
 |---|---|---|
-| Alignment markers outside any environment | 100 | A house convention rather than LaTeX |
+| Alignment markers outside any environment | 100 | A house convention rather than LaTeX, and not one to read |
 | Malformed content | 31 | A trailing `\`, `s_{stop}_{b}`, `\l(`, an unclosed group, `$$` |
 | `\right/` | 2 | A delimiter that is not a bracket |
 | `\lceil` | 1 | Needs a ceiling bracket |
