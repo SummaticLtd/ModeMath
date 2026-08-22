@@ -587,13 +587,12 @@ type internal MACurs =
         | RootNMain(n, x) -> RootNMain(n, again x)
         | Sqrt x -> Sqrt(again x)
 
-    /// The atoms before the cursor in the slot it stands among, and that slot from the cursor on.
+    /// The atoms before and after the cursor in the slot it stands among.
     /// ValueNone where the cursor stands inside an atom rather than among them.
-    member t.Split: struct (ImmutableArray<MA> * MACurs) voption =
+    member t.Split: struct (ImmutableArray<MA> * ImmutableArray<MA>) voption =
         match t with
-        | CursorOrEmpty -> ValueSome(struct (ImmutableArray.Empty, CursorOrEmpty))
-        | Row(before, CursorOrEmpty, after) ->
-            ValueSome(struct (before, MACurs.MakeRow(ImmutableArray.Empty, CursorOrEmpty, after)))
+        | CursorOrEmpty -> ValueSome(struct (ImmutableArray.Empty, ImmutableArray.Empty))
+        | Row(before, CursorOrEmpty, after) -> ValueSome(struct (before, after))
         | Row _ | ScriptMainSuper _ | ScriptMainSub _ | ScriptSuper _ | ScriptSub _ | FracNum _
         | FracDen _ | Bracketed _ | RootNDegree _ | RootNMain _ | Sqrt _ -> ValueNone
 
@@ -611,10 +610,13 @@ type internal MACurs =
             | ValueNone ->
                 match (if completion.LeftCompleted then ValueNone else inner.Split) with
                 | ValueNone -> ValueNone
-                | ValueSome(struct (before, rest)) ->
+                | ValueSome(struct (before, after)) ->
                     MACurs.MakeRow(
                         before,
-                        Bracketed(Brackets(left, b.Right), rest, BracketCompletion.Completed),
+                        Bracketed(
+                            Brackets(left, b.Right),
+                            MACurs.MakeRow(ImmutableArray.Empty, CursorOrEmpty, after),
+                            BracketCompletion.Completed),
                         ImmutableArray.Empty)
                     |> ValueSome
         | ScriptMainSuper(main, super, sub) ->
@@ -642,9 +644,15 @@ type internal MACurs =
             match closed inner with
             | ValueSome inner -> Bracketed(b, inner, completion) |> ValueSome
             | ValueNone ->
-                MA.Bracketed(Brackets(b.Left, right), inner.ToMA, BracketCompletion.Completed)
-                |> MACurs.AtEnd
-                |> ValueSome
+                let closing(inner: MA) = MA.Bracketed(Brackets(b.Left, right), inner, BracketCompletion.Completed)
+                match (if completion.RightCompleted then ValueNone else inner.Split) with
+                | ValueNone -> closing(inner.ToMA) |> MACurs.AtEnd |> ValueSome
+                | ValueSome(struct (before, after)) ->
+                    MACurs.MakeRow(
+                        ImmutableArray.Create(closing(MA.OfElements before)),
+                        CursorOrEmpty,
+                        after)
+                    |> ValueSome
         | ScriptMainSuper(main, super, sub) ->
             closed main |> ValueOption.map (fun main -> ScriptMainSuper(main, super, sub))
         | ScriptMainSub(main, sub) -> closed main |> ValueOption.map (fun main -> ScriptMainSub(main, sub))

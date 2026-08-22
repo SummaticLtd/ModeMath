@@ -182,6 +182,47 @@ let private editing =
                         opened.Formula)
             )
             Test.Sync(
+                "aClosingBracketGoesWhereTheCursorIsInAGroupWaitingForOne",
+                fun () ->
+                    // The tentative bracket is drawn at the end, but it is typed where it belongs.
+                    let waiting =
+                        typed((opened MA.Empty).InsertBracket(Brackets.Matching Bracket.Normal), "a+b+c")
+                    let mutable before = waiting
+                    for _ in 1 .. 2 do
+                        before <- moved(Direction.Left, before)
+                    let closed = before.CloseBracket Bracket.Normal
+                    Assert.Equal(
+                        MA.Row(
+                            arr [ MA.RoundBracket(MA.String "a+b"); MA.Char '+'; MA.Char 'c' ]).Flatten,
+                        closed.Formula,
+                        "the group did not take its closing bracket at the cursor")
+                    Assert.Equal(
+                        MA.Row(
+                            arr [
+                                MA.RoundBracket(MA.String "a+b")
+                                MA.Char 'x'
+                                MA.Char '+'
+                                MA.Char 'c'
+                            ]).Flatten,
+                        (closed.Type 'x').Formula,
+                        "the cursor did not stand after the group")
+            )
+            Test.Sync(
+                "aClosingBracketLeavesOneAlreadyTypedWhereItStands",
+                fun () ->
+                    // Only a tentative bracket is still to be placed; a typed one has been.
+                    let group = MA.RoundBracket(MA.String "ab")
+                    let mutable inside = opened group
+                    for _ in 1 .. 2 do
+                        inside <- moved(Direction.Right, inside)
+                    let closed = inside.CloseBracket Bracket.Normal
+                    Assert.Equal(group, closed.Formula, "the closing bracket moved to the cursor")
+                    Assert.Equal(
+                        MA.Row2(group, MA.Char 'x'),
+                        (closed.Type 'x').Formula,
+                        "the cursor did not stand after the group")
+            )
+            Test.Sync(
                 "aClosingBracketNeedNotBeTheOneTheGroupWasOpenedWith",
                 fun () ->
                     let editor = (opened MA.Empty).InsertBracket(Brackets.Matching Bracket.Square)
