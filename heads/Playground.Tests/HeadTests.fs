@@ -14,12 +14,12 @@ open Playground
 /// Headless Avalonia over the real Skia, which is what makes a captured frame worth counting.
 let private started =
     lazy
-        (AppBuilder
+        AppBuilder
             .Configure<App>()
             .UseSkia()
             .UseHeadless(AvaloniaHeadlessPlatformOptions(UseHeadlessDrawing = false))
             .SetupWithoutStarting()
-         |> ignore)
+        |> ignore
 
 let private size = 48f<px>
 
@@ -45,8 +45,8 @@ let private showing(view: FormulaView, formula: MA) =
 
 let private captured(window: Window) =
     match window.CaptureRenderedFrame() with
-    | null -> failwith "the head rendered no frame"
-    | frame -> frame
+    | NonNull frame -> frame
+    | Null -> failwith "the head rendered no frame"
 
 /// The dark pixels below the entry row, which is where the formula and nothing else is drawn.
 let private ink(frame: WriteableBitmap) =
@@ -62,6 +62,10 @@ let private ink(frame: WriteableBitmap) =
             if int pixels.[at] + int pixels.[at + 1] + int pixels.[at + 2] < 200 then dark <- dark + 1
     dark
 
+/// One key pressed, named the way a headless window wants it.
+let private pressing(window: Window, key: Key, physical: PhysicalKey) =
+    window.KeyPress(key, RawInputModifiers.None, physical, "")
+
 let private expect(condition: bool, complaint: string) =
     if not condition then failwith complaint
 
@@ -76,6 +80,34 @@ let private drawing =
                     use frame = captured window
                     let drawn = ink frame
                     expect(drawn > 300, $"only {drawn} dark pixels, so the formula was not drawn")
+            )
+            Test.Sync(
+                "theKeysThatBuildAnAtomAreTakenBeforeTheFormulaSeesThem",
+                fun () ->
+                    let struct (window, view) = opened()
+                    showing(view, MA.Empty)
+                    view.Focus() |> ignore
+                    window.KeyTextInput "a"
+                    window.KeyTextInput "/"
+                    window.KeyTextInput "b"
+                    Dispatcher.UIThread.RunJobs()
+                    let expected = MA.Row2(MA.Char 'a', MA.Frac(MA.Char 'b', MA.Empty))
+                    expect(view.Formula = expected, $"typing a/b gave {view.Formula}")
+            )
+            Test.Sync(
+                "theArrowsAndTheDeletingKeysReachTheCursorThroughAvalonia",
+                fun () ->
+                    let struct (window, view) = opened()
+                    showing(view, MA.String "ab")
+                    view.Focus() |> ignore
+                    pressing(window, Key.Left, PhysicalKey.ArrowLeft)
+                    window.KeyTextInput "z"
+                    Dispatcher.UIThread.RunJobs()
+                    expect(view.Formula = MA.String "azb", $"left then z gave {view.Formula}")
+                    pressing(window, Key.Back, PhysicalKey.Backspace)
+                    pressing(window, Key.Delete, PhysicalKey.Delete)
+                    Dispatcher.UIThread.RunJobs()
+                    expect(view.Formula = MA.Char 'a', $"backspace then delete gave {view.Formula}")
             )
             Test.Sync(
                 "aClickPutsTheCursorWhereTheFormulaWasDrawn",
@@ -95,4 +127,55 @@ let private drawing =
         ]
     )
 
-let tests = TestFolder("Head", [ drawing ])
+/// The head open on one window, with the page that holds the LaTeX box.
+let private page() =
+    started.Force()
+    let view = MainView()
+    let window = Window(Content = view, Width = 900.0, Height = 400.0)
+    window.Show()
+    Dispatcher.UIThread.RunJobs()
+    struct (window, view)
+
+let private entered(window: Window, view: MainView, latex: string) =
+    view.Latex <- latex
+    let box =
+        window.GetVisualDescendants()
+        |> Seq.tryPick (fun visual ->
+            match visual with
+            | :? TextBox as box -> Some box
+            | _ -> None)
+    match box with
+    | None -> failwith "the page holds no box to write LaTeX in"
+    | Some box ->
+        box.Focus() |> ignore
+        pressing(window, Key.Enter, PhysicalKey.Enter)
+        Dispatcher.UIThread.RunJobs()
+
+let private reading =
+    TestList(
+        "Reading",
+        [   Test.Sync(
+                "latexEnteredInTheBoxBecomesTheFormula",
+                fun () ->
+                    let struct (window, view) = page()
+                    entered(window, view, @"\frac{a}{b}")
+                    expect(view.Complaint = "", $"a formula that reads complained: {view.Complaint}")
+                    expect(
+                        view.Formula = MA.Frac(MA.Char 'a', MA.Char 'b'),
+                        $"the box gave {view.Formula}")
+            )
+            Test.Sync(
+                "latexTheReaderTurnsDownIsComplainedAboutAndNothingIsShown",
+                fun () ->
+                    let struct (window, view) = page()
+                    entered(window, view, @"\frac{a}{b}")
+                    entered(window, view, @"\foo")
+                    expect(view.Complaint <> "", "a formula that does not read went uncomplained about")
+                    expect(
+                        view.Formula = MA.Frac(MA.Char 'a', MA.Char 'b'),
+                        $"a formula that does not read replaced the one shown with {view.Formula}")
+            )
+        ]
+    )
+
+let tests = TestFolder("Head", [ drawing; reading ])

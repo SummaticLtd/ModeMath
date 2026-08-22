@@ -226,7 +226,7 @@ type MA =
 
 
     override t.ToString() =
-        let props(name: string, xs: obj seq) =
+        let props(name: string, xs: objnull seq) =
             name + "(" + (xs |> Seq.map string |> String.concat ", ") + ")"
         match t with
         | Row l -> props("Row", l |> Seq.map box)

@@ -15,7 +15,11 @@ type MainView() as t =
     let complaint = TextBlock(Foreground = Brushes.Crimson, Margin = Thickness(4.0, 0.0, 0.0, 0.0))
 
     let read() =
-        match Latex.Read(if isNull latex.Text then "" else latex.Text) with
+        let written =
+            match latex.Text with
+            | NonNull text -> text
+            | Null -> ""
+        match Latex.Read written with
         | Ok ma ->
             complaint.Text <- ""
             formula.Editor <- Editor.AtEnd(Layout formula.FontSize, ma)
@@ -33,7 +37,7 @@ type MainView() as t =
 
     let keys =
         let panel = StackPanel(Orientation = Orientation.Horizontal, Margin = Thickness 8.0)
-        let add(caption, act) = panel.Children.Add(button(caption, act))
+        let add(caption: string, act: unit -> unit) = panel.Children.Add(button(caption, act))
         add("a/b", inserted(fun e -> e.InsertFraction))
         add("√", inserted(fun e -> e.InsertSqrt))
         add("ⁿ√", inserted(fun e -> e.InsertRoot))
@@ -67,3 +71,13 @@ type MainView() as t =
         layout.Children.Add formula
         t.Content <- layout
         t.AttachedToVisualTree.Add(fun _ -> formula.Focus() |> ignore)
+
+    /// What the reader said about the string last put in, which is empty where it read one.
+    member _.Complaint = complaint.Text
+
+    /// The string the reader is given, which pressing Enter or the read button hands it.
+    member _.Latex
+        with get () = latex.Text
+        and set (value: string) = latex.Text <- value
+
+    member _.Formula = formula.Formula

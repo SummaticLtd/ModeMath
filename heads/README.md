@@ -6,16 +6,10 @@ read LaTeX into it. Type to enter atoms, click to put the cursor, arrows to move
 | Head | Run |
 |---|---|
 | Desktop | `dotnet run --project heads/Playground.Desktop` |
-| Browser | `dotnet run --project heads/Playground.Browser` |
 | Tests | `dotnet run --project heads/Playground.Tests` |
 
-The browser head needs the WebAssembly build tools, which are not in a plain SDK install:
-
-```
-dotnet workload install wasm-tools
-```
-
-It is left out of `ModeMath.slnx` so that building the solution does not need that workload.
+`Playground` holds the page whole, so a browser head over `Avalonia.Browser` would be a project
+around it rather than a rewrite of it.
 
 The tests run headless Avalonia over the real Skia, so a captured frame holds the pixels a screen
 would.

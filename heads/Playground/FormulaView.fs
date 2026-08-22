@@ -21,10 +21,10 @@ type private SkiaDrawing(bounds: Rect, draw: SKCanvas -> unit) =
 
         member _.Render(context: ImmediateDrawingContext) =
             match context.TryGetFeature<ISkiaSharpApiLeaseFeature>() with
-            | null -> ()
-            | feature ->
+            | NonNull feature ->
                 use lease = feature.Lease()
                 draw lease.SkCanvas
+            | Null -> ()
 
 /// The formula being edited, drawn at a margin from the top left and taking the keys typed at it.
 type FormulaView() as t =
@@ -32,7 +32,7 @@ type FormulaView() as t =
 
     let painter = Painter.Embedded()
     let margin = 24f<px>
-    let mutable size = 48f<px>
+    let size = 48f<px>
     let mutable editor = Editor(Layout size, MA.Empty)
 
     let redraw() =
@@ -49,13 +49,8 @@ type FormulaView() as t =
             editor <- value
             redraw()
 
-    /// The em the formula is drawn at, which lays it out again where the cursor stays put.
-    member _.FontSize
-        with get () = size
-        and set (value: float32<px>) =
-            size <- value
-            editor <- Editor(Layout value, editor.Formula)
-            redraw()
+    /// The em the formula is drawn at.
+    member _.FontSize = size
 
     member _.Formula = editor.Formula
 
@@ -84,12 +79,12 @@ type FormulaView() as t =
 
     override _.OnTextInput(e: TextInputEventArgs) =
         match e.Text with
-        | null -> ()
-        | text ->
+        | NonNull text ->
             for character in text do
                 editor <- t.Typed character
             redraw()
             e.Handled <- true
+        | Null -> ()
 
     /// One character typed, which the keys that build an atom take before the formula sees them.
     member private _.Typed(character: char) =

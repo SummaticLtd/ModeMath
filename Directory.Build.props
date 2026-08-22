@@ -1,6 +1,7 @@
 <Project>
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
     <Company>Summatic Ltd</Company>
     <Copyright>Copyright (c) Summatic Ltd</Copyright>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
