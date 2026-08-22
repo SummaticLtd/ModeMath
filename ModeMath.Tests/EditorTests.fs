@@ -223,6 +223,49 @@ let private editing =
                         "the cursor did not stand after the group")
             )
             Test.Sync(
+                "aBracketTypedPastAGroupWaitingForOneIsTheOneItWaitedFor",
+                fun () ->
+                    let group = MA.String "a+b+c"
+                    let waiting =
+                        moved(
+                            Direction.Right,
+                            typed((opened MA.Empty).InsertBracket(Brackets.Matching Bracket.Normal), "a+b+c"))
+                    Assert.Equal(
+                        MA.RoundBracket group,
+                        (waiting.CloseBracket Bracket.Normal).Formula,
+                        "a closing bracket past a group waiting for one")
+                    Assert.Equal(
+                        MA.Bracketed(
+                            Brackets(Bracket.Normal, Bracket.Square),
+                            group,
+                            BracketCompletion.Completed),
+                        (waiting.CloseBracket Bracket.Square).Formula,
+                        "the bracket typed rather than the one drawn tentative")
+                    let stray = opened((typed(opened MA.Empty, "a+b+c")).CloseBracket(Bracket.Normal).Formula)
+                    Assert.Equal(
+                        MA.RoundBracket group,
+                        (stray.InsertBracket(Brackets.Matching Bracket.Normal)).Formula,
+                        "an opening bracket before a group waiting for one")
+            )
+            Test.Sync(
+                "anythingPutPastATentativeBracketSettlesIt",
+                fun () ->
+                    let group = MA.String "a+b+c"
+                    let waiting =
+                        moved(
+                            Direction.Right,
+                            typed((opened MA.Empty).InsertBracket(Brackets.Matching Bracket.Normal), "a+b+c"))
+                    Assert.Equal(
+                        MA.Row2(MA.RoundBracket group, MA.Char '+'),
+                        (waiting.Type '+').Formula,
+                        "a group waiting for its closing bracket")
+                    let stray = opened((typed(opened MA.Empty, "a+b+c")).CloseBracket(Bracket.Normal).Formula)
+                    Assert.Equal(
+                        MA.Row2(MA.Char '+', MA.RoundBracket group),
+                        (stray.Type '+').Formula,
+                        "a group waiting for its opening bracket")
+            )
+            Test.Sync(
                 "aClosingBracketNeedNotBeTheOneTheGroupWasOpenedWith",
                 fun () ->
                     let editor = (opened MA.Empty).InsertBracket(Brackets.Matching Bracket.Square)

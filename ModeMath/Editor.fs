@@ -23,6 +23,35 @@ type Editor(layout: Layout, cursor: PlacedCurs) =
     /// Everything a closing bracket with no opening one takes in.
     let all(before: ImmutableArray<MA>) = before.Length
 
+    /// The atom before the cursor given the closing bracket it waits for, where it waits for one.
+    /// Without a bracket it takes the tentative one it was already drawing.
+    let closingLast(bracket: Bracket voption) (before: ImmutableArray<MA>) =
+        if before.IsEmpty then before
+        else
+            let last = before.Length - 1
+            match before.[last] with
+            | MA.Bracketed(b, x, BracketCompletion.Left) ->
+                let right = bracket |> ValueOption.defaultValue b.Right
+                before.SetItem(last, MA.Bracketed(Brackets(b.Left, right), x, BracketCompletion.Completed))
+            | _ -> before
+
+    /// The same for the atom after the cursor and the opening bracket it waits for.
+    let openingFirst(bracket: Bracket voption) (after: ImmutableArray<MA>) =
+        if after.IsEmpty then after
+        else
+            match after.[0] with
+            | MA.Bracketed(b, x, BracketCompletion.Right) ->
+                let left = bracket |> ValueOption.defaultValue b.Left
+                after.SetItem(0, MA.Bracketed(Brackets(left, b.Right), x, BracketCompletion.Completed))
+            | _ -> after
+
+    /// Both brackets the cursor stands beside settled, as putting anything past one does.
+    let settling(before: ImmutableArray<MA>, after: ImmutableArray<MA>) =
+        struct (closingLast ValueNone before, openingFirst ValueNone after)
+
+    /// The cursor with the tentative brackets it has moved out past made good.
+    let settled() = cursor.ToMACurs.Rewrite settling
+
     /// The term a fraction takes up, which reaches back to whatever last broke one.
     let term(before: ImmutableArray<MA>) =
         let mutable count = 0
@@ -61,10 +90,10 @@ type Editor(layout: Layout, cursor: PlacedCurs) =
         |> ValueOption.map (fun moved -> Editor(layout, PlacedCurs.Of(moved, cursor.Placed)))
 
     /// A character typed at the cursor, which completes a function name where one is spelled out.
-    member _.Type(character: char) = over(cursor.ToMACurs.AddAlphanumeric character)
+    member _.Type(character: char) = over((settled()).AddAlphanumeric character)
 
     /// A formula put in at the cursor, which the cursor then stands after.
-    member _.Insert(addition: MA) = over(cursor.ToMACurs.AddMACurs(MACurs.AtEnd addition))
+    member _.Insert(addition: MA) = over((settled()).AddMACurs(MACurs.AtEnd addition))
 
     /// A fraction over the term before the cursor, which then stands in the denominator. Where no
     /// term stands there the fraction is empty and the cursor goes in the numerator instead.
@@ -72,37 +101,51 @@ type Editor(layout: Layout, cursor: PlacedCurs) =
         let divided(numerator: MA) =
             if numerator.IsEmpty then MACurs.FracNum(MACurs.CursorOrEmpty, MA.Empty)
             else MACurs.FracDen(numerator, MACurs.CursorOrEmpty)
-        over(cursor.ToMACurs.ReplaceBefore(term, divided))
+        over((settled()).ReplaceBefore(term, divided))
 
     /// A square root put in at the cursor, which then stands inside it.
-    member _.InsertSqrt = over(cursor.ToMACurs.AddMACurs(MACurs.Sqrt MACurs.CursorOrEmpty))
+    member _.InsertSqrt = over((settled()).AddMACurs(MACurs.Sqrt MACurs.CursorOrEmpty))
 
     /// A root put in at the cursor, which then stands in its degree.
-    member _.InsertRoot = over(cursor.ToMACurs.AddMACurs(MACurs.RootNDegree(MACurs.CursorOrEmpty, MA.Empty)))
+    member _.InsertRoot = over((settled()).AddMACurs(MACurs.RootNDegree(MACurs.CursorOrEmpty, MA.Empty)))
 
-    /// An opening bracket typed at the cursor. Where the atom it stands in is waiting for one, that
-    /// is where it goes and what was before it comes out. Otherwise what is after it is taken into
-    /// a new atom whose closing bracket is drawn tentative, and the cursor stands at its start.
+    /// An opening bracket typed at the cursor. A bracketed atom waiting for one takes it, whether
+    /// the cursor stands in that atom or just before it, and what was before the cursor comes out of
+    /// it. Otherwise what is after the cursor is taken into a new atom the cursor then starts, whose
+    /// closing bracket is drawn tentative until one is typed.
     member _.InsertBracket(brackets: Brackets) =
-        let curs = cursor.ToMACurs
-        match curs.OpenBracket brackets.Left with
-        | ValueSome opened -> over opened
-        | ValueNone ->
-            let enclosing(inner: MA) =
-                MACurs.Bracketed(brackets, MACurs.AtStart inner, BracketCompletion.Left)
-            over(curs.ReplaceAfter enclosing)
+        let standing = cursor.ToMACurs
+        let given(before: ImmutableArray<MA>, after: ImmutableArray<MA>) =
+            struct (before, openingFirst (ValueSome brackets.Left) after)
+        let taken = standing.Rewrite given
+        if taken <> standing then over taken
+        else
+            let curs = settled()
+            match curs.OpenBracket brackets.Left with
+            | ValueSome opened -> over opened
+            | ValueNone ->
+                let enclosing(inner: MA) =
+                    MACurs.Bracketed(brackets, MACurs.AtStart inner, BracketCompletion.Left)
+                over(curs.ReplaceAfter enclosing)
 
-    /// A closing bracket typed at the cursor, which closes the bracketed atom it stands in and then
-    /// stands after it. Where it stands in none, what is before it is taken into a new one whose
-    /// opening bracket is drawn as tentative.
+    /// A closing bracket typed at the cursor. A bracketed atom waiting for one takes it, whether
+    /// the cursor stands in that atom or just after it, and what was after the cursor comes out of
+    /// it. Otherwise what is before the cursor is taken into a new atom the cursor then stands after,
+    /// whose opening bracket is drawn tentative.
     member _.CloseBracket(bracket: Bracket) =
-        let curs = cursor.ToMACurs
-        match curs.CloseBracket bracket with
-        | ValueSome closed -> over closed
-        | ValueNone ->
-            let enclosed(inner: MA) =
-                MACurs.AtEnd(MA.Bracketed(Brackets.Matching bracket, inner, BracketCompletion.Right))
-            over(curs.ReplaceBefore(all, enclosed))
+        let standing = cursor.ToMACurs
+        let given(before: ImmutableArray<MA>, after: ImmutableArray<MA>) =
+            struct (closingLast (ValueSome bracket) before, after)
+        let taken = standing.Rewrite given
+        if taken <> standing then over taken
+        else
+            let curs = settled()
+            match curs.CloseBracket bracket with
+            | ValueSome closed -> over closed
+            | ValueNone ->
+                let enclosed(inner: MA) =
+                    MACurs.AtEnd(MA.Bracketed(Brackets.Matching bracket, inner, BracketCompletion.Right))
+                over(curs.ReplaceBefore(all, enclosed))
 
     /// A bracket that opens and closes alike, as a vertical bar does: it closes a bracketed atom of
     /// its own shape that is waiting for a closing bracket, and opens one otherwise.
@@ -119,7 +162,7 @@ type Editor(layout: Layout, cursor: PlacedCurs) =
             | MA.ScriptSuper(main, super, sub) -> MACurs.ScriptSuper(main, MACurs.AtEnd super, sub)
             | MA.ScriptSub(main, sub) -> MACurs.ScriptSuper(main, MACurs.CursorOrEmpty, ValueSome sub)
             | _ -> MACurs.ScriptSuper(atom, MACurs.CursorOrEmpty, ValueNone)
-        over(cursor.ToMACurs.ReplaceBefore(one, superscripted))
+        over((settled()).ReplaceBefore(one, superscripted))
 
     /// A subscript on the atom before the cursor, which then stands in it. An atom already carrying
     /// one keeps it and is entered rather than being set over a second.
@@ -132,7 +175,7 @@ type Editor(layout: Layout, cursor: PlacedCurs) =
                 MACurs.ScriptSub(main, ValueSome super, MACurs.CursorOrEmpty)
             | MA.ScriptSub(main, sub) -> MACurs.ScriptSub(main, ValueNone, MACurs.AtEnd sub)
             | _ -> MACurs.ScriptSub(atom, ValueNone, MACurs.CursorOrEmpty)
-        over(cursor.ToMACurs.ReplaceBefore(one, subscripted))
+        over((settled()).ReplaceBefore(one, subscripted))
 
     /// ValueNone where there is nothing to the left to delete, so that a caller can pass the key on.
     member _.BackSpace =

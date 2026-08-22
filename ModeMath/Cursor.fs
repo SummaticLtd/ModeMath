@@ -568,6 +568,31 @@ type internal MACurs =
         | RootNMain(_, x) -> x.Unclosed
         | Sqrt x -> x.Unclosed
 
+    /// Rewrites the atoms on either side of the cursor in the slot it stands among.
+    member t.Rewrite
+        (build: ImmutableArray<MA> * ImmutableArray<MA> -> struct (ImmutableArray<MA> * ImmutableArray<MA>))
+        : MACurs =
+        let again(curs: MACurs) = curs.Rewrite build
+        match t with
+        | CursorOrEmpty ->
+            let struct (before, after) = build(ImmutableArray.Empty, ImmutableArray.Empty)
+            MACurs.MakeRow(before, CursorOrEmpty, after)
+        | Row(before, inner, after) ->
+            if not inner.IsCursorOrEmpty then MACurs.MakeRow(before, again inner, after)
+            else
+                let struct (before, after) = build(before, after)
+                MACurs.MakeRow(before, CursorOrEmpty, after)
+        | ScriptMainSuper(main, super, sub) -> ScriptMainSuper(again main, super, sub)
+        | ScriptMainSub(main, sub) -> ScriptMainSub(again main, sub)
+        | ScriptSuper(main, super, sub) -> ScriptSuper(main, again super, sub)
+        | ScriptSub(main, super, sub) -> ScriptSub(main, super, again sub)
+        | FracNum(n, d) -> FracNum(again n, d)
+        | FracDen(n, d) -> FracDen(n, again d)
+        | Bracketed(b, inner, bc) -> Bracketed(b, again inner, bc)
+        | RootNDegree(n, x) -> RootNDegree(again n, x)
+        | RootNMain(n, x) -> RootNMain(n, again x)
+        | Sqrt x -> Sqrt(again x)
+
     /// Replaces the atoms after the cursor with one built from all of them, and stands in it.
     member t.ReplaceAfter(build: MA -> MACurs): MACurs =
         let again(curs: MACurs) = curs.ReplaceAfter build
