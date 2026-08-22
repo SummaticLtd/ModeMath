@@ -287,4 +287,110 @@ let private reading =
         ]
     )
 
-let tests = TestFolder("Latex", [ reading ])
+let private writing =
+    TestList(
+        "Writing LaTeX",
+        [   Test.Sync(
+                "everyArgumentIsWrittenInBraces",
+                fun () ->
+                    let written =
+                        [
+                            MA.ScriptSub(c 'f', c 'x'), "f_{x}"
+                            MA.ScriptSuper(c 'x', c '2', ValueSome(c 'i')), "x^{2}_{i}"
+                            MA.Frac(c '1', c '2'), @"\frac{1}{2}"
+                            MA.Sqrt(c 'x'), @"\sqrt{x}"
+                            MA.RootN(c '3', c 'x'), @"\sqrt[{3}]{x}"
+                            MA.Accented(Accent.Hat, c 'y'), @"\hat{y}"
+                            MA.BoldVar 'v', @"\mathbf{v}"
+                            MA.Text "in metres", @"\text{in metres}"
+                            MA.BigOp(BigOperator.Sum, ValueSome(c 'i'), ValueSome(c 'n')), @"\sum_{i}^{n}"
+                            // What a script goes on is braced only where it is more than one atom.
+                            MA.ScriptSuper(MA.String "ab", c '2', ValueNone), "{ab}^{2}"
+                            MA.ScriptSub(MA.ScriptSuper(c 'x', c '2', ValueNone), c 'i'), "{x^{2}}_{i}"
+                        ]
+                    for formula, expected in written do
+                        Assert.Equal(expected, Latex.Write formula, string formula)
+            )
+            Test.Sync(
+                "aControlWordIsKeptFromRunningIntoWhatFollowsIt",
+                fun () ->
+                    let written =
+                        [
+                            row [ c 'α'; c 'x' ], @"\alpha x"
+                            row [ MA.Function MathFunction.Sin; c 'x' ], @"\sin x"
+                            // Letters of a formula are no control word, so nothing stands between them.
+                            MA.String "abc", "abc"
+                            // A backslash ends the word before it, so no space is needed either.
+                            row [ c 'α'; c 'β' ], @"\alpha\beta"
+                        ]
+                    for formula, expected in written do
+                        Assert.Equal(expected, Latex.Write formula, string formula)
+            )
+            Test.Sync(
+                "aCharacterLatexKeepsForItselfIsWrittenUnderABackslash",
+                fun () ->
+                    // A caret is one of them: it is drawn and typed like any other character.
+                    Assert.Equal(@"\{\&\$\_\%\#\^\}", Latex.Write(MA.String "{&$_%#^}"))
+                    Assert.Equal(@"\text{\$5}", Latex.Write(MA.Text "$5"), "in text as well")
+            )
+            Test.Sync(
+                "whatLatexHasNoWayToSayIsSaidAsNearlyAsItCan",
+                fun () ->
+                    // A bracket still waiting for its pair is written as the completed one.
+                    let waiting =
+                        MA.Bracketed(Brackets.Matching Bracket.Normal, c 'x', BracketCompletion.Left)
+                    Assert.Equal(
+                        MA.RoundBracket(c 'x'),
+                        read(Latex.Write waiting),
+                        "a tentative bracket read back as something other than a completed pair")
+            )
+            Test.Sync(
+                "everyKindOfAtomIsWrittenSoItReadsBackTheSame",
+                fun () ->
+                    let grid = ImmA2D.fromJagged [ [ c 'a'; c 'b' ]; [ c 'c'; c 'd' ] ]
+                    let atoms =
+                        [
+                            MA.Row(ImmutableArray.Create(c 'x', c '+', c '1'))
+                            c 'x'
+                            c 'α'
+                            MA.BoldVar 'v'
+                            MA.Blackboard 'R'
+                            MA.UprightD
+                            MA.ScriptSuper(c 'x', c '2', ValueSome(c 'i'))
+                            MA.ScriptSub(c 'f', c 'x')
+                            MA.Frac(c '1', c '2')
+                            MA.Function MathFunction.Sin
+                            MA.RoundBracket(MA.String "x+1")
+                            MA.Bracketed(Brackets(Bracket.Curly, Bracket.None), c 'x', BracketCompletion.Completed)
+                            MA.Bracketed(Brackets(Bracket.Square, Bracket.Angle), c 'x', BracketCompletion.Completed)
+                            MA.RootN(c '3', c 'x')
+                            MA.Sqrt(c 'x')
+                            MA.BigOp(BigOperator.Sum, ValueSome(c 'i'), ValueSome(c 'n'))
+                            MA.BigOp(BigOperator.Integral, ValueNone, ValueNone)
+                            MA.Accented(Accent.Hat, c 'y')
+                            MA.Overline(c 'Y')
+                            MA.Underline(c 'Y')
+                            MA.Stack(c 'n', c 'k')
+                            MA.Binom(c 'n', c 'k')
+                            MA.Matrix grid
+                            MA.Cases grid
+                            MA.Table(grid, ImmutableArray.Create(Alignment.Right, Alignment.Centre))
+                            MA.Spanned(Spanning.Overbrace, MA.String "ab")
+                            MA.Coloured(Color.Red, c 'x')
+                            MA.Coloured(Color.FromArgb(255, 1, 2, 3), c 'x')
+                            MA.Coloured(Color.FromArgb(128, 1, 2, 3), c 'x')
+                            MA.RootN(c ']', c 'x')
+                            c '^'
+                            MA.Text "$5 {a} 100%"
+                            MA.Text "in metres"
+                            MA.Space Space.Thin
+                            MA.String "{&$_%#}"
+                        ]
+                    for formula in atoms do
+                        let written = Latex.Write formula
+                        Assert.Equal(formula.Flatten, read written, written)
+            )
+        ]
+    )
+
+let tests = TestFolder("Latex", [ reading; writing ])

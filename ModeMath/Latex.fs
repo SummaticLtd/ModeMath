@@ -52,6 +52,9 @@ module internal Latexing =
                 else None)
             |> ValueOption.ofOption
 
+    /// The characters LaTeX gives a meaning of its own, which a formula holding one escapes.
+    let private kept = Set.ofSeq "{}%#&_$^"
+
     /// A mark that gives ink of its own, which a zero-width space does not.
     let private inked(c: char) = Char.GetUnicodeCategory c <> Globalization.UnicodeCategory.Format
 
@@ -299,13 +302,14 @@ module internal Latexing =
                 let position = here()
                 match peek() with
                 // The one infix command: what it stands between is what it sets over and under.
-                | ValueSome(Token.Command "choose") ->
-                    if chosenAlready then fail("a second \\choose in one group", position)
+                | ValueSome(Token.Command("choose" | "atop" as name)) ->
+                    if chosenAlready then fail($"a second \\{name} in one group", position)
                     advance()
-                    chosen <- ValueSome(MA.OfElements(elements.ToImmutable()))
+                    chosen <- ValueSome(struct (name, MA.OfElements(elements.ToImmutable())))
                 | _ -> elements.Add(t.Atom())
             match chosen with
-            | ValueSome top -> MA.Binom(top, t.Formula true)
+            | ValueSome(struct ("atop", top)) -> MA.Stack(top, t.Formula true)
+            | ValueSome(struct (_, top)) -> MA.Binom(top, t.Formula true)
             | ValueNone -> MA.OfElements(elements.ToImmutable())
 
         member private t.Atom() =
@@ -390,7 +394,15 @@ module internal Latexing =
                         closing <- here()
                         advance()
                     | _ -> advance()
-                source.Substring(opening + 1, closing - opening - 1)
+                let word = source.Substring(opening + 1, closing - opening - 1)
+                // What LaTeX keeps for itself stands under a backslash here as it does anywhere.
+                let plain = Text.StringBuilder()
+                let mutable i = 0
+                while i < word.Length do
+                    if word.[i] = '\\' && i + 1 < word.Length && kept.Contains word.[i + 1] then i <- i + 1
+                    plain.Append word.[i] |> ignore
+                    i <- i + 1
+                plain.ToString()
             | _ -> fail("a word in braces was expected", position)
 
         /// Words set upright, which the italic shapes of a formula are no substitute for.
@@ -430,7 +442,7 @@ module internal Latexing =
             | "color" | "textcolor" ->
                 let colour = t.Colour position
                 MA.Coloured(colour, t.Argument())
-            | "{" | "}" | "%" | "#" | "&" | "_" | "$" -> MA.Char name.[0]
+            | "{" | "}" | "%" | "#" | "&" | "_" | "$" | "^" -> MA.Char name.[0]
             | _ ->
                 match commands |> ImmutableDictionary.tryFind name with
                 | ValueNone -> fail($"{name} is no command this reads", position)
@@ -464,9 +476,12 @@ module internal Latexing =
         member private t.Colour(position: int) =
             let name = t.Words position
             if name.StartsWith('#') then
-                match Int32.TryParse(name.AsSpan 1, Globalization.NumberStyles.HexNumber, null) with
+                let byteAt(value: uint32, shift: int) = int ((value >>> shift) &&& 255u)
+                match UInt32.TryParse(name.AsSpan 1, Globalization.NumberStyles.HexNumber, null) with
                 | true, value when name.Length = 7 ->
-                    Color.FromArgb(255, (value >>> 16) &&& 255, (value >>> 8) &&& 255, value &&& 255)
+                    Color.FromArgb(255, byteAt(value, 16), byteAt(value, 8), byteAt(value, 0))
+                | true, value when name.Length = 9 ->
+                    Color.FromArgb(byteAt(value, 0), byteAt(value, 24), byteAt(value, 16), byteAt(value, 8))
                 | _ -> fail($"{name} is no colour", position)
             else
                 let named = Color.FromName name
@@ -542,6 +557,168 @@ module internal Latexing =
             |> Seq.map (fun row -> Seq.append row (Seq.replicate (columns - row.Count) MA.Empty))
             |> ImmA2D.fromJagged
 
+    /// The first spelling of a value, which is the one it is written back out with.
+    let private spelt(table: (string * 'a) list, value: 'a) =
+        table |> List.pick (fun (name, x) -> if x = value then Some name else None)
+
+    /// Every character a command stands for, greek first, so each is written the one way.
+    let private namedChars = greek @ marks
+
+    let private delimiterSpelling(bracket: Bracket, opening: bool) =
+        match bracket, opening with
+        | Bracket.Normal, true -> "("
+        | Bracket.Normal, false -> ")"
+        | Bracket.Square, true -> "["
+        | Bracket.Square, false -> "]"
+        | Bracket.Curly, true -> "\\{"
+        | Bracket.Curly, false -> "\\}"
+        | Bracket.Angle, true -> "\\langle"
+        | Bracket.Angle, false -> "\\rangle"
+        | Bracket.Line, _ -> "|"
+        // Nothing at all, as \left. leaves a side of a formula open.
+        | Bracket.None, _ | _ -> "."
+
+    let private alignmentSpelling(alignment: Alignment) =
+        match alignment with
+        | Alignment.Left -> "l"
+        | Alignment.Right -> "r"
+        | Alignment.Centre | _ -> "c"
+
+    /// A formula as the LaTeX that reads back as it, every argument in braces.
+    let write(ma: MA) =
+        let text = Text.StringBuilder()
+        /// A control word runs on into a letter after it, so a space is put between them.
+        let mutable word = false
+        let put(s: string) =
+            if word && s.Length > 0 && Char.IsAsciiLetter s.[0] then text.Append ' ' |> ignore
+            text.Append s |> ignore
+            word <- false
+        let command(name: string) =
+            put "\\"
+            put name
+            word <- name.Length > 0 && Char.IsAsciiLetter name.[name.Length - 1]
+        let rec formula(ma: MA) =
+            match ma with
+            | MA.Row elements -> for element in elements do formula element
+            | MA.Char c ->
+                match namedChars |> List.tryPick (fun (name, x) -> if x = c then Some name else None) with
+                | Some name -> command name
+                // What LaTeX keeps for itself stands for itself only under a backslash.
+                | None when kept.Contains c -> command(string c)
+                | None -> put(string c)
+            | MA.BoldVar c ->
+                command "mathbf"
+                braced(MA.Char c)
+            | MA.Blackboard c ->
+                command "mathbb"
+                braced(MA.Char c)
+            | MA.UprightD ->
+                command "mathrm"
+                put "{d}"
+            | MA.Function f -> command(MathFunctions.name f)
+            | MA.ScriptSuper(main, super, sub) ->
+                atom main
+                put "^"
+                braced super
+                sub |> ValueOption.iter (fun sub -> put "_"; braced sub)
+            | MA.ScriptSub(main, sub) ->
+                atom main
+                put "_"
+                braced sub
+            | MA.Frac(numerator, denominator) ->
+                command "frac"
+                braced numerator
+                braced denominator
+            | MA.Stack(top, bottom) ->
+                put "{"
+                formula top
+                command "atop"
+                formula bottom
+                put "}"
+            | MA.Bracketed(brackets, inner, _) ->
+                command "left"
+                put(delimiterSpelling(brackets.Left, true))
+                formula inner
+                command "right"
+                put(delimiterSpelling(brackets.Right, false))
+            | MA.RootN(degree, radicand) ->
+                command "sqrt"
+                put "["
+                braced degree
+                put "]"
+                braced radicand
+            | MA.Sqrt radicand ->
+                command "sqrt"
+                braced radicand
+            | MA.BigOp(op, lower, upper) ->
+                command(spelt(bigOps, op))
+                lower |> ValueOption.iter (fun lower -> put "_"; braced lower)
+                upper |> ValueOption.iter (fun upper -> put "^"; braced upper)
+            | MA.Accented(accent, x) ->
+                command(spelt(accents, accent))
+                braced x
+            | MA.Spanned(mark, x) ->
+                command(spelt(spanning, mark))
+                braced x
+            | MA.Overline x ->
+                command "overline"
+                braced x
+            | MA.Underline x ->
+                command "underline"
+                braced x
+            | MA.Coloured(colour, x) ->
+                command "color"
+                put "{"
+                let rgb = $"#{colour.R:X2}{colour.G:X2}{colour.B:X2}"
+                put(
+                    if colour.IsNamedColor then colour.Name
+                    elif colour.A = 255uy then rgb
+                    else rgb + $"{colour.A:X2}")
+                put "}"
+                braced x
+            | MA.Text word ->
+                command "text"
+                put "{"
+                for c in word do
+                    if kept.Contains c then put "\\"
+                    put(string c)
+                put "}"
+            | MA.Space space -> command(spelt(spaces, space))
+            | MA.Table(cells, alignments) ->
+                let name = if alignments.IsEmpty then "matrix" else "array"
+                command "begin"
+                put "{"
+                put name
+                put "}"
+                if not alignments.IsEmpty then
+                    put "{"
+                    for alignment in alignments do put(alignmentSpelling alignment)
+                    put "}"
+                for row in 0 .. cells.Rows - 1 do
+                    if row > 0 then put "\\\\"
+                    for col in 0 .. cells.Cols - 1 do
+                        if col > 0 then put "&"
+                        formula cells.[row, col]
+                command "end"
+                put "{"
+                put name
+                put "}"
+
+        and braced(ma: MA) =
+            put "{"
+            formula ma
+            put "}"
+
+        /// What a script goes on, which needs braces where it is more than the one atom before it.
+        and atom(ma: MA) =
+            match ma with
+            | MA.Row elements when elements.Length = 1 -> atom elements.[0]
+            | MA.Row _ | MA.ScriptSuper _ | MA.ScriptSub _ | MA.Space _ -> braced ma
+            | _ -> formula ma
+
+        formula ma
+        text.ToString()
+
 [<AbstractClass; Sealed>]
 type Latex =
     /// The formula a math-mode LaTeX string spells, or why it could not be read.
@@ -553,3 +730,7 @@ type Latex =
             | ValueNone -> Ok formula
             | ValueSome position -> Error(LatexError("the formula ends before the string does", position))
         with Latexing.Rejected(message, position) -> Error(LatexError(message, position))
+
+    /// The math-mode LaTeX a formula is written as, which reads back as the same formula. A bracket
+    /// still waiting for its pair is written as the completed one, LaTeX having no way to offer one.
+    static member Write(formula: MA) : string = Latexing.write formula
