@@ -38,10 +38,43 @@ let private editing =
                     Assert.Equal(MA.String "abc", (clicked.Type 'b').Formula)
             )
             Test.Sync(
-                "aFractionLeavesTheCursorInItsNumerator",
+                "aFractionWithNoTermBeforeItLeavesTheCursorInItsNumerator",
                 fun () ->
                     let editor = (opened MA.Empty).InsertFraction
                     Assert.Equal(MA.Frac(MA.Char '1', MA.Empty), (editor.Type '1').Formula)
+            )
+            Test.Sync(
+                "aFractionTakesTheTermBeforeItUpIntoItsNumerator",
+                fun () ->
+                    let divided(before: string) =
+                        (typed(typed(opened MA.Empty, before).InsertFraction, "c")).Formula
+                    Assert.Equal(MA.Frac(MA.String "ab", MA.Char 'c'), divided "ab", "ab")
+                    Assert.Equal(
+                        MA.Row(arr [ MA.Char 'a'; MA.Char '+'; MA.Frac(MA.Char 'b', MA.Char 'c') ]),
+                        divided "a+b",
+                        "a term does not reach across what divides one")
+                    let script = MA.ScriptSuper(MA.Char 'x', MA.Char '2', ValueNone)
+                    Assert.Equal(
+                        MA.Frac(script, MA.Char 'c'),
+                        (typed((Editor.AtEnd(layout, script)).InsertFraction, "c")).Formula,
+                        "a script is one atom, so the whole of it is taken up")
+            )
+            Test.Sync(
+                "aScriptGoesOnTheOneAtomBeforeItRatherThanTheTerm",
+                fun () ->
+                    let editor = typed(opened MA.Empty, "ab").InsertSuperscript
+                    Assert.Equal(
+                        MA.Row(arr [ MA.Char 'a'; MA.ScriptSuper(MA.Char 'b', MA.Char '2', ValueNone) ]),
+                        (typed(editor, "2")).Formula)
+            )
+            Test.Sync(
+                "aFractionTakesUpABracketedGroupWhole",
+                fun () ->
+                    // Brackets face their neighbours as an opening and a closing atom, but a pair is one.
+                    let bracketed = MA.RoundBracket(MA.String "x+1")
+                    Assert.Equal(
+                        MA.Frac(bracketed, MA.Char 'c'),
+                        (typed((Editor.AtEnd(layout, bracketed)).InsertFraction, "c")).Formula)
             )
             Test.Sync(
                 "aSquareRootLeavesTheCursorInsideIt",
