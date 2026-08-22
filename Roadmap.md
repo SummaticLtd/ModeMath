@@ -17,7 +17,7 @@ bracket or script. What is left:
 
 `Latex.Read` reads a math-mode string into an `MA`. Writing one back out is still to come.
 
-It reads and draws 98.8% of the 17,220 distinct formulas in the SummaticApp content library.
+It reads and draws 99.2% of the 17,220 distinct formulas in the SummaticApp content library.
 Every formula it reads, it draws: a character the font cannot draw is refused where it stands, so
 that laying a formula out cannot fail. `Editor.Type` turns such a key down the same way, and
 `MA.Undrawable` answers for a formula built in code. What the reader turns down:
@@ -25,10 +25,10 @@ that laying a formula out cannot fail. `Editor.Type` turns such a key down the s
 | Turned down | Formulas | Why |
 |---|---|---|
 | Alignment markers outside any environment | 100 | A house convention rather than LaTeX |
-| `\overbar` | 30 | A house macro for `\overline` |
-| `\bf` | 30 | Needs `Styled` |
-| `\choose` | 16 | The one infix command |
-| Malformed content | 38 | A trailing `\`, `s_{stop}_{b}`, `\l(`, an unclosed group |
+| Malformed content | 31 | A trailing `\`, `s_{stop}_{b}`, `\l(`, an unclosed group, `$$` |
+| `\right/` | 2 | A delimiter that is not a bracket |
+| `\lceil` | 1 | Needs a ceiling bracket |
+| `\red` | 1 | A text macro caught in a formula by the extraction |
 
 ## 3. Remaining mathematics
 
@@ -37,7 +37,7 @@ needs a `MACurs` case.
 
 | Addition | LaTeX | Uses |
 |---|---|---|
-| `Styled` | `\bf`, `\it`, `\mathcal`, `\mathfrak` | 31 |
+| `Styled` | `\it`, `\mathcal`, `\mathfrak`, `\mathtt` | 0 |
 | Limits on the operators that take them | `\det`, `\sup`, `\inf`, `\max`, `\min`, `\Pr`, `\gcd`, `\liminf`, `\limsup` | 0 |
 | Accents below | `\underdot` | 0 |
 | The double bar | `\Vert`, and the outer pair of a `Vmatrix` | 0 |

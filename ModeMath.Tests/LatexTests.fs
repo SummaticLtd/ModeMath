@@ -74,6 +74,28 @@ let private reading =
                 ]
             )
             Test.Sync(
+                "chooseStandsBetweenWhatItSetsOverAndUnder",
+                same [
+                    // The one infix command, which takes what is on either side of it rather than after.
+                    "{8 \\choose 6}", MA.Binom(c '8', c '6')
+                    "n \\choose k", MA.Binom(c 'n', c 'k')
+                    "{n+1 \\choose 2}", MA.Binom(row [ c 'n'; c '+'; c '1' ], c '2')
+                    // What stands outside the braces is no part of it.
+                    "{2 \\choose n+1}", MA.Binom(c '2', row [ c 'n'; c '+'; c '1' ])
+                    "P{4 \\choose 2}", row [ c 'P'; MA.Binom(c '4', c '2') ]
+                    // A group of its own is a scope of its own, so the second choose is unambiguous.
+                    "{n \\choose {a \\choose b}}", MA.Binom(c 'n', MA.Binom(c 'a', c 'b'))
+                ]
+            )
+            Test.Sync(
+                "aHouseMacroIsReadAsWhatItStandsFor",
+                same [
+                    "\\overbar{Y}", MA.Overline(c 'Y')
+                    "\\bf{F}", MA.BoldVar 'F'
+                    "\\bullet", c '•'
+                ]
+            )
+            Test.Sync(
                 "aScriptGoesOnTheAtomBeforeIt",
                 same [
                     "x^2", MA.ScriptSuper(c 'x', c '2', ValueNone)
@@ -211,6 +233,8 @@ let private reading =
                     "\\begin{smallmatrix}a\\end{smallmatrix}"
                     // A function is named from a closed set, so a name outside it is not guessed at.
                     "\\operatorname{Var}"
+                    // TeX calls two of these in one group ambiguous, and so does this.
+                    "a \\choose b \\choose c"
                     "\\color{fuchsias}{x}"
                     "\\"
                 ]

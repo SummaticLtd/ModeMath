@@ -308,7 +308,7 @@ let private repertoire =
                 fun () ->
                     let gap(between: char) =
                         (laid(MA.String("x" + string between + "y"))).Width - (laid(c between)).Width
-                    for standard, characters in [ '=', "↑↓⟶⟵←↦∣"; '+', "∘" ] do
+                    for standard, characters in [ '=', "↑↓⟶⟵←↦∣↻"; '+', "∘•" ] do
                         for character in characters do
                             nearly(gap standard, gap character, $"{character} is spaced unlike {standard}")
             )
