@@ -99,7 +99,7 @@ type FormulaView() as t =
         | ']' -> editor.CloseBracket Bracket.Square
         | '}' -> editor.CloseBracket Bracket.Curly
         | '|' -> editor.InsertBar Bracket.Line
-        | _ -> editor.Type character
+        | _ -> editor.Type character |> ValueOption.defaultValue editor
 
     override _.OnKeyDown(e: KeyEventArgs) =
         let moved(direction: Direction) =

@@ -4,9 +4,9 @@
     <Compile Include="Units.fs" />
     <Compile Include="MathFontTypes.fs" />
     <Compile Include="MathFontData.g.fs" />
+    <Compile Include="MathFont.fs" />
     <Compile Include="MathAtom.fs" />
     <Compile Include="Latex.fs" />
-    <Compile Include="MathFont.fs" />
     <Compile Include="Cursor.fs" />
     <Compile Include="Placed.fs" />
     <Compile Include="Layout.fs" />

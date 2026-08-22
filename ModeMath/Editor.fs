@@ -90,7 +90,10 @@ type Editor(layout: Layout, cursor: PlacedCurs) =
         |> ValueOption.map (fun moved -> Editor(layout, PlacedCurs.Of(moved, cursor.Placed)))
 
     /// A character typed at the cursor, which completes a function name where one is spelled out.
-    member _.Type(character: char) = over((settled()).AddAlphanumeric character)
+    /// ValueNone where the font cannot draw it, so that a caller can pass the key on.
+    member _.Type(character: char) =
+        if (Glyphs.variable character).IsNone then ValueNone
+        else over((settled()).AddAlphanumeric character) |> ValueSome
 
     /// A formula put in at the cursor, which the cursor then stands after.
     member _.Insert(addition: MA) = over((settled()).AddMACurs(MACurs.AtEnd addition))

@@ -48,6 +48,7 @@ module Letters =
         if c >= 'a' && c <= 'z' then Alphabet.at(Alphabets.uprightSmall, int c - int 'a')
         elif c >= 'A' && c <= 'Z' then Alphabet.at(Alphabets.uprightCapital, int c - int 'A')
         elif c >= 'Α' && c <= 'Ω' then Alphabet.at(Alphabets.uprightGreekCapital, int c - 0x0391)
+        elif c >= 'α' && c <= 'ω' then Alphabet.at(Alphabets.uprightGreekSmall, int c - 0x03B1)
         else ValueNone
 
 module Digits =
@@ -89,3 +90,20 @@ type MathFont =
         match face with
         | Face.Math -> MathFont.OpenEmbedded "ModeMath.GUST-FONT-LICENSE.txt"
         | Face.Blackboard -> MathFont.OpenEmbedded "ModeMath.AMSFONTS-OFL.txt"
+
+/// The alphabets each kind of atom is tried against, in the order a formula draws it from.
+module internal Glyphs =
+    /// Latin and small Greek variables are italic, capital Greek upright, as TeX sets them.
+    let variable(c: char) =
+        Letters.italic c
+        |> ValueOption.orElseWith (fun () -> Letters.upright c)
+        |> ValueOption.orElseWith (fun () -> Digits.glyph c)
+        |> ValueOption.orElseWith (fun () -> Letters.letterlikeBlackboard c)
+        |> ValueOption.orElseWith (fun () ->
+            if c = '-' then ValueSome Operators.minus else MathFont.OfChar c)
+
+    /// Function names and text are set upright, though two names are an indicator 1 and a factorial !.
+    let upright(c: char) =
+        Letters.upright c
+        |> ValueOption.orElseWith (fun () -> Digits.glyph c)
+        |> ValueOption.orElseWith (fun () -> MathFont.OfChar c)

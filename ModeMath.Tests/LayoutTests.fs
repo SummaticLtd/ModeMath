@@ -28,6 +28,13 @@ let private rules(placed: Placed) =
         | Part.Rule(rule, _) -> yield rule
         | Part.Glyph _ | Part.Child _ | Part.Painted _ -> () ]
 
+/// Every glyph an atom draws, in the order it draws them.
+let private drawnGlyphs(placed: Placed) =
+    [ for part in placed.Parts do
+        match part with
+        | Part.Glyph(glyph, _) -> yield glyph.Glyph.Id
+        | Part.Rule _ | Part.Child _ | Part.Painted _ -> () ]
+
 let private glyphOf(placed: Placed) =
     match placed.Pma.SingleGlyph with
     | ValueSome glyph -> glyph
@@ -261,9 +268,24 @@ let private repertoire =
         [   Test.Sync(
                 "aCharacterTheFontCannotDrawIsAnErrorRatherThanAGap",
                 fun () ->
-                    Assert.Throws(
-                        (fun () -> laid(c '☃') |> ignore),
-                        "a character outside the repertoire must not lay out as nothing")
+                    for character in "☃漢�" do
+                        Assert.Throws(
+                            (fun () -> laid(c character) |> ignore),
+                            $"{character} is outside the repertoire and must not lay out as nothing")
+            )
+            Test.Sync(
+                "aFormulaSaysWhichOfItsCharactersCannotBeDrawn",
+                fun () ->
+                    // What a caller building a formula in code asks before drawing it.
+                    Assert.Equal(ImmutableArray<char>.Empty, (MA.String "x+1").Undrawable, "an ordinary formula")
+                    let awkward =
+                        MA.Row(
+                            [ MA.Char '☃'; MA.BoldVar '≤'; MA.Blackboard 'a'; MA.Text "ϵ" ]
+                                .ToImmutableArray())
+                    Assert.Equal(
+                        [ '☃'; '≤'; 'a'; 'ϵ' ],
+                        List.ofSeq awkward.Undrawable,
+                        "each character no alphabet of its kind holds")
             )
             Test.CasesSync(
                 "everyFunctionNameCanBeSet",
@@ -271,6 +293,25 @@ let private repertoire =
                 fun f ->
                     // Not every name is letters: the indicator is 1 and the factorial is !.
                     Assert.True((laid(MA.Function f)).Width > 0f<px>, $"{f} is set as nothing")
+            )
+            Test.Sync(
+                "aCharacterIsSpacedByTheClassItCarries",
+                fun () ->
+                    let gap(between: char) =
+                        (laid(MA.String("x" + string between + "y"))).Width - (laid(c between)).Width
+                    for standard, characters in [ '=', "↑↓⟶⟵←↦∣"; '+', "∘" ] do
+                        for character in characters do
+                            nearly(gap standard, gap character, $"{character} is spaced unlike {standard}")
+            )
+            Test.Sync(
+                "theCharactersATextBorrowsFromAreOrdinary",
+                fun () ->
+                    // A price, a unit prefix and a dash bind to their neighbours as any letter does.
+                    for character in "£µ–" do
+                        Assert.Equal(
+                            (laid(c 'x')).Width + (laid(c character)).Width,
+                            (laid(MA.String("x" + string character))).Width,
+                            $"{character} was spaced as something other than an ordinary atom")
             )
             Test.CasesSync(
                 "everyClassifiedCharacterCanBeDrawn",
@@ -584,6 +625,13 @@ let private words =
                         | ValueSome glyph -> glyph.Id
                         | ValueNone -> failwith $"no upright {character}"
                     Assert.Equal([ upright 'a'; upright 'b' ], drawn, "the letters are not the upright ones")
+            )
+            Test.Sync(
+                "smallGreekIsUprightInTextAndItalicInAFormula",
+                fun () ->
+                    // A unit is written \mathrm{μg}, and its prefix leans no more than its letter does.
+                    let text = drawnGlyphs(laid(MA.Text "μ"))
+                    Assert.True(text <> drawnGlyphs(laid(c 'μ')), "text was set in the italic small Greek")
             )
             Test.Sync(
                 "textKeepsTheSpacesBetweenItsWords",

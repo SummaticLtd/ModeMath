@@ -34,6 +34,27 @@ module internal Latexing =
     /// A letter a control word may be spelled with, which θ is not though .NET counts it one.
     let private spells(c: char) = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
 
+    /// Where Unicode's italic alphabets begin, against the letters a formula sets in italic anyway.
+    let private italicised = [ 0x1D434, 'A', 26; 0x1D44E, 'a', 26; 0x1D6E2, 'Α', 25; 0x1D6FC, 'α', 25 ]
+
+    /// The shapes Unicode keeps out of those alphabets, and the rule a spreadsheet draws a bar with.
+    let private apart = [ 0x210E, 'h'; 0x1D6F3, 'Θ'; 0x2502, '|' ]
+
+    /// The letter a character stands for, where it is not one a formula holds as it is.
+    let private standsFor(codepoint: int) =
+        match apart |> List.tryFind (fun (shape, _) -> shape = codepoint) with
+        | Some(_, letter) -> ValueSome letter
+        | None ->
+            italicised
+            |> List.tryPick (fun (first, letter, count) ->
+                if codepoint >= first && codepoint < first + count then
+                    Some(char (int letter + codepoint - first))
+                else None)
+            |> ValueOption.ofOption
+
+    /// A mark that gives ink of its own, which a zero-width space does not.
+    let private inked(c: char) = Char.GetUnicodeCategory c <> Globalization.UnicodeCategory.Format
+
     /// The tokens a string is made of, paired with where each begins.
     let lex(latex: string) =
         let tokens = ImmutableArray.CreateBuilder<struct (Token * int)>()
@@ -64,7 +85,21 @@ module internal Latexing =
             | '_' -> take Token.Sub
             | '&' -> take Token.Cell
             | '$' -> fail("a formula is read in math mode already", start)
-            | _ -> if not(Char.IsWhiteSpace c) then take(Token.Char c)
+            | _ ->
+                if Char.IsHighSurrogate c && i < latex.Length && Char.IsLowSurrogate latex.[i] then
+                    let codepoint = Char.ConvertToUtf32(c, latex.[i])
+                    i <- i + 1
+                    match standsFor codepoint with
+                    | ValueSome letter -> take(Token.Char letter)
+                    | ValueNone -> fail($"U+{codepoint:X4} is no character this draws", start)
+                elif Char.IsWhiteSpace c || not(inked c) then ()
+                else
+                    match standsFor(int c) with
+                    | ValueSome letter -> take(Token.Char letter)
+                    // What the font cannot draw is refused here, so laying a formula out cannot fail.
+                    | ValueNone when (Glyphs.variable c).IsNone ->
+                        fail($"{c} is no character this draws", start)
+                    | ValueNone -> take(Token.Char c)
         tokens.ToImmutable()
 
     let private greek =
@@ -82,7 +117,7 @@ module internal Latexing =
     let private marks =
         [
             "infty", '∞'; "partial", '∂'; "emptyset", '∅'
-            "therefore", '∴'; "because", '∵'; "mid", '|'; "prime", '′'
+            "therefore", '∴'; "because", '∵'; "mid", '∣'; "prime", '′'
             "cdots", '⋯'; "ldots", '…'; "dots", '…'; "vdots", '⋮'; "ddots", '⋱'
             "times", '×'; "div", '÷'; "cdot", '⋅'; "pm", '±'; "mp", '∓'; "ast", '∗'
             "cap", '∩'; "cup", '∪'; "wedge", '∧'; "land", '∧'; "vee", '∨'; "lor", '∨'
@@ -96,6 +131,8 @@ module internal Latexing =
             "Longleftrightarrow", '⟺'; "supset", '⊃'; "supseteq", '⊇'; "perp", '⊥'; "parallel", '∥'
             "angle", '∠'; "ell", 'ℓ'; "nabla", '∇'; "forall", '∀'; "exists", '∃'
             "dagger", '†'; "degree", '°'; "backslash", '\\'
+            "circ", '∘'; "triangle", '△'; "square", '□'; "pounds", '£'
+            "uparrow", '↑'; "downarrow", '↓'; "longrightarrow", '⟶'; "longleftarrow", '⟵'
         ]
 
     let private functions =
@@ -343,6 +380,13 @@ module internal Latexing =
                 source.Substring(opening + 1, closing - opening - 1)
             | _ -> fail("a word in braces was expected", position)
 
+        /// Words set upright, which the italic shapes of a formula are no substitute for.
+        member private _.Written(word: string, position: int) =
+            let word = word |> String.filter inked
+            for c in word do
+                if (Glyphs.upright c).IsNone then fail($"{c} is no character this sets upright", position)
+            MA.Text word
+
         member private t.Named(name: string, position: int) : MA =
             match name with
             | "frac" | "dfrac" | "tfrac" -> MA.Frac(t.Argument(), t.Argument())
@@ -357,10 +401,10 @@ module internal Latexing =
             | "right" -> fail("a right delimiter with no left one", position)
             | "begin" -> t.Environment(position)
             | "end" -> fail("an environment ends where none began", position)
-            | "text" | "textrm" -> MA.Text(t.Words position)
+            | "text" | "textrm" -> t.Written(t.Words position, position)
             | "mathrm" ->
                 let words = t.Words position
-                if words = "d" then MA.UprightD else MA.Text words
+                if words = "d" then MA.UprightD else t.Written(words, position)
             | "mathbf" | "boldsymbol" -> bold(t.Argument())
             | "mathbb" -> blackboard(t.Argument())
             | "color" | "textcolor" ->

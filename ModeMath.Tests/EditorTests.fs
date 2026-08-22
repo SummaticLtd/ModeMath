@@ -6,7 +6,12 @@ open ModeMath
 
 let private layout = Layout 20f<px>
 let private opened(ma: MA) = Editor(layout, ma)
-let private typed(editor: Editor, s: string) = s |> Seq.fold (fun (e: Editor) c -> e.Type c) editor
+let private typing(editor: Editor, c: char) =
+    match editor.Type c with
+    | ValueSome typed -> typed
+    | ValueNone -> failwith $"{c} cannot be typed"
+
+let private typed(editor: Editor, s: string) = s |> Seq.fold (fun e c -> typing(e, c)) editor
 let private arr(xs: MA list) = xs.ToImmutableArray()
 
 let private moved(direction: Direction, editor: Editor) =
@@ -35,13 +40,13 @@ let private editing =
                         | PlacedMA.Row children -> children.[1].X
                         | other -> failwith $"not a row: {other}"
                     let clicked = editor.Click(midway, 0f<px>)
-                    Assert.Equal(MA.String "abc", (clicked.Type 'b').Formula)
+                    Assert.Equal(MA.String "abc", typing(clicked, 'b').Formula)
             )
             Test.Sync(
                 "aFractionWithNoTermBeforeItLeavesTheCursorInItsNumerator",
                 fun () ->
                     let editor = (opened MA.Empty).InsertFraction
-                    Assert.Equal(MA.Frac(MA.Char '1', MA.Empty), (editor.Type '1').Formula)
+                    Assert.Equal(MA.Frac(MA.Char '1', MA.Empty), typing(editor, '1').Formula)
             )
             Test.Sync(
                 "aFractionTakesTheTermBeforeItUpIntoItsNumerator",
@@ -111,7 +116,7 @@ let private editing =
                                 MA.RoundBracket(MA.Char 'd')
                                 MA.Char 'e'
                             ]).Flatten,
-                        (closed.Type 'e').Formula,
+                        typing(closed, 'e').Formula,
                         "the cursor did not stand after the group")
             )
             Test.Sync(
@@ -133,7 +138,7 @@ let private editing =
                             Brackets.Matching Bracket.Normal,
                             MA.String "xa+b",
                             BracketCompletion.Left),
-                        (opening.Type 'x').Formula,
+                        typing(opening, 'x').Formula,
                         "the cursor did not stand at the start of the group")
             )
             Test.Sync(
@@ -153,7 +158,7 @@ let private editing =
                     Assert.Equal(
                         MA.Row(
                             arr [ MA.Char 'a'; MA.Char '+'; MA.RoundBracket(MA.String "xb+c") ]).Flatten,
-                        (opening.Type 'x').Formula,
+                        typing(opening, 'x').Formula,
                         "the cursor did not stand inside the group it opened")
             )
             Test.Sync(
@@ -204,7 +209,7 @@ let private editing =
                                 MA.Char '+'
                                 MA.Char 'c'
                             ]).Flatten,
-                        (closed.Type 'x').Formula,
+                        typing(closed, 'x').Formula,
                         "the cursor did not stand after the group")
             )
             Test.Sync(
@@ -219,7 +224,7 @@ let private editing =
                     Assert.Equal(group, closed.Formula, "the closing bracket moved to the cursor")
                     Assert.Equal(
                         MA.Row2(group, MA.Char 'x'),
-                        (closed.Type 'x').Formula,
+                        typing(closed, 'x').Formula,
                         "the cursor did not stand after the group")
             )
             Test.Sync(
@@ -282,12 +287,12 @@ let private editing =
                             typed((opened MA.Empty).InsertBracket(Brackets.Matching Bracket.Normal), "a+b+c"))
                     Assert.Equal(
                         MA.Row2(MA.RoundBracket group, MA.Char '+'),
-                        (waiting.Type '+').Formula,
+                        typing(waiting, '+').Formula,
                         "a group waiting for its closing bracket")
                     let stray = opened((typed(opened MA.Empty, "a+b+c")).CloseBracket(Bracket.Normal).Formula)
                     Assert.Equal(
                         MA.Row2(MA.Char '+', MA.RoundBracket group),
-                        (stray.Type '+').Formula,
+                        typing(stray, '+').Formula,
                         "a group waiting for its opening bracket")
             )
             Test.Sync(
@@ -357,10 +362,18 @@ let private editing =
                         barred)
             )
             Test.Sync(
+                "aCharacterTheFontCannotDrawIsNotTypedAtAll",
+                fun () ->
+                    // Move gives the key back the same way where there is nowhere to go.
+                    let editor = typed(opened MA.Empty, "ab")
+                    Assert.Equal(ValueNone, editor.Type '☃', "a key with no glyph was taken in")
+                    Assert.Equal(MA.String "abc", (typing(editor, 'c')).Formula, "an ordinary key was not")
+            )
+            Test.Sync(
                 "aSquareRootLeavesTheCursorInsideIt",
                 fun () ->
                     let editor = (opened MA.Empty).InsertSqrt
-                    Assert.Equal(MA.Sqrt(MA.Char 'x'), (editor.Type 'x').Formula)
+                    Assert.Equal(MA.Sqrt(MA.Char 'x'), typing(editor, 'x').Formula)
             )
             Test.Sync(
                 "aSuperscriptGoesOnWhatTheCursorStandsAfter",
@@ -368,7 +381,7 @@ let private editing =
                     let editor = (typed(opened MA.Empty, "x")).InsertSuperscript
                     Assert.Equal(
                         MA.ScriptSuper(MA.Char 'x', MA.Char '2', ValueNone),
-                        (editor.Type '2').Formula)
+                        typing(editor, '2').Formula)
             )
             Test.Sync(
                 "aSubscriptJoinsTheSuperscriptTheAtomAlreadyCarries",
@@ -376,7 +389,7 @@ let private editing =
                     let squared = Editor.AtEnd(layout, MA.ScriptSuper(MA.Char 'x', MA.Char '2', ValueNone))
                     Assert.Equal(
                         MA.ScriptSuper(MA.Char 'x', MA.Char '2', ValueSome(MA.Char 'i')),
-                        (squared.InsertSubscript.Type 'i').Formula)
+                        typing(squared.InsertSubscript, 'i').Formula)
             )
             Test.Sync(
                 "aSuperscriptJoinsTheSubscriptTheAtomAlreadyCarries",
@@ -384,7 +397,7 @@ let private editing =
                     let indexed = Editor.AtEnd(layout, MA.ScriptSub(MA.Char 'x', MA.Char 'i'))
                     Assert.Equal(
                         MA.ScriptSuper(MA.Char 'x', MA.Char '2', ValueSome(MA.Char 'i')),
-                        (indexed.InsertSuperscript.Type '2').Formula)
+                        typing(indexed.InsertSuperscript, '2').Formula)
             )
             Test.Sync(
                 "aSecondSuperscriptGoesIntoTheOneAlreadyThere",
@@ -392,7 +405,7 @@ let private editing =
                     let squared = Editor.AtEnd(layout, MA.ScriptSuper(MA.Char 'x', MA.Char '2', ValueNone))
                     Assert.Equal(
                         MA.ScriptSuper(MA.Char 'x', MA.String "23", ValueNone),
-                        (squared.InsertSuperscript.Type '3').Formula)
+                        typing(squared.InsertSuperscript, '3').Formula)
             )
             Test.Sync(
                 "aScriptWithNothingBeforeItIsSetOnAnEmptySlot",
@@ -400,13 +413,13 @@ let private editing =
                     let editor = (opened MA.Empty).InsertSuperscript
                     Assert.Equal(
                         MA.ScriptSuper(MA.Empty, MA.Char '2', ValueNone),
-                        (editor.Type '2').Formula)
+                        typing(editor, '2').Formula)
             )
             Test.Sync(
                 "aFormulaPutInAtTheCursorIsLeftBehindIt",
                 fun () ->
                     let editor = (opened MA.Empty).Insert(MA.String "xy")
-                    Assert.Equal(MA.String "xyz", (editor.Type 'z').Formula)
+                    Assert.Equal(MA.String "xyz", typing(editor, 'z').Formula)
             )
             Test.Sync(
                 "backspaceTakesBackWhatWasTyped",
@@ -421,9 +434,9 @@ let private editing =
                     // A caller working the point out through a scale of zero must not lose the lot.
                     let editor = typed(opened MA.Empty, "ab")
                     let nowhere = System.Single.NaN * 1f<px>
-                    Assert.Equal(MA.String "zab", ((editor.Click(nowhere, nowhere)).Type 'z').Formula)
+                    Assert.Equal(MA.String "zab", (typing(editor.Click(nowhere, nowhere), 'z')).Formula)
                     let far = System.Single.PositiveInfinity * 1f<px>
-                    Assert.Equal(MA.String "zab", ((editor.Click(far, 0f<px>)).Type 'z').Formula)
+                    Assert.Equal(MA.String "zab", (typing(editor.Click(far, 0f<px>), 'z')).Formula)
             )
             Test.Sync(
                 "aKeyWithNothingToDoIsPassedOn",
@@ -465,7 +478,7 @@ let private laying =
                 fun () ->
                     let editor = typed(opened MA.Empty, "abc")
                     Assert.True(
-                        not (obj.ReferenceEquals(editor.Placed.Pma, (editor.Type 'd').Placed.Pma)),
+                        not (obj.ReferenceEquals(editor.Placed.Pma, typing(editor, 'd').Placed.Pma)),
                         "a character was typed without the formula being laid out again")
             )
             Test.Sync(

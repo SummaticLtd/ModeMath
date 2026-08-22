@@ -81,6 +81,7 @@ let alphabets =
         "uprightSmall", int 'a', 26, "Upright a to z, in which function names are set."
         "uprightCapital", int 'A', 26, "Upright A to Z."
         "uprightGreekCapital", 0x0391, 25, "Upright Alpha to Omega, as capital Greek is set."
+        "uprightGreekSmall", 0x03B1, 25, "Upright alpha to omega, as \\mathrm sets small Greek."
         "digits", int '0', 10, "Upright 0 to 9."
     ]
 
@@ -101,13 +102,15 @@ let italicShapes =
 let repertoire =
     String.concat "" [
         " !\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
-        "−×÷±∓⋅∗∩∪∧∨∖⊕⊗†‡"
-        "≤≥≠≈≡∼≅∝≪≫⊥∥"
+        "−×÷±∓⋅∗∘∩∪∧∨∖⊕⊗†‡"
+        "≤≥≠≈≡∼≅∝≪≫⊥∥∣"
         "∈∉∋⊂⊃⊆⊇∅"
         "¬∀∃"
-        "→←↔⇒⇐⇔⟺↦"
-        "∞∂∇∠∆□"
+        "→←↔⇒⇐⇔⟺↦↑↓⟶⟵"
+        "∞∂∇∠∆□△"
         "∴∵…⋯⋮⋱′″‰°"
         "ℕℝℤℚℂℍℙℓ"
         "⟨⟩"
+        // What a formula borrows from text: a price, a unit prefix, a dash between numbers.
+        "£µ–"
     ]

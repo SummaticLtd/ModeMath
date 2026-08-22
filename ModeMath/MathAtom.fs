@@ -177,6 +177,42 @@ type MA =
     static member AlignmentOf(alignments: ImmutableArray<Alignment>, column: int) =
         if alignments.IsEmpty then Alignment.Centre else alignments.[column % alignments.Length]
 
+    /// The characters of a formula the font cannot draw, which laying it out would fail on. Empty
+    /// where all of it can be drawn, as a formula read from LaTeX or entered by typing always is.
+    member t.Undrawable: ImmutableArray<char> =
+        let found = ImmutableArray.CreateBuilder<char>()
+        let rec walk(ma: MA) =
+            let drawn(c: char, glyph: Glyph voption) = if glyph.IsNone then found.Add c
+            match ma with
+            | Char c -> drawn(c, Glyphs.variable c)
+            | BoldVar c -> drawn(c, Letters.bold c)
+            | Blackboard c -> drawn(c, Letters.blackboard c)
+            | Text word -> for c in word do drawn(c, Glyphs.upright c)
+            | Row elements -> for element in elements do walk element
+            | ScriptSuper(main, super, sub) ->
+                walk main
+                walk super
+                sub |> ValueOption.iter walk
+            | ScriptSub(main, sub) ->
+                walk main
+                walk sub
+            | Frac(a, b) | RootN(a, b) | Stack(a, b) ->
+                walk a
+                walk b
+            | Bracketed(_, x, _) | Sqrt x | Accented(_, x) | Overline x | Underline x
+            | Spanned(_, x) | Coloured(_, x) -> walk x
+            | BigOp(_, lower, upper) ->
+                lower |> ValueOption.iter walk
+                upper |> ValueOption.iter walk
+            | Table(cells, _) ->
+                for r in 0 .. cells.Rows - 1 do
+                    for c in 0 .. cells.Cols - 1 do
+                        walk cells.[r, c]
+            // A function name is set from the alphabet the font is generated to hold whole.
+            | Function _ | UprightD | Space _ -> ()
+        walk t
+        found.ToImmutable()
+
     member t.IsEmpty =
         match t with
         | Row l -> l |> ImmArray.forall (fun ma -> ma.IsEmpty)

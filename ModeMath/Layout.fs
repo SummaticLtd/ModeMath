@@ -69,37 +69,20 @@ type internal AccentMark =
 module internal Conventions =
     let relations = set [
         '='; '<'; '>'; '≤'; '≥'; '≠'; '≈'; '≡'; '∈'; '∉'
-        '⊂'; '⊆'; '→'; '⇒'; '⇔'; '⟺'; '∴'; '∵'
-        '∼'; '≅'; '∝'
+        '⊂'; '⊆'; '⊃'; '⊇'; '∴'; '∵'
+        '∼'; '≅'; '∝'; '⊥'; '∥'; '∣'
+        '→'; '←'; '↔'; '↦'; '⇒'; '⇐'; '⇔'; '⟺'
+        '↑'; '↓'; '⟶'; '⟵'
     ]
 
     let binaries = set [
-        '+'; '-'; '−'; '±'; '∓'; '×'; '÷'; '⋅'; '∗'
+        '+'; '-'; '−'; '±'; '∓'; '×'; '÷'; '⋅'; '∗'; '∘'
         '∩'; '∪'; '∧'; '∨'; '∖'; '⊕'; '⊗'
     ]
 
     let opens = set [ '('; '['; '{'; '⟨' ]
     let closes = set [ ')'; ']'; '}'; '⟩' ]
     let punctuation = set [ ','; ';'; ':' ]
-
-    /// Latin and small Greek variables are italic, capital Greek upright, as TeX sets them.
-    let variable(c: char) =
-        Letters.italic c
-        |> ValueOption.orElseWith (fun () -> Letters.upright c)
-        |> ValueOption.orElseWith (fun () -> Digits.glyph c)
-        |> ValueOption.orElseWith (fun () -> Letters.letterlikeBlackboard c)
-        |> ValueOption.orElseWith (fun () ->
-            if c = '-' then ValueSome Operators.minus else MathFont.OfChar c)
-
-    let boldVariable(c: char) = Letters.bold c
-
-    /// Function names are set upright, though two are the indicator's 1 and the factorial's !.
-    let uprightGlyph(c: char) =
-        Letters.upright c
-        |> ValueOption.orElseWith (fun () -> Digits.glyph c)
-        |> ValueOption.orElseWith (fun () -> MathFont.OfChar c)
-
-    let blackboardVariable(c: char) = Letters.blackboard c
 
     /// ValueNone where the side carries no bracket at all.
     let leftDelimiter(bracket: Bracket) =
@@ -342,7 +325,7 @@ type Layout(fontSize: float32<px>) =
         let glyphs = ImmutableArray.CreateBuilder<PlacedGlyph>()
         let mutable x = 0f<px>
         for c in text do
-            let glyph = required(Conventions.uprightGlyph c, $"the character {c}")
+            let glyph = required(Glyphs.upright c, $"the character {c}")
             glyphs.Add(PlacedGlyph(glyph, emSize style, x, 0f<px>))
             x <- x + glyph.Advance * s
         markOf(glyphs.ToImmutable(), x)
@@ -864,15 +847,15 @@ type Layout(fontSize: float32<px>) =
         match ma with
         | MA.Row elements -> t.Row(elements, style)
         | MA.Char c ->
-            single(required(Conventions.variable c, $"the character {c}"), style, fun g -> PlacedMA.Char(c, g))
+            single(required(Glyphs.variable c, $"the character {c}"), style, fun g -> PlacedMA.Char(c, g))
         | MA.BoldVar c ->
             single(
-                required(Conventions.boldVariable c, $"a bold {c}"),
+                required(Letters.bold c, $"a bold {c}"),
                 style,
                 fun g -> PlacedMA.BoldVar(c, g))
         | MA.Blackboard c ->
             single(
-                required(Conventions.blackboardVariable c, $"a blackboard bold {c}"),
+                required(Letters.blackboard c, $"a blackboard bold {c}"),
                 style,
                 fun g -> PlacedMA.Blackboard(c, g))
         | MA.UprightD -> single(Symbols.uprightD, style, PlacedMA.UprightD)

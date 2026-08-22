@@ -50,6 +50,25 @@ let private reading =
                     "\\infty", c '∞'
                     "\\cdot", c '⋅'
                     "\\leq", c '≤'
+                    // The divides sign, which spaces as the relation it is where a plain bar would not.
+                    "a\\mid b", row [ c 'a'; c '∣'; c 'b' ]
+                    "\\circ", c '∘'
+                    "\\triangle", c '△'
+                    "\\uparrow\\downarrow", row [ c '↑'; c '↓' ]
+                    "\\longrightarrow", c '⟶'
+                    "\\pounds", c '£'
+                    // A word processor writes its variables in the italic alphabet Unicode holds.
+                    "𝑠𝑜𝑐", MA.String "soc"
+                    "𝐴𝜋", row [ c 'A'; c 'π' ]
+                    // Unicode keeps italic h among the letterlike symbols and leaves its slot empty,
+                    // and fills the empty slot of the italic capitals with the theta symbol.
+                    "ℎ", c 'h'
+                    "𝛳", c 'Θ'
+                    // A mark that gives no ink of its own is nothing to draw, in text as anywhere else.
+                    "a​b", MA.String "ab"
+                    "\\text{a​b}", MA.Text "ab"
+                    // A spreadsheet writes the bar of a conditional probability as a drawing rule.
+                    "P(A│B)", read "P(A|B)"
                     // Only the 26 letters spell a command, so \cosθ is a function and a letter.
                     "\\cosθ", row [ MA.Function MathFunction.Cos; c 'θ' ]
                 ]
@@ -111,6 +130,9 @@ let private reading =
                         row [ c '0'; c ','; c '1' ],
                         BracketCompletion.Completed)
                     "\\left.x\\right|", MA.Bracketed(Brackets(Bracket.None, Bracket.Line), c 'x', BracketCompletion.Completed)
+                    // A bar names the same delimiter either side, whichever of its names is written.
+                    "\\left\\mid x\\right\\vert",
+                    MA.Bracketed(Brackets.Matching Bracket.Line, c 'x', BracketCompletion.Completed)
                     // Plain brackets do not grow in LaTeX, so they are read as the characters they are.
                     "(x)", row [ c '('; c 'x'; c ')' ]
                 ]
@@ -180,6 +202,37 @@ let private reading =
                     "\\color{fuchsias}{x}"
                     "\\"
                 ]
+            )
+            Test.Sync(
+                "aCharacterTheFontCannotDrawIsRefusedWhereItStands",
+                rejected [
+                    "a☃b"
+                    // Beyond the basic plane only the italic alphabet stands for anything a formula holds.
+                    "𝔄"
+                    // Text is set upright, and the italic shapes of a formula are no substitute.
+                    "\\text{ϵ}"
+                    "\\mathrm{ϕ}"
+                ]
+            )
+            Test.Sync(
+                "whereACharacterIsRefusedIsSaidAlongWithWhy",
+                fun () ->
+                    match Latex.Read "ab☃" with
+                    | Ok ma -> Assert.Fail $"read as {ma}"
+                    | Error error ->
+                        Assert.Equal(2, error.Position, "the character refused was not the one at fault")
+                        Assert.True(error.Message.Contains '☃', $"{error.Message} does not name it")
+            )
+            Test.Sync(
+                "everythingReadCanBeDrawn",
+                fun () ->
+                    // Refusing at the door is what lets laying a formula out be total.
+                    let readable =
+                        [ "x+1"; "\\frac{a}{b}"; "\\text{cost in £}"; "\\mathbf{v}_1"
+                          "\\mathbb{R}^n"; "\\sqrt[3]{x}"; "\\begin{matrix}a&b\\\\c&d\\end{matrix}"
+                          "\\mathrm{μg}"; "\\alpha\\uparrow\\circ\\triangle" ]
+                    for latex in readable do
+                        Assert.Equal(ImmutableArray<char>.Empty, (read latex).Undrawable, latex)
             )
             Test.Sync(
                 "everyNamedSymbolHasAGlyphToDrawIt",
