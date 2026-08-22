@@ -524,27 +524,30 @@ type internal MACurs =
         | Direction.Down -> t.Down
         | _ -> ValueNone
 
-    /// Replaces the atom before the cursor with one built from it, or from an empty slot if there is none.
-    /// There is none where the cursor starts the row it stands in, or fills an empty slot on its own.
-    member t.ReplaceBefore(build: MA -> MACurs): MACurs =
+    /// Replaces the atoms before the cursor with one built from as many of them as takes asks for.
+    /// It is given an empty slot where it asks for none, or where the cursor has none before it.
+    member t.ReplaceBefore(takes: ImmutableArray<MA> -> int, build: MA -> MACurs): MACurs =
+        let again(curs: MACurs) = curs.ReplaceBefore(takes, build)
         match t with
         | CursorOrEmpty -> build MA.Empty
         | Row(before, inner, after) ->
-            if not inner.IsCursorOrEmpty then MACurs.MakeRow(before, inner.ReplaceBefore build, after)
-            elif before.IsEmpty then MACurs.MakeRow(before, build MA.Empty, after)
+            if not inner.IsCursorOrEmpty then MACurs.MakeRow(before, again inner, after)
             else
-                let last = before.Length - 1
-                MACurs.MakeRow(before.RemoveAt last, build before.[last], after)
-        | ScriptMainSuper(main, super, sub) -> ScriptMainSuper(main.ReplaceBefore build, super, sub)
-        | ScriptMainSub(main, sub) -> ScriptMainSub(main.ReplaceBefore build, sub)
-        | ScriptSuper(main, super, sub) -> ScriptSuper(main, super.ReplaceBefore build, sub)
-        | ScriptSub(main, super, sub) -> ScriptSub(main, super, sub.ReplaceBefore build)
-        | FracNum(n, d) -> FracNum(n.ReplaceBefore build, d)
-        | FracDen(n, d) -> FracDen(n, d.ReplaceBefore build)
-        | Bracketed(b, inner, bc) -> Bracketed(b, inner.ReplaceBefore build, bc)
-        | RootNDegree(n, x) -> RootNDegree(n.ReplaceBefore build, x)
-        | RootNMain(n, x) -> RootNMain(n, x.ReplaceBefore build)
-        | Sqrt x -> Sqrt(x.ReplaceBefore build)
+                let kept = before.Length - takes before
+                MACurs.MakeRow(
+                    before |> ImmArray.truncate kept,
+                    build(MA.OfElements(before.RemoveRange(0, kept))),
+                    after)
+        | ScriptMainSuper(main, super, sub) -> ScriptMainSuper(again main, super, sub)
+        | ScriptMainSub(main, sub) -> ScriptMainSub(again main, sub)
+        | ScriptSuper(main, super, sub) -> ScriptSuper(main, again super, sub)
+        | ScriptSub(main, super, sub) -> ScriptSub(main, super, again sub)
+        | FracNum(n, d) -> FracNum(again n, d)
+        | FracDen(n, d) -> FracDen(n, again d)
+        | Bracketed(b, inner, bc) -> Bracketed(b, again inner, bc)
+        | RootNDegree(n, x) -> RootNDegree(again n, x)
+        | RootNMain(n, x) -> RootNMain(n, again x)
+        | Sqrt x -> Sqrt(again x)
 
     /// Adds an MACurs naively
     member t.AddMACurs(addition: MACurs): MACurs =
