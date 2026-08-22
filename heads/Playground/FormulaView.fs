@@ -94,7 +94,11 @@ type FormulaView() as t =
         | '_' -> editor.InsertSubscript
         | '(' -> editor.InsertBracket(Brackets.Matching Bracket.Normal)
         | '[' -> editor.InsertBracket(Brackets.Matching Bracket.Square)
-        | '|' -> editor.InsertBracket(Brackets.Matching Bracket.Line)
+        | '{' -> editor.InsertBracket(Brackets.Matching Bracket.Curly)
+        | ')' -> editor.CloseBracket Bracket.Normal
+        | ']' -> editor.CloseBracket Bracket.Square
+        | '}' -> editor.CloseBracket Bracket.Curly
+        | '|' -> editor.InsertBar Bracket.Line
         | _ -> editor.Type character
 
     override _.OnKeyDown(e: KeyEventArgs) =
