@@ -7,5 +7,12 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <!-- FS0104: enums may take values outside their known cases -->
     <NoWarn>FS0104</NoWarn>
+    <!-- FS3511: https://github.com/dotnet/fsharp/issues/12038 -->
+    <!-- NU1900=info, NU1901=low, NU1902=moderate: suppressed as warnings only -->
+    <!-- NU1903=high, NU1904=critical: intentionally left as errors to block builds -->
+    <WarningsNotAsErrors>FS3511; NU1900; NU1901; NU1902</WarningsNotAsErrors>
+    <NoWarn>$(NoWarn);NU1900;NU1901;NU1902</NoWarn>
+    <ProduceReferenceAssembly>true</ProduceReferenceAssembly>
+    <AccelerateBuildsInVisualStudio>true</AccelerateBuildsInVisualStudio>
   </PropertyGroup>
 </Project>

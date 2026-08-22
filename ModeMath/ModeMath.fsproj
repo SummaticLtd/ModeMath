@@ -1,5 +1,30 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <PropertyGroup>
+    <WarnOn>FS3389; FS3395</WarnOn>
+    <OutputType>Library</OutputType>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <Version>0.1.0</Version>
+    <PackageId>ModeMath</PackageId>
+    <Authors>Summatic</Authors>
+    <Description>Mathematical formula display and editing for .NET, rendered with SkiaSharp. Reads and writes math-mode LaTeX, lays a formula out from the OpenType MATH table, and edits one with a cursor in it.</Description>
+    <PackageTags>fsharp;math;latex;typesetting;skiasharp;opentype</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/SummaticLtd/ModeMath</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/SummaticLtd/ModeMath</PackageProjectUrl>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <!-- Pin the floor rather than inheriting the SDK's FSharp.Core, which would force every consumer up to it. -->
+    <DisableImplicitFSharpCoreReference>true</DisableImplicitFSharpCoreReference>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
   <ItemGroup>
     <Compile Include="Units.fs" />
     <Compile Include="MathFontTypes.fs" />
@@ -15,6 +40,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="FSharp.Core" Version="10.1.300" />
     <PackageReference Include="SkiaSharp" Version="3.119.4" />
     <PackageReference Include="Summatic.FSUtils" Version="0.2.0" />
   </ItemGroup>
