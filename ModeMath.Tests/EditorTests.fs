@@ -148,7 +148,7 @@ let private editing =
                     "aClosingBracketNeverWritesOverOneAlreadyThere", ("(xy)<]", "(~[~xy])")
                     // A group waiting for a bracket cannot be split from a slot inside one of its atoms.
                     "anOpeningBracketOpensAGroupOfItsOwnFromInsideAnAtomOfOne",
-                    ("1/2>x)<<<<(", "~(~frac{1}{(2~)~}x)")
+                        ("1/2>x)<<<<(", "~(~frac{1}{(2~)~}x)")
                 ],
                 fun (keys, expected) -> Assert.Equal(expected, after keys, keys)
             )
@@ -160,7 +160,7 @@ let private editing =
                     "anOpeningBracketBeforeAGroupWaitingForOne", ("a+b+c)\u2196(", "(a+b+c)")
                     "anythingPutPastAGroupWaitingForItsClosingBracketSettlesIt", ("(a+b+c>+", "(a+b+c)+")
                     "anythingPutBeforeAGroupWaitingForItsOpeningBracketSettlesIt",
-                    ("a+b+c)\u2196+", "+(a+b+c)")
+                        ("a+b+c)\u2196+", "+(a+b+c)")
                 ],
                 fun (keys, expected) -> Assert.Equal(expected, after keys, keys)
             )

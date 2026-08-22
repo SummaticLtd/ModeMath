@@ -107,11 +107,11 @@ let private editing =
                     "andSoForTheOtherTwo", ("sinh", MA.Function MathFunction.Sinh)
                     "andTheThird", ("tanh", MA.Function MathFunction.Tanh)
                     "aLetterSpellingNoLongerNameIsLeftBesideIt",
-                    ("cosx", MA.Row2(MA.Function MathFunction.Cos, MA.Char 'x'))
+                        ("cosx", MA.Row2(MA.Function MathFunction.Cos, MA.Char 'x'))
                     "andSoIsARunOfThem",
-                    ("cosec", MA.Row(arr [ MA.Function MathFunction.Cos; MA.Char 'e'; MA.Char 'c' ]))
+                        ("cosec", MA.Row(arr [ MA.Function MathFunction.Cos; MA.Char 'e'; MA.Char 'c' ]))
                     "aNameIsReadOnlyAtTheEndOfARunOfLetters",
-                    ("2cos", MA.Row2(MA.Char '2', MA.Function MathFunction.Cos))
+                        ("2cos", MA.Row2(MA.Char '2', MA.Function MathFunction.Cos))
                 ],
                 fun (letters, expected) -> Assert.Equal(expected, (typed letters).ToMA, letters)
             )
