@@ -341,6 +341,25 @@ and [<Struct>] PlacedCurs(placed: Placed, curs: PlacedMACurs) =
         | PlacedMACurs.RootNMain(_, child)
         | PlacedMACurs.Sqrt child -> below child
 
+    /// The slot the cursor stands among, and how far right of this atom's origin that slot sits.
+    member internal t.Slot: struct(Placed * float32<px>) =
+        let below(child: PlacedCurs) =
+            let struct(slot, x) = child.Slot
+            struct(slot, child.Placed.X + x)
+        match curs with
+        | PlacedMACurs.Fills _ | PlacedMACurs.Between _ -> struct(placed, 0f<px>)
+        | PlacedMACurs.Within(_, child, _)
+        | PlacedMACurs.ScriptMainSuper(child, _, _)
+        | PlacedMACurs.ScriptMainSub(child, _)
+        | PlacedMACurs.ScriptSuper(_, child, _)
+        | PlacedMACurs.ScriptSub(_, _, child)
+        | PlacedMACurs.FracNum(child, _)
+        | PlacedMACurs.FracDen(_, child)
+        | PlacedMACurs.Bracketed(_, child, _)
+        | PlacedMACurs.RootNDegree(child, _)
+        | PlacedMACurs.RootNMain(_, child)
+        | PlacedMACurs.Sqrt child -> below child
+
 type PlacedCurs with
     /// The cursor this was placed from, which an edit is made against.
     member internal t.ToMACurs: MACurs =
@@ -559,3 +578,13 @@ type PlacedCurs with
     /// The cursor nearest a point, in pixels from the formula's origin with y upwards.
     static member Nearest(placed: Placed, x: float32<px>, y: float32<px>) =
         PlacedCurs.Of(PlacedCurs.NearestIn(placed, x, y), placed)
+
+    /// The cursor put at x in the slot it stands among, met at the edge it was moved in through.
+    member internal t.Reseated(x: float32<px>, from: Direction) =
+        let struct(slot, offset) = t.Slot
+        let y =
+            match from with
+            | Direction.Up -> -slot.Descent
+            | Direction.Down -> slot.Ascent
+            | _ -> 0f<px>
+        PlacedCurs.Of(t.ToMACurs.Reseat(PlacedCurs.NearestIn(slot, x - offset, y)), t.Placed)

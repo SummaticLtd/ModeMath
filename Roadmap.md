@@ -10,7 +10,6 @@ bracket or script. What is left:
 | Addition | Why |
 |---|---|
 | Selection | Tracked separately: #3 |
-| Up and down by where the atoms are | `Move` is structural, so leaving a denominator ignores the point it left from |
 | Undo | The editor is a value, so a caller can keep the old ones. Nothing here does it for them |
 
 ## 2. LaTeX

@@ -597,6 +597,24 @@ type internal MACurs =
         | RootNMain(n, x) -> RootNMain(n, again x)
         | Sqrt x -> Sqrt(again x)
 
+    /// Puts the cursor somewhere else in the slot it stands among, which seated must cover all of.
+    member t.Reseat(seated: MACurs): MACurs =
+        let again(curs: MACurs) = curs.Reseat seated
+        match t with
+        | CursorOrEmpty -> seated
+        | Row(before, inner, after) ->
+            if inner.IsCursorOrEmpty then seated else MACurs.MakeRow(before, again inner, after)
+        | ScriptMainSuper(main, super, sub) -> ScriptMainSuper(again main, super, sub)
+        | ScriptMainSub(main, sub) -> ScriptMainSub(again main, sub)
+        | ScriptSuper(main, super, sub) -> ScriptSuper(main, again super, sub)
+        | ScriptSub(main, super, sub) -> ScriptSub(main, super, again sub)
+        | FracNum(n, d) -> FracNum(again n, d)
+        | FracDen(n, d) -> FracDen(n, again d)
+        | Bracketed(b, inner, bc) -> Bracketed(b, again inner, bc)
+        | RootNDegree(n, x) -> RootNDegree(again n, x)
+        | RootNMain(n, x) -> RootNMain(n, again x)
+        | Sqrt x -> Sqrt(again x)
+
     /// Replaces the atoms after the cursor with one built from all of them, and stands in it.
     member t.ReplaceAfter(build: MA -> MACurs): MACurs =
         let again(curs: MACurs) = curs.ReplaceAfter build
