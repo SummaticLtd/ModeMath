@@ -1,9 +1,11 @@
 ﻿module MathTableGen.Program
 
 open System
+open System.Collections.Generic
 open System.IO
 open System.Security.Cryptography
 open SkiaSharp
+open FSUtils
 
 let private mathTag =
     uint32 (int 'M' <<< 24 ||| (int 'A' <<< 16) ||| (int 'T' <<< 8) ||| int 'H')
@@ -80,16 +82,21 @@ let main(args: string array): int =
     use font = designFont typeface
     use blackboardFont = designFont blackboardTypeface
     let advances, tops, bottoms = measure(font, typeface.GlyphCount)
-    let italics = dict table.ItalicsCorrections
-    let attachments = dict table.TopAccentAttachments
+    let italics = table.ItalicsCorrections |> Seq.map KeyValuePair |> Dictionary
+    let attachments = table.TopAccentAttachments |> Seq.map KeyValuePair |> Dictionary
 
     /// One glyph of the math face as the literal that reconstructs it.
     let glyph(id: int) =
-        let italic = match italics.TryGetValue id with | true, value -> value | false, _ -> 0
+        let italic =
+            match italics |> Dictionary.tryFind id with
+            | ValueSome italic -> italic
+            // A glyph the table leaves out does not lean.
+            | ValueNone -> 0
         let attachment =
-            match attachments.TryGetValue id with
-            | true, value -> value
-            | false, _ -> advances.[id] / 2
+            match attachments |> Dictionary.tryFind id with
+            | ValueSome attachment -> attachment
+            // An accent over a glyph the table leaves out sits at the middle of its advance.
+            | ValueNone -> advances.[id] / 2
         $"Glyph({id}, {advances.[id]}f<du>, {tops.[id]}f<du>, {bottoms.[id]}f<du>, {italic}f<du>, \
             {attachment}f<du>)"
 
@@ -119,12 +126,12 @@ let main(args: string array): int =
     let byCodepoint =
         [| for i in 0 .. allCodepoints.Length - 1 do
             if mapped.[i] <> 0us then yield allCodepoints.[i], int mapped.[i] |]
-    let glyphOf = dict byCodepoint
+    let glyphOf = byCodepoint |> Seq.map KeyValuePair |> Dictionary
 
     let resolve(codepoint: int) =
-        match glyphOf.TryGetValue codepoint with
-        | true, id -> id
-        | false, _ -> failwith $"the font has no glyph for U+{codepoint:X4}"
+        match glyphOf |> Dictionary.tryFind codepoint with
+        | ValueSome id -> id
+        | ValueNone -> failwith $"the font has no glyph for U+{codepoint:X4}"
 
     let holes = Set.ofList Named.alphabetHoles
     /// An unassigned slot keeps the alphabet indexable and is reported as no letter at all.
@@ -132,11 +139,9 @@ let main(args: string array): int =
         if holes.Contains codepoint then "Glyph(0, 0f<du>, 0f<du>, 0f<du>, 0f<du>, 0f<du>)"
         else glyph (resolve codepoint)
 
-    let exceptions = dict Named.alphabetExceptions
+    let exceptions = Named.alphabetExceptions |> Seq.map KeyValuePair |> Dictionary
     let substituted(codepoint: int) =
-        match exceptions.TryGetValue codepoint with
-        | true, replacement -> replacement
-        | false, _ -> codepoint
+        exceptions |> Dictionary.tryFind codepoint |> ValueOption.defaultValue codepoint
 
     let w = Writer()
     w.Line "namespace ModeMath"
