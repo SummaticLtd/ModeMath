@@ -1,4 +1,4 @@
-namespace ModeMath
+﻿namespace ModeMath
 
 open System.Collections.Immutable
 open System.Drawing
@@ -143,105 +143,105 @@ type PlacedMA with
             | ValueSome found -> child found
             | ValueNone -> ()
         match t with
-        | PlacedMA.Row children -> for c in children do child c
-        | PlacedMA.Char(_, g) | PlacedMA.BoldVar(_, g) | PlacedMA.Blackboard(_, g)
-        | PlacedMA.UprightD g -> glyph g
-        | PlacedMA.ScriptSuper(main, super, sub) ->
+        | Row children -> for c in children do child c
+        | Char(_, g) | BoldVar(_, g) | Blackboard(_, g)
+        | UprightD g -> glyph g
+        | ScriptSuper(main, super, sub) ->
             child main
             child super
             optional sub
-        | PlacedMA.ScriptSub(main, sub) ->
+        | ScriptSub(main, sub) ->
             child main
             child sub
-        | PlacedMA.Frac(numerator, bar, denominator) ->
+        | Frac(numerator, bar, denominator) ->
             child numerator
             rule bar
             child denominator
-        | PlacedMA.Function(_, letters) -> marks(letters, Ink.Solid)
-        | PlacedMA.Bracketed(_, left, inner, right, completion) ->
+        | Function(_, letters) -> marks(letters, Ink.Solid)
+        | Bracketed(_, left, inner, right, completion) ->
             let ink(completed: bool) = if completed then Ink.Solid else Ink.Tentative
             marks(left, ink completion.LeftCompleted)
             child inner
             marks(right, ink completion.RightCompleted)
-        | PlacedMA.RootN(degree, surd, bar, radicand) ->
+        | RootN(degree, surd, bar, radicand) ->
             child degree
             marks(surd, Ink.Solid)
             rule bar
             child radicand
-        | PlacedMA.Sqrt(surd, bar, radicand) ->
+        | Sqrt(surd, bar, radicand) ->
             marks(surd, Ink.Solid)
             rule bar
             child radicand
-        | PlacedMA.BigOp(_, operator, lower, upper) ->
+        | BigOp(_, operator, lower, upper) ->
             marks(operator, Ink.Solid)
             optional lower
             optional upper
-        | PlacedMA.Accented(_, mark, x) ->
+        | Accented(_, mark, x) ->
             child x
             glyph mark
-        | PlacedMA.Spanned(_, grown, x) ->
+        | Spanned(_, grown, x) ->
             child x
             marks(grown, Ink.Solid)
-        | PlacedMA.Overline(bar, x) ->
+        | Overline(bar, x) ->
             child x
             rule bar
-        | PlacedMA.Underline(x, bar) ->
+        | Underline(x, bar) ->
             child x
             rule bar
-        | PlacedMA.Stack(top, bottom) ->
+        | Stack(top, bottom) ->
             child top
             child bottom
-        | PlacedMA.Table(cells, _) -> for cell in cells.Elements do child cell
-        | PlacedMA.Coloured(colour, x) -> b.Add(Part.Painted(colour, x))
-        | PlacedMA.Text(_, letters) -> marks(letters, Ink.Solid)
-        | PlacedMA.Space _ -> ()
-        | PlacedMA.Placeholder box -> glyph box
+        | Table(cells, _) -> for cell in cells.Elements do child cell
+        | Coloured(colour, x) -> b.Add(Part.Painted(colour, x))
+        | Text(_, letters) -> marks(letters, Ink.Solid)
+        | Space _ -> ()
+        | Placeholder box -> glyph box
         b.ToImmutable()
 
     /// The glyph this atom draws, where it draws exactly one and nothing besides.
     member t.SingleGlyph: PlacedGlyph voption =
         match t with
-        | PlacedMA.Char(_, g) | PlacedMA.BoldVar(_, g) | PlacedMA.Blackboard(_, g)
-        | PlacedMA.UprightD g -> ValueSome g
-        | PlacedMA.Row _ | PlacedMA.ScriptSuper _ | PlacedMA.ScriptSub _ | PlacedMA.Frac _
-        | PlacedMA.Function _ | PlacedMA.Bracketed _ | PlacedMA.RootN _ | PlacedMA.Sqrt _
-        | PlacedMA.BigOp _ | PlacedMA.Accented _ | PlacedMA.Spanned _ | PlacedMA.Overline _
-        | PlacedMA.Underline _ | PlacedMA.Stack _ | PlacedMA.Table _ | PlacedMA.Text _
-        | PlacedMA.Space _ | PlacedMA.Coloured _ | PlacedMA.Placeholder _ -> ValueNone
+        | Char(_, g) | BoldVar(_, g) | Blackboard(_, g)
+        | UprightD g -> ValueSome g
+        | Row _ | ScriptSuper _ | ScriptSub _ | Frac _
+        | Function _ | Bracketed _ | RootN _ | Sqrt _
+        | BigOp _ | Accented _ | Spanned _ | Overline _
+        | Underline _ | Stack _ | Table _ | Text _
+        | Space _ | Coloured _ | Placeholder _ -> ValueNone
 
     /// The MA this was laid out from, which a cursor position is expressed against.
     member t.ToMA: MA =
         match t with
-        | PlacedMA.Row children -> MA.Row(children |> ImmArray.map (fun c -> c.Pma.ToMA))
-        | PlacedMA.Char(c, _) -> MA.Char c
-        | PlacedMA.BoldVar(c, _) -> MA.BoldVar c
-        | PlacedMA.Blackboard(c, _) -> MA.Blackboard c
-        | PlacedMA.UprightD _ -> MA.UprightD
-        | PlacedMA.ScriptSuper(main, super, sub) ->
+        | Row children -> MA.Row(children |> ImmArray.map (fun c -> c.Pma.ToMA))
+        | Char(c, _) -> MA.Char c
+        | BoldVar(c, _) -> MA.BoldVar c
+        | Blackboard(c, _) -> MA.Blackboard c
+        | UprightD _ -> MA.UprightD
+        | ScriptSuper(main, super, sub) ->
             MA.ScriptSuper(main.Pma.ToMA, super.Pma.ToMA, sub |> ValueOption.map (fun s -> s.Pma.ToMA))
-        | PlacedMA.ScriptSub(main, sub) -> MA.ScriptSub(main.Pma.ToMA, sub.Pma.ToMA)
-        | PlacedMA.Frac(numerator, _, denominator) -> MA.Frac(numerator.Pma.ToMA, denominator.Pma.ToMA)
-        | PlacedMA.Function(f, _) -> MA.Function f
-        | PlacedMA.Bracketed(brackets, _, inner, _, completion) ->
+        | ScriptSub(main, sub) -> MA.ScriptSub(main.Pma.ToMA, sub.Pma.ToMA)
+        | Frac(numerator, _, denominator) -> MA.Frac(numerator.Pma.ToMA, denominator.Pma.ToMA)
+        | Function(f, _) -> MA.Function f
+        | Bracketed(brackets, _, inner, _, completion) ->
             MA.Bracketed(brackets, inner.Pma.ToMA, completion)
-        | PlacedMA.RootN(degree, _, _, radicand) -> MA.RootN(degree.Pma.ToMA, radicand.Pma.ToMA)
-        | PlacedMA.Sqrt(_, _, radicand) -> MA.Sqrt radicand.Pma.ToMA
-        | PlacedMA.BigOp(op, _, lower, upper) ->
+        | RootN(degree, _, _, radicand) -> MA.RootN(degree.Pma.ToMA, radicand.Pma.ToMA)
+        | Sqrt(_, _, radicand) -> MA.Sqrt radicand.Pma.ToMA
+        | BigOp(op, _, lower, upper) ->
             MA.BigOp(
                 op,
                 lower |> ValueOption.map (fun l -> l.Pma.ToMA),
                 upper |> ValueOption.map (fun u -> u.Pma.ToMA))
-        | PlacedMA.Accented(accent, _, x) -> MA.Accented(accent, x.Pma.ToMA)
-        | PlacedMA.Spanned(mark, _, x) -> MA.Spanned(mark, x.Pma.ToMA)
-        | PlacedMA.Overline(_, x) -> MA.Overline x.Pma.ToMA
-        | PlacedMA.Underline(x, _) -> MA.Underline x.Pma.ToMA
-        | PlacedMA.Stack(top, bottom) -> MA.Stack(top.Pma.ToMA, bottom.Pma.ToMA)
-        | PlacedMA.Table(cells, alignments) ->
+        | Accented(accent, _, x) -> MA.Accented(accent, x.Pma.ToMA)
+        | Spanned(mark, _, x) -> MA.Spanned(mark, x.Pma.ToMA)
+        | Overline(_, x) -> MA.Overline x.Pma.ToMA
+        | Underline(x, _) -> MA.Underline x.Pma.ToMA
+        | Stack(top, bottom) -> MA.Stack(top.Pma.ToMA, bottom.Pma.ToMA)
+        | Table(cells, alignments) ->
             MA.Table(cells |> ImmA2D.map (fun cell -> cell.Pma.ToMA), alignments)
-        | PlacedMA.Coloured(colour, x) -> MA.Coloured(colour, x.Pma.ToMA)
-        | PlacedMA.Text(text, _) -> MA.Text text
-        | PlacedMA.Space space -> MA.Space space
-        | PlacedMA.Placeholder _ -> MA.Empty
+        | Coloured(colour, x) -> MA.Coloured(colour, x.Pma.ToMA)
+        | Text(text, _) -> MA.Text text
+        | Space space -> MA.Space space
+        | Placeholder _ -> MA.Empty
 
 type Extent with
     /// Covering everything drawn, which is placed relative to the atom's own origin.
@@ -260,7 +260,6 @@ type Extent with
         let ascent = ImmArray.maxWithSafe(parts, 0f<px>, top)
         let descent = -ImmArray.minWithSafe(parts, 0f<px>, bottom)
         Extent(width, ascent, descent, italicCorrection)
-
 
 /// A cursor in a laid-out formula, which mirrors MACurs case for case.
 [<RequireQualifiedAccess>]
@@ -318,8 +317,8 @@ and [<Struct>] PlacedCurs(placed: Placed, curs: PlacedMACurs) =
         let left = min 0f<px> caret.X
         let bottom = min -placed.Descent caret.Y
         PlacedRule(
-            max placed.Width (caret.X + caret.Width) - left,
-            max placed.Ascent (caret.Y + caret.Thickness) - bottom,
+            Measure.max32(placed.Width, (caret.X + caret.Width)) - left,
+            Measure.max32(placed.Ascent, (caret.Y + caret.Thickness)) - bottom,
             left,
             bottom)
 
@@ -391,9 +390,9 @@ type PlacedCurs with
         let wrong(kind: string) = failwith $"a cursor in a {kind} was placed over {placed.Pma}"
         let scripts() =
             match placed.Pma with
-            | PlacedMA.ScriptSuper(main, super, sub) -> struct (main, ValueSome super, sub)
-            | PlacedMA.ScriptSub(main, sub) -> struct (main, ValueNone, ValueSome sub)
-            | other -> wrong "script"
+            | PlacedMA.ScriptSuper(main, super, sub) -> struct(main, ValueSome super, sub)
+            | PlacedMA.ScriptSub(main, sub) -> struct(main, ValueNone, ValueSome sub)
+            | _ -> wrong "script"
         let script(part: Placed voption, kind: string) =
             match part with
             | ValueSome found -> found
@@ -420,22 +419,22 @@ type PlacedCurs with
                         PlacedCurs.Of(inner, children.[count]),
                         rest (count + 1)))
         | MACurs.ScriptMainSuper(main, _, _) ->
-            let struct (b, super, sub) = scripts()
+            let struct(b, super, sub) = scripts()
             PlacedCurs(
                 placed,
                 PlacedMACurs.ScriptMainSuper(PlacedCurs.Of(main, b), script(super, "superscript"), sub))
         | MACurs.ScriptMainSub(main, _) ->
-            let struct (b, _, sub) = scripts()
+            let struct(b, _, sub) = scripts()
             PlacedCurs(
                 placed,
                 PlacedMACurs.ScriptMainSub(PlacedCurs.Of(main, b), script(sub, "subscript")))
         | MACurs.ScriptSuper(_, super, _) ->
-            let struct (b, above, sub) = scripts()
+            let struct(b, above, sub) = scripts()
             PlacedCurs(
                 placed,
                 PlacedMACurs.ScriptSuper(b, PlacedCurs.Of(super, script(above, "superscript")), sub))
         | MACurs.ScriptSub(_, _, sub) ->
-            let struct (b, super, below) = scripts()
+            let struct(b, super, below) = scripts()
             PlacedCurs(
                 placed,
                 PlacedMACurs.ScriptSub(b, super, PlacedCurs.Of(sub, script(below, "subscript"))))
@@ -443,34 +442,34 @@ type PlacedCurs with
             match placed.Pma with
             | PlacedMA.Frac(numerator, _, denominator) ->
                 PlacedCurs(placed, PlacedMACurs.FracNum(PlacedCurs.Of(n, numerator), denominator))
-            | other -> wrong "fraction"
+            | _ -> wrong "fraction"
         | MACurs.FracDen(_, d) ->
             match placed.Pma with
             | PlacedMA.Frac(numerator, _, denominator) ->
                 PlacedCurs(placed, PlacedMACurs.FracDen(numerator, PlacedCurs.Of(d, denominator)))
-            | other -> wrong "fraction"
+            | _ -> wrong "fraction"
         | MACurs.Bracketed(_, inner, _) ->
             match placed.Pma with
             | PlacedMA.Bracketed(brackets, _, held, _, completion) ->
                 PlacedCurs(
                     placed,
                     PlacedMACurs.Bracketed(brackets, PlacedCurs.Of(inner, held), completion))
-            | other -> wrong "bracket"
+            | _ -> wrong "bracket"
         | MACurs.RootNDegree(n, _) ->
             match placed.Pma with
             | PlacedMA.RootN(degree, _, _, radicand) ->
                 PlacedCurs(placed, PlacedMACurs.RootNDegree(PlacedCurs.Of(n, degree), radicand))
-            | other -> wrong "root"
+            | _ -> wrong "root"
         | MACurs.RootNMain(_, x) ->
             match placed.Pma with
             | PlacedMA.RootN(degree, _, _, radicand) ->
                 PlacedCurs(placed, PlacedMACurs.RootNMain(degree, PlacedCurs.Of(x, radicand)))
-            | other -> wrong "root"
+            | _ -> wrong "root"
         | MACurs.Sqrt x ->
             match placed.Pma with
             | PlacedMA.Sqrt(_, _, radicand) ->
                 PlacedCurs(placed, PlacedMACurs.Sqrt(PlacedCurs.Of(x, radicand)))
-            | other -> wrong "square root"
+            | _ -> wrong "square root"
 
 type PlacedCurs with
     /// How far a point is from an atom where it was laid out.
@@ -485,42 +484,42 @@ type PlacedCurs with
 
     /// The cursor nearest a point inside one atom. ValueNone where a cursor cannot go inside it.
     static member private Inside(placed: Placed, x: float32<px>, y: float32<px>) =
-        let nearest(slots: struct (Placed * (MACurs -> MACurs)) list) =
-            let struct (slot, wrap) =
-                slots |> List.minBy (fun struct (slot, _) -> PlacedCurs.AwayFrom(slot, x, y))
+        let nearest(slots: struct(Placed * (MACurs -> MACurs)) list) =
+            let struct(slot, wrap) =
+                slots |> List.minBy (fun struct(slot, _) -> PlacedCurs.AwayFrom(slot, x, y))
             wrap(PlacedCurs.NearestIn(slot, x - slot.X, y - slot.Y)) |> ValueSome
         let ma(placed: Placed) = placed.Pma.ToMA
         match placed.Pma with
         | PlacedMA.Frac(n, _, d) ->
             nearest [
-                struct (n, fun inner -> MACurs.FracNum(inner, ma d))
-                struct (d, fun inner -> MACurs.FracDen(ma n, inner))
+                struct(n, fun inner -> MACurs.FracNum(inner, ma d))
+                struct(d, fun inner -> MACurs.FracDen(ma n, inner))
             ]
         | PlacedMA.ScriptSuper(main, super, sub) ->
             let below = sub |> ValueOption.map ma
             [
-                struct (main, fun inner -> MACurs.ScriptMainSuper(inner, ma super, below))
-                struct (super, fun inner -> MACurs.ScriptSuper(ma main, inner, below))
+                struct(main, fun inner -> MACurs.ScriptMainSuper(inner, ma super, below))
+                struct(super, fun inner -> MACurs.ScriptSuper(ma main, inner, below))
                 match sub with
                 | ValueSome sub ->
-                    struct (sub, fun inner -> MACurs.ScriptSub(ma main, ValueSome(ma super), inner))
+                    struct(sub, fun inner -> MACurs.ScriptSub(ma main, ValueSome(ma super), inner))
                 | ValueNone -> ()
             ]
             |> nearest
         | PlacedMA.ScriptSub(main, sub) ->
             nearest [
-                struct (main, fun inner -> MACurs.ScriptMainSub(inner, ma sub))
-                struct (sub, fun inner -> MACurs.ScriptSub(ma main, ValueNone, inner))
+                struct(main, fun inner -> MACurs.ScriptMainSub(inner, ma sub))
+                struct(sub, fun inner -> MACurs.ScriptSub(ma main, ValueNone, inner))
             ]
         | PlacedMA.Bracketed(brackets, _, held, _, completion) ->
-            nearest [ struct (held, fun inner -> MACurs.Bracketed(brackets, inner, completion)) ]
+            nearest [ struct(held, fun inner -> MACurs.Bracketed(brackets, inner, completion)) ]
         | PlacedMA.RootN(degree, _, _, radicand) ->
             nearest [
-                struct (degree, fun inner -> MACurs.RootNDegree(inner, ma radicand))
-                struct (radicand, fun inner -> MACurs.RootNMain(ma degree, inner))
+                struct(degree, fun inner -> MACurs.RootNDegree(inner, ma radicand))
+                struct(radicand, fun inner -> MACurs.RootNMain(ma degree, inner))
             ]
         | PlacedMA.Sqrt(_, _, radicand) ->
-            nearest [ struct (radicand, MACurs.Sqrt) ]
+            nearest [ struct(radicand, MACurs.Sqrt) ]
         | PlacedMA.Row _ | PlacedMA.Char _ | PlacedMA.BoldVar _ | PlacedMA.Blackboard _
         | PlacedMA.UprightD _ | PlacedMA.Function _ | PlacedMA.BigOp _ | PlacedMA.Accented _ | PlacedMA.Spanned _ | PlacedMA.Overline _
         | PlacedMA.Underline _ | PlacedMA.Stack _ | PlacedMA.Table _ | PlacedMA.Coloured _

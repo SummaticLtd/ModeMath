@@ -1,4 +1,4 @@
-namespace Playground
+﻿namespace Playground
 
 open Avalonia
 open Avalonia.Controls

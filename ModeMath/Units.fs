@@ -1,4 +1,4 @@
-namespace ModeMath
+﻿namespace ModeMath
 
 /// A design unit of a face, which is drawn on MathConstants.UnitsPerEm of them to the em.
 [<Measure>]

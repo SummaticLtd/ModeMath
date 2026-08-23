@@ -1,4 +1,4 @@
-namespace ModeMath
+﻿namespace ModeMath
 
 open System.Collections.Immutable
 
@@ -45,7 +45,7 @@ type Editor(layout: Layout, cursor: PlacedCurs) =
     /// Whether an atom carries a term on rather than breaking it, asked of the side facing the cursor.
     let carriesOn(ma: MA) =
         match Conventions.atomClasses ma with
-        | ValueSome(struct (_, right)) ->
+        | ValueSome(struct(_, right)) ->
             match right with
             | AtomClass.Ordinary | AtomClass.Close | AtomClass.Inner -> true
             | _ -> false
@@ -82,7 +82,7 @@ type Editor(layout: Layout, cursor: PlacedCurs) =
 
     /// Both brackets the cursor stands beside settled, as putting anything past one does.
     let settling(before: ImmutableArray<MA>, after: ImmutableArray<MA>) =
-        struct (closingLast ValueNone before, openingFirst ValueNone after)
+        struct(closingLast ValueNone before, openingFirst ValueNone after)
 
     /// The cursor with the tentative brackets it has moved out past made good.
     let settled() = cursor.ToMACurs.Rewrite settling
@@ -154,7 +154,7 @@ type Editor(layout: Layout, cursor: PlacedCurs) =
     member private _.InsertBracket(bracket: Bracket) =
         let standing = cursor.ToMACurs
         let given(before: ImmutableArray<MA>, after: ImmutableArray<MA>) =
-            struct (before, openingFirst (ValueSome bracket) after)
+            struct(before, openingFirst (ValueSome bracket) after)
         let taken = standing.Rewrite given
         if taken <> standing then over taken
         else
@@ -176,7 +176,7 @@ type Editor(layout: Layout, cursor: PlacedCurs) =
     member private _.CloseBracket(bracket: Bracket) =
         let standing = cursor.ToMACurs
         let given(before: ImmutableArray<MA>, after: ImmutableArray<MA>) =
-            struct (closingLast (ValueSome bracket) before, after)
+            struct(closingLast (ValueSome bracket) before, after)
         let taken = standing.Rewrite given
         if taken <> standing then over taken
         else

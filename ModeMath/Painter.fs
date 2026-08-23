@@ -1,4 +1,4 @@
-namespace ModeMath
+﻿namespace ModeMath
 
 open System
 open System.Collections.Generic
@@ -8,7 +8,7 @@ open FSUtils
 
 /// Draws a Placed onto an SKCanvas, whose y grows downwards where a Placed's grows upwards.
 type Painter(math: SKTypeface, blackboard: SKTypeface) =
-    let fonts = Dictionary<struct (Face * float32<px>), SKFont>()
+    let fonts = Dictionary<struct(Face * float32<px>), SKFont>()
 
     /// SkiaSharp takes the numbers themselves, so the measure comes off here and nowhere else.
     let number(value: float32<px>) = Measure.removeFloat32Unit<px> value
@@ -19,7 +19,7 @@ type Painter(math: SKTypeface, blackboard: SKTypeface) =
         | Face.Blackboard -> blackboard
 
     let font(face: Face, size: float32<px>) =
-        let key = struct (face, size)
+        let key = struct(face, size)
         match fonts |> Dictionary.tryFind key with
         | ValueSome found -> found
         | ValueNone ->

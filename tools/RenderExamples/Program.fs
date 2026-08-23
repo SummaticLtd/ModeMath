@@ -1,6 +1,5 @@
-module RenderExamples.Program
+﻿module RenderExamples.Program
 
-open System
 open System.IO
 open System.Text
 open FSUtils
@@ -85,20 +84,20 @@ let main(args: string array): int =
     use painter = Painter.Embedded()
     let layout = Layout fontSize
     let rendered =
-        [ for name, ma in Examples.implemented do
-            let width, height =
-                render(layout.Of ma, painter, Path.Combine(outputDirectory, name + ".png"))
-            yield name, width, height ]
+        [   for name, ma in Examples.implemented do
+                let width, height =
+                    render(layout.Of ma, painter, Path.Combine(outputDirectory, name + ".png"))
+                yield name, width, height ]
     let cursored =
-        [ for name, editor in Examples.cursored layout do
-            let width, height =
-                renderCursor(editor, painter, Path.Combine(outputDirectory, name + ".png"))
-            yield name, width, height ]
+        [   for name, editor in Examples.cursored layout do
+                let width, height =
+                    renderCursor(editor, painter, Path.Combine(outputDirectory, name + ".png"))
+                yield name, width, height ]
     File.WriteAllText(
         Path.Combine(outputDirectory, "README.md"),
         index(rendered, cursored),
         UTF8Encoding false)
-    printfn
+    System.Console.WriteLine
         $"{rendered.Length} rendered, {cursored.Length} with the cursor, \
             {Examples.unimplemented.Length} still to come"
     0

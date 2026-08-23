@@ -1,4 +1,4 @@
-module ModeMath.Tests.MathFontTests
+﻿module ModeMath.Tests.MathFontTests
 
 open System
 open System.IO
@@ -115,7 +115,7 @@ let private named =
                 "everyLetterOfEveryAlphabetIsPresent",
                 [   "italic latin small", [ 'a' .. 'z' ], Letters.italic
                     "italic latin capital", [ 'A' .. 'Z' ], Letters.italic
-                    "italic greek", [ for c in 'α' .. 'ω' -> c ], Letters.italic
+                    "italic greek", [ 'α' .. 'ω' ], Letters.italic
                     "italic shapes", [ '∂'; 'ϵ'; 'ϑ'; 'ϰ'; 'ϕ'; 'ϱ'; 'ϖ' ], Letters.italic
                     "bold latin small", [ 'a' .. 'z' ], Letters.bold
                     "bold latin capital", [ 'A' .. 'Z' ], Letters.bold

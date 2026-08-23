@@ -1,9 +1,8 @@
-namespace Playground
+﻿namespace Playground
 
 open Avalonia
 open Avalonia.Controls
 open Avalonia.Controls.ApplicationLifetimes
-open Avalonia.Markup.Xaml.Styling
 open Avalonia.Themes.Fluent
 
 type App() =

@@ -1,4 +1,4 @@
-/// The glyphs the library reaches for by name, and the documentation each is generated with.
+﻿/// The glyphs the library reaches for by name, and the documentation each is generated with.
 module MathTableGen.Named
 
 /// Single glyphs the library refers to that no alphabet covers.

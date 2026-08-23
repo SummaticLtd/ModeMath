@@ -1,6 +1,5 @@
-module ModeMath.Tests.LayoutTests
+﻿module ModeMath.Tests.LayoutTests
 
-open System
 open System.Collections.Immutable
 open System.Drawing
 open FSUtils
@@ -23,17 +22,21 @@ let private units = 20f<px> / MathConstants.UnitsPerEm
 
 /// The rules an atom draws itself, which is one for a fraction and none for a stack.
 let private rules(placed: Placed) =
-    [ for part in placed.Parts do
-        match part with
-        | Part.Rule(rule, _) -> yield rule
-        | Part.Glyph _ | Part.Child _ | Part.Painted _ -> () ]
+    [
+        for part in placed.Parts do
+            match part with
+            | Part.Rule(rule, _) -> yield rule
+            | Part.Glyph _ | Part.Child _ | Part.Painted _ -> ()
+    ]
 
 /// Every glyph an atom draws, in the order it draws them.
 let private drawnGlyphs(placed: Placed) =
-    [ for part in placed.Parts do
-        match part with
-        | Part.Glyph(glyph, _) -> yield glyph.Glyph.Id
-        | Part.Rule _ | Part.Child _ | Part.Painted _ -> () ]
+    [
+        for part in placed.Parts do
+            match part with
+            | Part.Glyph(glyph, _) -> yield glyph.Glyph.Id
+            | Part.Rule _ | Part.Child _ | Part.Painted _ -> ()
+    ]
 
 let private glyphOf(placed: Placed) =
     match placed.Pma.SingleGlyph with
@@ -96,7 +99,7 @@ let private measurement =
             Test.Sync(
                 "aRowOfOrdinariesIsAsWideAsItsPartsLessTheLeansTheySetUnder",
                 fun () ->
-                    let letters = [ for character in "abc" -> laid(c character) ]
+                    let letters = [ for character in "abc" do yield laid(c character) ]
                     let parts = letters |> List.sumBy (fun letter -> letter.Width)
                     let tucked =
                         letters
@@ -289,7 +292,7 @@ let private repertoire =
             )
             Test.CasesSync(
                 "everyFunctionNameCanBeSet",
-                [ for struct (name, f) in MathFunctions.named -> name, f ],
+                [ for struct(name, f) in MathFunctions.named do yield name, f ],
                 fun f ->
                     // Not every name is letters: the indicator is 1 and the gamma function a capital.
                     Assert.True((laid(MA.Function f)).Width > 0f<px>, $"{f} is set as nothing")
@@ -424,7 +427,7 @@ let private bigOperators =
     )
 
 /// The glyphs a mark is drawn from, so that a delimiter can be told from its neighbour.
-let private glyphIds(mark: PlacedGlyphs) = [ for glyph in mark.Glyphs -> glyph.Glyph.Id ]
+let private glyphIds(mark: PlacedGlyphs) = mark.Glyphs |> ImmArray.map(fun g -> g.Glyph.Id)
 
 /// The delimiters a bracketed formula was drawn with, which surround its content.
 let private sides(placed: Placed) =
@@ -460,8 +463,8 @@ let private brackets =
                                     Brackets(Bracket.Square, Bracket.Normal),
                                     inner,
                                     BracketCompletion.Completed)))
-                    Assert.Equal(square, glyphIds left, "[0, 1) opens with the square bracket's glyph")
-                    Assert.Equal(round, glyphIds right, "and closes with the round one's")
+                    Assert.CollectionEqual(square, glyphIds left, "[0, 1) opens with the square bracket's glyph")
+                    Assert.CollectionEqual(round, glyphIds right, "and closes with the round one's")
             )
             Test.Sync(
                 "anAbsentBracketDrawsNothingAtAll",
@@ -470,8 +473,8 @@ let private brackets =
                     let open_ =
                         laid(MA.Bracketed(Brackets(Bracket.None, Bracket.Line), inner, BracketCompletion.Completed))
                     let left, right = sides open_
-                    Assert.Equal(([]: int list), glyphIds left, "the absent side drew a delimiter")
-                    Assert.True((glyphIds right).Length > 0, "the bar was not drawn")
+                    Assert.Empty(glyphIds left, "the absent side drew a delimiter")
+                    Assert.Greater((glyphIds right).Length, 0, "the bar was not drawn")
                     nearly((laid inner).Width + right.Width, open_.Width, "the absent side took width")
             )
             Test.Sync(
@@ -628,7 +631,7 @@ let private words =
         [   Test.Sync(
                 "textIsSetInTheUprightLetters",
                 fun () ->
-                    let drawn = [ for glyph in (lettersOf(laid(MA.Text "ab"))).Glyphs -> glyph.Glyph.Id ]
+                    let drawn = [ for glyph in (lettersOf(laid(MA.Text "ab"))).Glyphs do yield glyph.Glyph.Id ]
                     let upright(character: char) =
                         match Letters.upright character with
                         | ValueSome glyph -> glyph.Id
@@ -1016,7 +1019,7 @@ let private cursors =
                 "theCursorMovesRightwardsAsItIsStepped",
                 fun () ->
                     let formula = MA.String "abc" |> flat
-                    let xs = [ for curs in positions formula -> (layout.Of curs).Caret.X ]
+                    let xs = [ for curs in positions formula do yield (layout.Of curs).Caret.X ]
                     for pair in List.pairwise xs do
                         let previous, next = pair
                         Assert.True(next > previous, $"the cursor did not move: {previous} then {next}")

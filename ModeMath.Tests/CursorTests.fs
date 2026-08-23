@@ -1,4 +1,4 @@
-module ModeMath.Tests.CursorTests
+﻿module ModeMath.Tests.CursorTests
 
 open System.Collections.Immutable
 open SimpleTests
@@ -310,4 +310,4 @@ let private navigation =
         ]
     )
 
-let tests = TestFolder("ModeMath", [ editing; navigation ])
+let tests = TestFolder("Cursor", [ editing; navigation ])
