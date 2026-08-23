@@ -299,7 +299,7 @@ type Layout(fontSize: float32<px>) =
         let glyphs = ImmutableArray.CreateBuilder<PlacedGlyph>()
         let mutable x = 0f<px>
         for c in text do
-            let glyph = required(Glyphs.upright c, $"the character {c}")
+            let glyph = required(Glyphs.upright c, $"the character {c.ToString()}")
             glyphs.Add(PlacedGlyph(glyph, emSize style, x, 0f<px>))
             x <- x + glyph.Advance * s
         markOf(glyphs.ToImmutable(), x)
@@ -822,15 +822,15 @@ type Layout(fontSize: float32<px>) =
         match ma with
         | MA.Row elements -> t.Row(elements, style)
         | MA.Char c ->
-            single(required(Glyphs.variable c, $"the character {c}"), style, fun g -> PlacedMA.Char(c, g))
+            single(required(Glyphs.variable c, $"the character {c.ToString()}"), style, fun g -> PlacedMA.Char(c, g))
         | MA.BoldVar c ->
             single(
-                required(Letters.bold c, $"a bold {c}"),
+                required(Letters.bold c, $"a bold {c.ToString()}"),
                 style,
                 fun g -> PlacedMA.BoldVar(c, g))
         | MA.Blackboard c ->
             single(
-                required(Letters.blackboard c, $"a blackboard bold {c}"),
+                required(Letters.blackboard c, $"a blackboard bold {c.ToString()}"),
                 style,
                 fun g -> PlacedMA.Blackboard(c, g))
         | MA.UprightD -> single(Symbols.uprightD, style, PlacedMA.UprightD)
