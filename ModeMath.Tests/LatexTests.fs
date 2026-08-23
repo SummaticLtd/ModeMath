@@ -73,6 +73,7 @@ let private reading =
                     "\\uparrow\\downarrow", row [ c '↑'; c '↓' ]
                     "\\longrightarrow", c '⟶'
                     "\\pounds", c '£'
+                    "\\diameter", c '⌀'
                     // A word processor writes its variables in the italic alphabet Unicode holds.
                     "𝑠𝑜𝑐", MA.String "soc"
                     "𝐴𝜋", row [ c 'A'; c 'π' ]
@@ -181,8 +182,16 @@ let private reading =
                     // A bar names the same delimiter either side, whichever of its names is written.
                     "\\left\\mid x\\right\\vert",
                     MA.Bracketed(Brackets.Matching Bracket.Line, c 'x', BracketCompletion.Completed)
+                    "\\left\\lfloor x\\right\\rfloor", MA.Paired(Bracket.Floor, c 'x')
+                    "\\left\\lceil x\\right\\rceil", MA.Paired(Bracket.Ceiling, c 'x')
+                    "\\left.x\\right/",
+                    MA.Bracketed(Brackets(Bracket.None, Bracket.Slash), c 'x', BracketCompletion.Completed)
                     // Plain brackets do not grow in LaTeX, so they are read as the characters they are.
                     "(x)", row [ c '('; c 'x'; c ')' ]
+                    "\\lfloor x\\rfloor", row [ c '⌊'; c 'x'; c '⌋' ]
+                    "\\lceil x\\rceil", row [ c '⌈'; c 'x'; c '⌉' ]
+                    // Only \left and \right read a delimiter, so a slash elsewhere divides on the line.
+                    "a/b", row [ c 'a'; c '/'; c 'b' ]
                 ]
             )
             same(
@@ -378,6 +387,11 @@ let private writing =
                     MA.RoundBracket(MA.String "x+1")
                     MA.Bracketed(Brackets(Bracket.Curly, Bracket.None), c 'x', BracketCompletion.Completed)
                     MA.Bracketed(Brackets(Bracket.Square, Bracket.Angle), c 'x', BracketCompletion.Completed)
+                    // A control word naming a delimiter runs on into the letter after it unless spaced.
+                    MA.Paired(Bracket.Angle, c 'x')
+                    MA.Paired(Bracket.Floor, c 'x')
+                    MA.Paired(Bracket.Ceiling, c 'x')
+                    MA.Bracketed(Brackets(Bracket.None, Bracket.Slash), c 'x', BracketCompletion.Completed)
                     MA.RootN(c '3', c 'x')
                     MA.Sqrt(c 'x')
                     MA.BigOp(BigOperator.Sum, ValueSome(c 'i'), ValueSome(c 'n'))

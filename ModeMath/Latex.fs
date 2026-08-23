@@ -132,6 +132,7 @@ module internal Latexing =
             "in", '∈'; "notin", '∉'; "subset", '⊂'; "subseteq", '⊆'
             "to", '→'; "rightarrow", '→'; "Rightarrow", '⇒'; "Leftrightarrow", '⇔'; "iff", '⟺'
             "neg", '¬'; "lnot", '¬'; "langle", '⟨'; "rangle", '⟩'
+            "lfloor", '⌊'; "rfloor", '⌋'; "lceil", '⌈'; "rceil", '⌉'; "diameter", '⌀'
             "leftarrow", '←'; "gets", '←'; "Leftarrow", '⇐'; "leftrightarrow", '↔'; "mapsto", '↦'
             "Longleftrightarrow", '⟺'; "supset", '⊃'; "supseteq", '⊇'; "perp", '⊥'; "parallel", '∥'
             "angle", '∠'; "ell", 'ℓ'; "nabla", '∇'; "forall", '∀'; "exists", '∃'
@@ -246,7 +247,11 @@ module internal Latexing =
         | Token.Char '.' -> ValueSome Bracket.None
         | Token.Command("{" | "}" | "lbrace" | "rbrace") -> ValueSome Bracket.Curly
         | Token.Command("langle" | "rangle") -> ValueSome Bracket.Angle
+        | Token.Command("lfloor" | "rfloor") -> ValueSome Bracket.Floor
+        | Token.Command("lceil" | "rceil") -> ValueSome Bracket.Ceiling
         | Token.Command("lvert" | "rvert" | "vert" | "mid") -> ValueSome Bracket.Line
+        // Only \left and \right read a delimiter, so a slash anywhere else stays an ordinary character.
+        | Token.Char '/' -> ValueSome Bracket.Slash
         | _ -> ValueNone
 
     /// The brackets a matrix environment is set in. ValueNone where it is set in none.
@@ -579,9 +584,14 @@ module internal Latexing =
         | Bracket.Curly, false -> "\\}"
         | Bracket.Angle, true -> "\\langle"
         | Bracket.Angle, false -> "\\rangle"
+        | Bracket.Floor, true -> "\\lfloor"
+        | Bracket.Floor, false -> "\\rfloor"
+        | Bracket.Ceiling, true -> "\\lceil"
+        | Bracket.Ceiling, false -> "\\rceil"
         | Bracket.Line, _ -> "|"
+        | Bracket.Slash, _ -> "/"
         // Nothing at all, as \left. leaves a side of a formula open.
-        | Bracket.None, _ | _ -> "."
+        | Bracket.None, _ -> "."
 
     let private alignmentSpelling(alignment: Alignment) =
         match alignment with
@@ -602,6 +612,10 @@ module internal Latexing =
             put "\\"
             put name
             word <- name.Length > 0 && Char.IsAsciiLetter name.[name.Length - 1]
+        /// A delimiter named by a control word is written as one, so a letter after it does not run on.
+        let delimiter(bracket: Bracket, opening: bool) =
+            let spelling = delimiterSpelling(bracket, opening)
+            if spelling.StartsWith '\\' then command(spelling.Substring 1) else put spelling
         let rec formula(ma: MA) =
             match ma with
             | MA.Row elements -> for element in elements do formula element
@@ -642,10 +656,10 @@ module internal Latexing =
                 put "}"
             | MA.Bracketed(brackets, inner, _) ->
                 command "left"
-                put(delimiterSpelling(brackets.Left, true))
+                delimiter(brackets.Left, true)
                 formula inner
                 command "right"
-                put(delimiterSpelling(brackets.Right, false))
+                delimiter(brackets.Right, false)
             | MA.RootN(degree, radicand) ->
                 command "sqrt"
                 put "["

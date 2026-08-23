@@ -165,6 +165,10 @@ type Bracket =
     | Angle = 4
     /// Nothing at all, as \left. leaves a side of a formula open.
     | None = 5
+    | Floor = 6
+    | Ceiling = 7
+    /// The slash of \left. x \right/ y, which grows only as far as the font gives it sizes.
+    | Slash = 8
 
 /// The pair a formula is bracketed with, which need not match: [0, 1) is a square left and a round right.
 [<Struct>]

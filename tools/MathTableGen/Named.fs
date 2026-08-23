@@ -27,7 +27,12 @@ let delimiters =
         "curlyRight", int '}', "The closing curly bracket."
         "angleLeft", 0x27E8, "The opening angle bracket, as a bra opens."
         "angleRight", 0x27E9, "The closing angle bracket, as a ket closes."
+        "floorLeft", 0x230A, "The opening floor bracket."
+        "floorRight", 0x230B, "The closing floor bracket."
+        "ceilingLeft", 0x2308, "The opening ceiling bracket."
+        "ceilingRight", 0x2309, "The closing ceiling bracket."
         "bar", int '|', "The vertical bar of an absolute value, used on both sides."
+        "slash", int '/', "The slash of a division set on one line, used on both sides."
     ]
 
 /// Large operators, which take a taller glyph in display style and may carry limits.
@@ -110,7 +115,7 @@ let repertoire =
         "∞∂∇∠∆□△"
         "∴∵…⋯⋮⋱′″‰°"
         "ℕℝℤℚℂℍℙℓ"
-        "⟨⟩"
+        "⟨⟩⌊⌋⌈⌉⌀"
         // What a formula borrows from text: a price, a unit prefix, a dash between numbers.
         "£µ–"
     ]

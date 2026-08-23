@@ -440,7 +440,10 @@ let private brackets =
         "Brackets",
         [   Test.CasesSync(
                 "everyShapeIsDrawnAndGrowsWithWhatItHolds",
-                [ Bracket.Normal; Bracket.Line; Bracket.Square; Bracket.Curly; Bracket.Angle ]
+                [
+                    Bracket.Normal; Bracket.Line; Bracket.Square; Bracket.Curly; Bracket.Angle
+                    Bracket.Floor; Bracket.Ceiling; Bracket.Slash
+                ]
                 |> List.map (fun b -> string b, b),
                 fun bracket ->
                     let shortLeft, shortRight = sides(laid(MA.Paired(bracket, c 'x')))

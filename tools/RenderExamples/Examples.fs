@@ -412,6 +412,17 @@ let implemented = [
         row [ MA.BoldVar 'v'; c '='; MA.BoldVar 'a'; MA.Char '⋅'; MA.BoldVar 'b' ]
     "ModeMathBrackets", row [ paren(c 'a'); square(c 'b'); curly(c 'c'); bars(c 'd') ]
     "ModeMathHalfOpenInterval", pair(Bracket.Square, Bracket.Normal, row [ c '0'; c ','; c '1' ])
+    "ModeMathFloorAndCeiling",
+        row [
+            MA.Paired(Bracket.Floor, frac(c 'n', c '2'))
+            c '+'
+            MA.Paired(Bracket.Ceiling, frac(c 'n', c '2'))
+        ]
+    "ModeMathSlashedFraction",
+        row [
+            pair(Bracket.None, Bracket.Slash, frac(row [ MA.UprightD; c 'y' ], row [ MA.UprightD; c 't' ]))
+            frac(row [ MA.UprightD; c 'x' ], row [ MA.UprightD; c 't' ])
+        ]
     "ModeMathCubeRoot", root(c '3', row [ c 'x'; c '+'; c '1' ])
     "ModeMathDerivative", frac(row [ MA.UprightD; c 'y' ], row [ MA.UprightD; c 'x' ])
     "ModeMathTentativeBracket", MA.Bracketed(Brackets.Matching Bracket.Normal, s "x+1", BracketCompletion.Left)

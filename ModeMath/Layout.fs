@@ -80,9 +80,9 @@ module internal Conventions =
         '∩', '∪', '∧', '∨', '∖', '⊕', '⊗'
     )
 
-    let opens = ImmutableHashSet.Create('(', '[', '{', '⟨')
+    let opens = ImmutableHashSet.Create('(', '[', '{', '⟨', '⌊', '⌈')
     // A factorial closes what it stands after, as TeX classes the mark it is written with.
-    let closes = ImmutableHashSet.Create(')', ']', '}', '⟩', '!')
+    let closes = ImmutableHashSet.Create(')', ']', '}', '⟩', '⌋', '⌉', '!')
     let punctuation = ImmutableHashSet.Create(',', ';', ':')
 
     /// ValueNone where the side carries no bracket at all.
@@ -92,7 +92,10 @@ module internal Conventions =
         | Bracket.Square -> ValueSome Delimiters.squareLeft
         | Bracket.Curly -> ValueSome Delimiters.curlyLeft
         | Bracket.Angle -> ValueSome Delimiters.angleLeft
+        | Bracket.Floor -> ValueSome Delimiters.floorLeft
+        | Bracket.Ceiling -> ValueSome Delimiters.ceilingLeft
         | Bracket.Line -> ValueSome Delimiters.bar
+        | Bracket.Slash -> ValueSome Delimiters.slash
         | Bracket.None -> ValueNone
 
     /// ValueNone where the side carries no bracket at all.
@@ -102,7 +105,10 @@ module internal Conventions =
         | Bracket.Square -> ValueSome Delimiters.squareRight
         | Bracket.Curly -> ValueSome Delimiters.curlyRight
         | Bracket.Angle -> ValueSome Delimiters.angleRight
+        | Bracket.Floor -> ValueSome Delimiters.floorRight
+        | Bracket.Ceiling -> ValueSome Delimiters.ceilingRight
         | Bracket.Line -> ValueSome Delimiters.bar
+        | Bracket.Slash -> ValueSome Delimiters.slash
         | Bracket.None -> ValueNone
 
     let accent(accent: Accent) =

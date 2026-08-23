@@ -161,19 +161,19 @@ module internal Alphabets =
     /// Math italic, alpha to omega.
     let italicGreek: Glyph array =
         [|
-            Glyph(494, 640f<du>, 454f<du>, -16f<du>, 0f<du>, 392f<du>); Glyph(495, 566f<du>, 719f<du>, -204f<du>, 36f<du>, 437f<du>)
-            Glyph(496, 518f<du>, 454f<du>, -219f<du>, 53f<du>, 259f<du>); Glyph(497, 444f<du>, 719f<du>, -16f<du>, 36f<du>, 335f<du>)
-            Glyph(518, 466f<du>, 454f<du>, -32f<du>, 0f<du>, 284f<du>); Glyph(499, 438f<du>, 704f<du>, -204f<du>, 64f<du>, 313f<du>)
-            Glyph(500, 497f<du>, 454f<du>, -219f<du>, 27f<du>, 272f<du>); Glyph(501, 469f<du>, 704f<du>, -16f<du>, 14f<du>, 310f<du>)
-            Glyph(502, 354f<du>, 454f<du>, -16f<du>, 0f<du>, 184f<du>); Glyph(503, 576f<du>, 454f<du>, -16f<du>, 0f<du>, 331f<du>)
-            Glyph(505, 583f<du>, 704f<du>, -16f<du>, 0f<du>, 238f<du>); Glyph(506, 603f<du>, 454f<du>, -219f<du>, 0f<du>, 349f<du>)
-            Glyph(507, 494f<du>, 454f<du>, 0f<du>, 58f<du>, 297f<du>); Glyph(508, 438f<du>, 704f<du>, -204f<du>, 36f<du>, 285f<du>)
-            Glyph(525, 485f<du>, 454f<du>, -16f<du>, 12f<du>, 243f<du>); Glyph(509, 570f<du>, 438f<du>, -16f<du>, 25f<du>, 328f<du>)
-            Glyph(510, 517f<du>, 454f<du>, -219f<du>, 13f<du>, 354f<du>); Glyph(522, 363f<du>, 454f<du>, -110f<du>, 74f<du>, 182f<du>)
-            Glyph(511, 571f<du>, 438f<du>, -16f<du>, 24f<du>, 286f<du>); Glyph(512, 437f<du>, 438f<du>, -16f<du>, 102f<du>, 269f<du>)
-            Glyph(513, 540f<du>, 454f<du>, -16f<du>, 12f<du>, 306f<du>); Glyph(523, 654f<du>, 454f<du>, -219f<du>, 0f<du>, 355f<du>)
-            Glyph(515, 626f<du>, 454f<du>, -204f<du>, 0f<du>, 331f<du>); Glyph(516, 651f<du>, 704f<du>, -204f<du>, 12f<du>, 469f<du>)
-            Glyph(517, 622f<du>, 454f<du>, -16f<du>, 10f<du>, 345f<du>)
+            Glyph(534, 640f<du>, 454f<du>, -16f<du>, 0f<du>, 392f<du>); Glyph(535, 566f<du>, 719f<du>, -204f<du>, 36f<du>, 437f<du>)
+            Glyph(536, 518f<du>, 454f<du>, -219f<du>, 53f<du>, 259f<du>); Glyph(537, 444f<du>, 719f<du>, -16f<du>, 36f<du>, 335f<du>)
+            Glyph(558, 466f<du>, 454f<du>, -32f<du>, 0f<du>, 284f<du>); Glyph(539, 438f<du>, 704f<du>, -204f<du>, 64f<du>, 313f<du>)
+            Glyph(540, 497f<du>, 454f<du>, -219f<du>, 27f<du>, 272f<du>); Glyph(541, 469f<du>, 704f<du>, -16f<du>, 14f<du>, 310f<du>)
+            Glyph(542, 354f<du>, 454f<du>, -16f<du>, 0f<du>, 184f<du>); Glyph(543, 576f<du>, 454f<du>, -16f<du>, 0f<du>, 331f<du>)
+            Glyph(545, 583f<du>, 704f<du>, -16f<du>, 0f<du>, 238f<du>); Glyph(546, 603f<du>, 454f<du>, -219f<du>, 0f<du>, 349f<du>)
+            Glyph(547, 494f<du>, 454f<du>, 0f<du>, 58f<du>, 297f<du>); Glyph(548, 438f<du>, 704f<du>, -204f<du>, 36f<du>, 285f<du>)
+            Glyph(565, 485f<du>, 454f<du>, -16f<du>, 12f<du>, 243f<du>); Glyph(549, 570f<du>, 438f<du>, -16f<du>, 25f<du>, 328f<du>)
+            Glyph(550, 517f<du>, 454f<du>, -219f<du>, 13f<du>, 354f<du>); Glyph(562, 363f<du>, 454f<du>, -110f<du>, 74f<du>, 182f<du>)
+            Glyph(551, 571f<du>, 438f<du>, -16f<du>, 24f<du>, 286f<du>); Glyph(552, 437f<du>, 438f<du>, -16f<du>, 102f<du>, 269f<du>)
+            Glyph(553, 540f<du>, 454f<du>, -16f<du>, 12f<du>, 306f<du>); Glyph(563, 654f<du>, 454f<du>, -219f<du>, 0f<du>, 355f<du>)
+            Glyph(555, 626f<du>, 454f<du>, -204f<du>, 0f<du>, 331f<du>); Glyph(556, 651f<du>, 704f<du>, -204f<du>, 12f<du>, 469f<du>)
+            Glyph(557, 622f<du>, 454f<du>, -16f<du>, 10f<du>, 345f<du>)
         |]
     /// Math bold italic, a to z.
     let boldSmall: Glyph array =
@@ -246,36 +246,36 @@ module internal Alphabets =
     /// Upright Alpha to Omega, as capital Greek is set.
     let uprightGreekCapital: Glyph array =
         [|
-            Glyph(454, 750f<du>, 719f<du>, 0f<du>, 0f<du>, 374f<du>); Glyph(455, 708f<du>, 688f<du>, 0f<du>, 0f<du>, 286f<du>)
-            Glyph(444, 625f<du>, 688f<du>, 0f<du>, 0f<du>, 297f<du>); Glyph(443, 833f<du>, 719f<du>, 0f<du>, 0f<du>, 416f<du>)
-            Glyph(456, 681f<du>, 688f<du>, 0f<du>, 0f<du>, 318f<du>); Glyph(457, 611f<du>, 688f<du>, 0f<du>, 0f<du>, 316f<du>)
-            Glyph(458, 750f<du>, 688f<du>, 0f<du>, 0f<du>, 375f<du>); Glyph(451, 778f<du>, 704f<du>, -32f<du>, 0f<du>, 389f<du>)
-            Glyph(459, 361f<du>, 688f<du>, 0f<du>, 0f<du>, 181f<du>); Glyph(460, 778f<du>, 688f<du>, 0f<du>, 0f<du>, 378f<du>)
-            Glyph(445, 694f<du>, 719f<du>, 0f<du>, 0f<du>, 347f<du>); Glyph(461, 917f<du>, 688f<du>, 0f<du>, 0f<du>, 458f<du>)
-            Glyph(462, 750f<du>, 688f<du>, 0f<du>, 0f<du>, 375f<du>); Glyph(453, 667f<du>, 688f<du>, 0f<du>, 0f<du>, 333f<du>)
-            Glyph(463, 778f<du>, 704f<du>, -32f<du>, 0f<du>, 389f<du>); Glyph(448, 750f<du>, 688f<du>, 0f<du>, 0f<du>, 375f<du>)
-            Glyph(464, 681f<du>, 688f<du>, 0f<du>, 0f<du>, 283f<du>); Glyph(0, 0f<du>, 0f<du>, 0f<du>, 0f<du>, 0f<du>)
-            Glyph(450, 722f<du>, 688f<du>, 0f<du>, 0f<du>, 350f<du>); Glyph(465, 722f<du>, 688f<du>, 0f<du>, 0f<du>, 361f<du>)
-            Glyph(452, 778f<du>, 704f<du>, 0f<du>, 0f<du>, 389f<du>); Glyph(447, 722f<du>, 688f<du>, 0f<du>, 0f<du>, 358f<du>)
-            Glyph(466, 750f<du>, 688f<du>, 0f<du>, 4f<du>, 361f<du>); Glyph(449, 778f<du>, 688f<du>, 0f<du>, 0f<du>, 386f<du>)
-            Glyph(446, 722f<du>, 704f<du>, 0f<du>, 0f<du>, 360f<du>)
+            Glyph(494, 750f<du>, 719f<du>, 0f<du>, 0f<du>, 374f<du>); Glyph(495, 708f<du>, 688f<du>, 0f<du>, 0f<du>, 286f<du>)
+            Glyph(484, 625f<du>, 688f<du>, 0f<du>, 0f<du>, 297f<du>); Glyph(483, 833f<du>, 719f<du>, 0f<du>, 0f<du>, 416f<du>)
+            Glyph(496, 681f<du>, 688f<du>, 0f<du>, 0f<du>, 318f<du>); Glyph(497, 611f<du>, 688f<du>, 0f<du>, 0f<du>, 316f<du>)
+            Glyph(498, 750f<du>, 688f<du>, 0f<du>, 0f<du>, 375f<du>); Glyph(491, 778f<du>, 704f<du>, -32f<du>, 0f<du>, 389f<du>)
+            Glyph(499, 361f<du>, 688f<du>, 0f<du>, 0f<du>, 181f<du>); Glyph(500, 778f<du>, 688f<du>, 0f<du>, 0f<du>, 378f<du>)
+            Glyph(485, 694f<du>, 719f<du>, 0f<du>, 0f<du>, 347f<du>); Glyph(501, 917f<du>, 688f<du>, 0f<du>, 0f<du>, 458f<du>)
+            Glyph(502, 750f<du>, 688f<du>, 0f<du>, 0f<du>, 375f<du>); Glyph(493, 667f<du>, 688f<du>, 0f<du>, 0f<du>, 333f<du>)
+            Glyph(503, 778f<du>, 704f<du>, -32f<du>, 0f<du>, 389f<du>); Glyph(488, 750f<du>, 688f<du>, 0f<du>, 0f<du>, 375f<du>)
+            Glyph(504, 681f<du>, 688f<du>, 0f<du>, 0f<du>, 283f<du>); Glyph(0, 0f<du>, 0f<du>, 0f<du>, 0f<du>, 0f<du>)
+            Glyph(490, 722f<du>, 688f<du>, 0f<du>, 0f<du>, 350f<du>); Glyph(505, 722f<du>, 688f<du>, 0f<du>, 0f<du>, 361f<du>)
+            Glyph(492, 778f<du>, 704f<du>, 0f<du>, 0f<du>, 389f<du>); Glyph(487, 722f<du>, 688f<du>, 0f<du>, 0f<du>, 358f<du>)
+            Glyph(506, 750f<du>, 688f<du>, 0f<du>, 4f<du>, 361f<du>); Glyph(489, 778f<du>, 688f<du>, 0f<du>, 0f<du>, 386f<du>)
+            Glyph(486, 722f<du>, 704f<du>, 0f<du>, 0f<du>, 360f<du>)
         |]
     /// Upright alpha to omega, as \mathrm sets small Greek.
     let uprightGreekSmall: Glyph array =
         [|
-            Glyph(467, 641f<du>, 454f<du>, -16f<du>, 24f<du>, 356f<du>); Glyph(468, 558f<du>, 719f<du>, -204f<du>, 0f<du>, 280f<du>)
-            Glyph(469, 586f<du>, 454f<du>, -219f<du>, 0f<du>, 293f<du>); Glyph(470, 474f<du>, 719f<du>, -16f<du>, 0f<du>, 232f<du>)
-            Glyph(488, 535f<du>, 454f<du>, -32f<du>, 0f<du>, 244f<du>); Glyph(471, 530f<du>, 704f<du>, -204f<du>, 0f<du>, 224f<du>)
-            Glyph(472, 530f<du>, 454f<du>, -219f<du>, 0f<du>, 218f<du>); Glyph(473, 488f<du>, 704f<du>, -16f<du>, 0f<du>, 247f<du>)
-            Glyph(474, 308f<du>, 454f<du>, -16f<du>, 24f<du>, 98f<du>); Glyph(475, 530f<du>, 454f<du>, -16f<du>, 23f<du>, 247f<du>)
-            Glyph(476, 537f<du>, 704f<du>, -16f<du>, 54f<du>, 86f<du>); Glyph(477, 530f<du>, 454f<du>, -219f<du>, 23f<du>, 237f<du>)
-            Glyph(478, 502f<du>, 454f<du>, 0f<du>, 0f<du>, 209f<du>); Glyph(479, 530f<du>, 704f<du>, -204f<du>, 0f<du>, 196f<du>)
-            Glyph(492, 500f<du>, 454f<du>, -16f<du>, 0f<du>, 250f<du>); Glyph(480, 586f<du>, 438f<du>, -16f<du>, 0f<du>, 279f<du>)
-            Glyph(481, 488f<du>, 454f<du>, -219f<du>, 0f<du>, 243f<du>); Glyph(489, 474f<du>, 454f<du>, -110f<du>, 0f<du>, 237f<du>)
-            Glyph(482, 599f<du>, 438f<du>, -16f<du>, 0f<du>, 300f<du>); Glyph(483, 530f<du>, 438f<du>, -16f<du>, 0f<du>, 232f<du>)
-            Glyph(484, 530f<du>, 454f<du>, -16f<du>, 0f<du>, 251f<du>); Glyph(490, 641f<du>, 454f<du>, -219f<du>, 0f<du>, 302f<du>)
-            Glyph(485, 641f<du>, 454f<du>, -204f<du>, 24f<du>, 267f<du>); Glyph(486, 641f<du>, 704f<du>, -204f<du>, 0f<du>, 348f<du>)
-            Glyph(487, 641f<du>, 454f<du>, -16f<du>, 0f<du>, 322f<du>)
+            Glyph(507, 641f<du>, 454f<du>, -16f<du>, 24f<du>, 356f<du>); Glyph(508, 558f<du>, 719f<du>, -204f<du>, 0f<du>, 280f<du>)
+            Glyph(509, 586f<du>, 454f<du>, -219f<du>, 0f<du>, 293f<du>); Glyph(510, 474f<du>, 719f<du>, -16f<du>, 0f<du>, 232f<du>)
+            Glyph(528, 535f<du>, 454f<du>, -32f<du>, 0f<du>, 244f<du>); Glyph(511, 530f<du>, 704f<du>, -204f<du>, 0f<du>, 224f<du>)
+            Glyph(512, 530f<du>, 454f<du>, -219f<du>, 0f<du>, 218f<du>); Glyph(513, 488f<du>, 704f<du>, -16f<du>, 0f<du>, 247f<du>)
+            Glyph(514, 308f<du>, 454f<du>, -16f<du>, 24f<du>, 98f<du>); Glyph(515, 530f<du>, 454f<du>, -16f<du>, 23f<du>, 247f<du>)
+            Glyph(516, 537f<du>, 704f<du>, -16f<du>, 54f<du>, 86f<du>); Glyph(517, 530f<du>, 454f<du>, -219f<du>, 23f<du>, 237f<du>)
+            Glyph(518, 502f<du>, 454f<du>, 0f<du>, 0f<du>, 209f<du>); Glyph(519, 530f<du>, 704f<du>, -204f<du>, 0f<du>, 196f<du>)
+            Glyph(532, 500f<du>, 454f<du>, -16f<du>, 0f<du>, 250f<du>); Glyph(520, 586f<du>, 438f<du>, -16f<du>, 0f<du>, 279f<du>)
+            Glyph(521, 488f<du>, 454f<du>, -219f<du>, 0f<du>, 243f<du>); Glyph(529, 474f<du>, 454f<du>, -110f<du>, 0f<du>, 237f<du>)
+            Glyph(522, 599f<du>, 438f<du>, -16f<du>, 0f<du>, 300f<du>); Glyph(523, 530f<du>, 438f<du>, -16f<du>, 0f<du>, 232f<du>)
+            Glyph(524, 530f<du>, 454f<du>, -16f<du>, 0f<du>, 251f<du>); Glyph(530, 641f<du>, 454f<du>, -219f<du>, 0f<du>, 302f<du>)
+            Glyph(525, 641f<du>, 454f<du>, -204f<du>, 24f<du>, 267f<du>); Glyph(526, 641f<du>, 704f<du>, -204f<du>, 0f<du>, 348f<du>)
+            Glyph(527, 641f<du>, 454f<du>, -16f<du>, 0f<du>, 322f<du>)
         |]
     /// Upright 0 to 9.
     let digits: Glyph array =
@@ -289,10 +289,10 @@ module internal Alphabets =
     /// The italic shapes Unicode keeps outside the alphabets.
     let italicShapes: CG array =
         [|
-            CG(8706, Glyph(524, 531f<du>, 719f<du>, -32f<du>, 63f<du>, 361f<du>)); CG(1013, Glyph(498, 406f<du>, 438f<du>, -16f<du>, 0f<du>, 269f<du>))
-            CG(977, Glyph(519, 591f<du>, 704f<du>, -16f<du>, 0f<du>, 411f<du>)); CG(1008, Glyph(504, 624f<du>, 454f<du>, -16f<du>, 0f<du>, 365f<du>))
-            CG(981, Glyph(514, 596f<du>, 704f<du>, -204f<du>, 5f<du>, 423f<du>)); CG(1009, Glyph(521, 517f<du>, 454f<du>, -204f<du>, 13f<du>, 361f<du>))
-            CG(982, Glyph(520, 828f<du>, 438f<du>, -16f<du>, 17f<du>, 453f<du>))
+            CG(8706, Glyph(564, 531f<du>, 719f<du>, -32f<du>, 63f<du>, 361f<du>)); CG(1013, Glyph(538, 406f<du>, 438f<du>, -16f<du>, 0f<du>, 269f<du>))
+            CG(977, Glyph(559, 591f<du>, 704f<du>, -16f<du>, 0f<du>, 411f<du>)); CG(1008, Glyph(544, 624f<du>, 454f<du>, -16f<du>, 0f<du>, 365f<du>))
+            CG(981, Glyph(554, 596f<du>, 704f<du>, -204f<du>, 5f<du>, 423f<du>)); CG(1009, Glyph(561, 517f<du>, 454f<du>, -204f<du>, 13f<du>, 361f<du>))
+            CG(982, Glyph(560, 828f<du>, 438f<du>, -16f<du>, 17f<du>, 453f<du>))
         |]
     /// Blackboard bold A to Z, which the second face is carried for.
     let blackboardCapital: Glyph array =
@@ -333,48 +333,51 @@ module internal Repertoire =
             CG(96, Glyph(102, 500f<du>, 704f<du>, 500f<du>, 0f<du>, 219f<du>)); CG(123, Glyph(90, 500f<du>, 750f<du>, -250f<du>, 0f<du>, 250f<du>))
             CG(124, Glyph(91, 278f<du>, 750f<du>, -250f<du>, 0f<du>, 139f<du>)); CG(125, Glyph(92, 500f<du>, 750f<du>, -250f<du>, 0f<du>, 250f<du>))
             CG(126, Glyph(93, 556f<du>, 313f<du>, 187f<du>, 27f<du>, 278f<du>)); CG(163, Glyph(94, 750f<du>, 688f<du>, -47f<du>, 0f<du>, 375f<du>))
-            CG(172, Glyph(382, 667f<du>, 375f<du>, 125f<du>, 0f<du>, 333f<du>)); CG(176, Glyph(104, 375f<du>, 688f<du>, 406f<du>, 0f<du>, 187f<du>))
-            CG(177, Glyph(356, 778f<du>, 594f<du>, -94f<du>, 0f<du>, 389f<du>)); CG(181, Glyph(105, 556f<du>, 454f<du>, -204f<du>, 6f<du>, 278f<du>))
-            CG(215, Glyph(366, 778f<du>, 500f<du>, 0f<du>, 0f<du>, 389f<du>)); CG(247, Glyph(358, 778f<du>, 516f<du>, -16f<du>, 0f<du>, 389f<du>))
+            CG(172, Glyph(421, 667f<du>, 375f<du>, 125f<du>, 0f<du>, 333f<du>)); CG(176, Glyph(104, 375f<du>, 688f<du>, 406f<du>, 0f<du>, 187f<du>))
+            CG(177, Glyph(388, 778f<du>, 594f<du>, -94f<du>, 0f<du>, 389f<du>)); CG(181, Glyph(105, 556f<du>, 454f<du>, -204f<du>, 6f<du>, 278f<du>))
+            CG(215, Glyph(398, 778f<du>, 500f<du>, 0f<du>, 0f<du>, 389f<du>)); CG(247, Glyph(390, 778f<du>, 516f<du>, -16f<du>, 0f<du>, 389f<du>))
             CG(8211, Glyph(96, 500f<du>, 282f<du>, 250f<du>, 27f<du>, 250f<du>)); CG(8224, Glyph(97, 444f<du>, 704f<du>, -219f<du>, 0f<du>, 222f<du>))
             CG(8225, Glyph(98, 444f<du>, 704f<du>, -204f<du>, 0f<du>, 222f<du>)); CG(8226, Glyph(99, 500f<du>, 454f<du>, 46f<du>, 0f<du>, 250f<du>))
             CG(8230, Glyph(100, 837f<du>, 110f<du>, 0f<du>, 0f<du>, 418f<du>)); CG(8240, Glyph(101, 1140f<du>, 750f<du>, -63f<du>, 0f<du>, 570f<du>))
-            CG(8242, Glyph(413, 311f<du>, 750f<du>, 421f<du>, 0f<du>, 155f<du>)); CG(8243, Glyph(414, 511f<du>, 750f<du>, 421f<du>, 0f<du>, 255f<du>))
-            CG(8450, Glyph(435, 667f<du>, 704f<du>, -32f<du>, 0f<du>, 335f<du>)); CG(8461, Glyph(436, 722f<du>, 688f<du>, 0f<du>, 0f<du>, 361f<du>))
-            CG(8467, Glyph(107, 417f<du>, 704f<du>, -16f<du>, 9f<du>, 208f<du>)); CG(8469, Glyph(437, 722f<du>, 688f<du>, 0f<du>, 0f<du>, 361f<du>))
-            CG(8473, Glyph(438, 639f<du>, 688f<du>, 0f<du>, 0f<du>, 247f<du>)); CG(8474, Glyph(439, 667f<du>, 704f<du>, -204f<du>, 0f<du>, 333f<du>))
-            CG(8477, Glyph(440, 639f<du>, 688f<du>, 0f<du>, 0f<du>, 247f<du>)); CG(8484, Glyph(441, 667f<du>, 688f<du>, 0f<du>, 0f<du>, 333f<du>))
+            CG(8242, Glyph(453, 311f<du>, 750f<du>, 421f<du>, 0f<du>, 155f<du>)); CG(8243, Glyph(454, 511f<du>, 750f<du>, 421f<du>, 0f<du>, 255f<du>))
+            CG(8450, Glyph(475, 667f<du>, 704f<du>, -32f<du>, 0f<du>, 335f<du>)); CG(8461, Glyph(476, 722f<du>, 688f<du>, 0f<du>, 0f<du>, 361f<du>))
+            CG(8467, Glyph(107, 417f<du>, 704f<du>, -16f<du>, 9f<du>, 208f<du>)); CG(8469, Glyph(477, 722f<du>, 688f<du>, 0f<du>, 0f<du>, 361f<du>))
+            CG(8473, Glyph(478, 639f<du>, 688f<du>, 0f<du>, 0f<du>, 247f<du>)); CG(8474, Glyph(479, 667f<du>, 704f<du>, -204f<du>, 0f<du>, 333f<du>))
+            CG(8477, Glyph(480, 639f<du>, 688f<du>, 0f<du>, 0f<du>, 247f<du>)); CG(8484, Glyph(481, 667f<du>, 688f<du>, 0f<du>, 0f<du>, 333f<du>))
             CG(8592, Glyph(222, 1000f<du>, 516f<du>, -16f<du>, 0f<du>, 500f<du>)); CG(8593, Glyph(226, 500f<du>, 688f<du>, -204f<du>, 0f<du>, 250f<du>))
             CG(8594, Glyph(223, 1000f<du>, 516f<du>, -16f<du>, 0f<du>, 500f<du>)); CG(8595, Glyph(227, 500f<du>, 704f<du>, -188f<du>, 0f<du>, 250f<du>))
             CG(8596, Glyph(228, 1000f<du>, 516f<du>, -16f<du>, 0f<du>, 500f<du>)); CG(8614, Glyph(229, 977f<du>, 516f<du>, -16f<du>, 0f<du>, 488f<du>))
             CG(8635, Glyph(230, 771f<du>, 688f<du>, -63f<du>, 0f<du>, 385f<du>)); CG(8656, Glyph(231, 1000f<du>, 532f<du>, -32f<du>, 0f<du>, 500f<du>))
             CG(8658, Glyph(232, 1000f<du>, 532f<du>, -32f<du>, 0f<du>, 500f<du>)); CG(8660, Glyph(233, 1000f<du>, 532f<du>, -32f<du>, 0f<du>, 500f<du>))
-            CG(8704, Glyph(392, 666f<du>, 688f<du>, 0f<du>, 0f<du>, 333f<du>)); CG(8706, Glyph(491, 586f<du>, 719f<du>, -32f<du>, 0f<du>, 291f<du>))
-            CG(8707, Glyph(393, 556f<du>, 688f<du>, 0f<du>, 0f<du>, 278f<du>)); CG(8709, Glyph(394, 500f<du>, 782f<du>, -79f<du>, 0f<du>, 250f<du>))
-            CG(8710, Glyph(493, 833f<du>, 719f<du>, 0f<du>, 0f<du>, 416f<du>)); CG(8711, Glyph(442, 833f<du>, 688f<du>, -32f<du>, 0f<du>, 416f<du>))
-            CG(8712, Glyph(407, 667f<du>, 547f<du>, -47f<du>, 0f<du>, 333f<du>)); CG(8713, Glyph(409, 667f<du>, 735f<du>, -235f<du>, 0f<du>, 333f<du>))
-            CG(8715, Glyph(408, 667f<du>, 547f<du>, -47f<du>, 0f<du>, 333f<du>)); CG(8722, Glyph(355, 778f<du>, 282f<du>, 218f<du>, 0f<du>, 389f<du>))
-            CG(8723, Glyph(357, 778f<du>, 594f<du>, -94f<du>, 0f<du>, 389f<du>)); CG(8726, Glyph(369, 568f<du>, 610f<du>, -110f<du>, 0f<du>, 284f<du>))
-            CG(8727, Glyph(367, 500f<du>, 469f<du>, 31f<du>, 0f<du>, 250f<du>)); CG(8728, Glyph(365, 412f<du>, 407f<du>, 93f<du>, 0f<du>, 206f<du>))
+            CG(8704, Glyph(431, 666f<du>, 688f<du>, 0f<du>, 0f<du>, 333f<du>)); CG(8706, Glyph(531, 586f<du>, 719f<du>, -32f<du>, 0f<du>, 291f<du>))
+            CG(8707, Glyph(432, 556f<du>, 688f<du>, 0f<du>, 0f<du>, 278f<du>)); CG(8709, Glyph(433, 500f<du>, 782f<du>, -79f<du>, 0f<du>, 250f<du>))
+            CG(8710, Glyph(533, 833f<du>, 719f<du>, 0f<du>, 0f<du>, 416f<du>)); CG(8711, Glyph(482, 833f<du>, 688f<du>, -32f<du>, 0f<du>, 416f<du>))
+            CG(8712, Glyph(447, 667f<du>, 547f<du>, -47f<du>, 0f<du>, 333f<du>)); CG(8713, Glyph(449, 667f<du>, 735f<du>, -235f<du>, 0f<du>, 333f<du>))
+            CG(8715, Glyph(448, 667f<du>, 547f<du>, -47f<du>, 0f<du>, 333f<du>)); CG(8722, Glyph(387, 778f<du>, 282f<du>, 218f<du>, 0f<du>, 389f<du>))
+            CG(8723, Glyph(389, 778f<du>, 594f<du>, -94f<du>, 0f<du>, 389f<du>)); CG(8726, Glyph(401, 568f<du>, 610f<du>, -110f<du>, 0f<du>, 284f<du>))
+            CG(8727, Glyph(399, 500f<du>, 469f<du>, 31f<du>, 0f<du>, 250f<du>)); CG(8728, Glyph(397, 412f<du>, 407f<du>, 93f<du>, 0f<du>, 206f<du>))
             CG(8733, Glyph(106, 778f<du>, 454f<du>, -16f<du>, 0f<du>, 389f<du>)); CG(8734, Glyph(103, 1000f<du>, 454f<du>, -16f<du>, 0f<du>, 500f<du>))
-            CG(8736, Glyph(368, 778f<du>, 735f<du>, 0f<du>, 0f<du>, 389f<du>)); CG(8739, Glyph(370, 278f<du>, 750f<du>, -250f<du>, 0f<du>, 139f<du>))
-            CG(8741, Glyph(371, 500f<du>, 750f<du>, -250f<du>, 0f<du>, 250f<du>)); CG(8743, Glyph(390, 667f<du>, 610f<du>, -32f<du>, 0f<du>, 333f<du>))
-            CG(8744, Glyph(391, 667f<du>, 610f<du>, -32f<du>, 0f<du>, 333f<du>)); CG(8745, Glyph(384, 667f<du>, 610f<du>, -32f<du>, 0f<du>, 333f<du>))
-            CG(8746, Glyph(385, 667f<du>, 610f<du>, -32f<du>, 0f<du>, 333f<du>)); CG(8756, Glyph(360, 516f<du>, 422f<du>, 78f<du>, 0f<du>, 258f<du>))
-            CG(8757, Glyph(361, 516f<du>, 422f<du>, 78f<du>, 0f<du>, 258f<du>)); CG(8764, Glyph(410, 773f<du>, 375f<du>, 125f<du>, 0f<du>, 386f<du>))
-            CG(8773, Glyph(411, 778f<du>, 563f<du>, 31f<du>, 0f<du>, 389f<du>)); CG(8776, Glyph(412, 773f<du>, 469f<du>, 31f<du>, 0f<du>, 386f<du>))
-            CG(8800, Glyph(397, 778f<du>, 735f<du>, -235f<du>, 0f<du>, 389f<du>)); CG(8801, Glyph(398, 778f<du>, 469f<du>, 31f<du>, 0f<du>, 389f<du>))
-            CG(8804, Glyph(399, 778f<du>, 641f<du>, -125f<du>, 0f<du>, 389f<du>)); CG(8805, Glyph(400, 778f<du>, 641f<du>, -125f<du>, 0f<du>, 389f<du>))
-            CG(8810, Glyph(401, 1000f<du>, 547f<du>, -47f<du>, 0f<du>, 500f<du>)); CG(8811, Glyph(402, 1000f<du>, 547f<du>, -47f<du>, 0f<du>, 500f<du>))
-            CG(8834, Glyph(403, 778f<du>, 547f<du>, -47f<du>, 0f<du>, 389f<du>)); CG(8835, Glyph(404, 778f<du>, 547f<du>, -47f<du>, 0f<du>, 389f<du>))
-            CG(8838, Glyph(405, 778f<du>, 641f<du>, -141f<du>, 0f<du>, 389f<du>)); CG(8839, Glyph(406, 778f<du>, 641f<du>, -141f<du>, 0f<du>, 389f<du>))
-            CG(8853, Glyph(395, 778f<du>, 594f<du>, -94f<du>, 0f<du>, 389f<du>)); CG(8855, Glyph(396, 778f<du>, 594f<du>, -94f<du>, 0f<du>, 389f<du>))
-            CG(8869, Glyph(383, 778f<du>, 688f<du>, 0f<du>, 0f<du>, 389f<du>)); CG(8901, Glyph(359, 278f<du>, 313f<du>, 187f<du>, 0f<du>, 139f<du>))
-            CG(8942, Glyph(362, 218f<du>, 594f<du>, -94f<du>, 0f<du>, 109f<du>)); CG(8943, Glyph(363, 776f<du>, 313f<du>, 187f<du>, 0f<du>, 388f<du>))
-            CG(8945, Glyph(364, 613f<du>, 500f<du>, 0f<du>, 0f<du>, 306f<du>)); CG(9633, Glyph(415, 778f<du>, 594f<du>, -94f<du>, 0f<du>, 389f<du>))
-            CG(9651, Glyph(416, 968f<du>, 750f<du>, -16f<du>, 0f<du>, 484f<du>)); CG(10216, Glyph(339, 389f<du>, 750f<du>, -250f<du>, 0f<du>, 194f<du>))
-            CG(10217, Glyph(340, 389f<du>, 750f<du>, -250f<du>, 0f<du>, 194f<du>)); CG(10229, Glyph(224, 1463f<du>, 516f<du>, -16f<du>, 0f<du>, 731f<du>))
-            CG(10230, Glyph(225, 1463f<du>, 516f<du>, -16f<du>, 0f<du>, 731f<du>)); CG(10234, Glyph(234, 1534f<du>, 532f<du>, -32f<du>, 0f<du>, 767f<du>))
+            CG(8736, Glyph(400, 778f<du>, 735f<du>, 0f<du>, 0f<du>, 389f<du>)); CG(8739, Glyph(402, 278f<du>, 750f<du>, -250f<du>, 0f<du>, 139f<du>))
+            CG(8741, Glyph(403, 500f<du>, 750f<du>, -250f<du>, 0f<du>, 250f<du>)); CG(8743, Glyph(429, 667f<du>, 610f<du>, -32f<du>, 0f<du>, 333f<du>))
+            CG(8744, Glyph(430, 667f<du>, 610f<du>, -32f<du>, 0f<du>, 333f<du>)); CG(8745, Glyph(423, 667f<du>, 610f<du>, -32f<du>, 0f<du>, 333f<du>))
+            CG(8746, Glyph(424, 667f<du>, 610f<du>, -32f<du>, 0f<du>, 333f<du>)); CG(8756, Glyph(392, 516f<du>, 422f<du>, 78f<du>, 0f<du>, 258f<du>))
+            CG(8757, Glyph(393, 516f<du>, 422f<du>, 78f<du>, 0f<du>, 258f<du>)); CG(8764, Glyph(450, 773f<du>, 375f<du>, 125f<du>, 0f<du>, 386f<du>))
+            CG(8773, Glyph(451, 778f<du>, 563f<du>, 31f<du>, 0f<du>, 389f<du>)); CG(8776, Glyph(452, 773f<du>, 469f<du>, 31f<du>, 0f<du>, 386f<du>))
+            CG(8800, Glyph(437, 778f<du>, 735f<du>, -235f<du>, 0f<du>, 389f<du>)); CG(8801, Glyph(438, 778f<du>, 469f<du>, 31f<du>, 0f<du>, 389f<du>))
+            CG(8804, Glyph(439, 778f<du>, 641f<du>, -125f<du>, 0f<du>, 389f<du>)); CG(8805, Glyph(440, 778f<du>, 641f<du>, -125f<du>, 0f<du>, 389f<du>))
+            CG(8810, Glyph(441, 1000f<du>, 547f<du>, -47f<du>, 0f<du>, 500f<du>)); CG(8811, Glyph(442, 1000f<du>, 547f<du>, -47f<du>, 0f<du>, 500f<du>))
+            CG(8834, Glyph(443, 778f<du>, 547f<du>, -47f<du>, 0f<du>, 389f<du>)); CG(8835, Glyph(444, 778f<du>, 547f<du>, -47f<du>, 0f<du>, 389f<du>))
+            CG(8838, Glyph(445, 778f<du>, 641f<du>, -141f<du>, 0f<du>, 389f<du>)); CG(8839, Glyph(446, 778f<du>, 641f<du>, -141f<du>, 0f<du>, 389f<du>))
+            CG(8853, Glyph(435, 778f<du>, 594f<du>, -94f<du>, 0f<du>, 389f<du>)); CG(8855, Glyph(436, 778f<du>, 594f<du>, -94f<du>, 0f<du>, 389f<du>))
+            CG(8869, Glyph(422, 778f<du>, 688f<du>, 0f<du>, 0f<du>, 389f<du>)); CG(8901, Glyph(391, 278f<du>, 313f<du>, 187f<du>, 0f<du>, 139f<du>))
+            CG(8942, Glyph(394, 218f<du>, 594f<du>, -94f<du>, 0f<du>, 109f<du>)); CG(8943, Glyph(395, 776f<du>, 313f<du>, 187f<du>, 0f<du>, 388f<du>))
+            CG(8945, Glyph(396, 613f<du>, 500f<du>, 0f<du>, 0f<du>, 306f<du>)); CG(8960, Glyph(434, 778f<du>, 610f<du>, -110f<du>, 0f<du>, 389f<du>))
+            CG(8968, Glyph(253, 444f<du>, 750f<du>, -250f<du>, 0f<du>, 222f<du>)); CG(8969, Glyph(254, 444f<du>, 750f<du>, -250f<du>, 0f<du>, 222f<du>))
+            CG(8970, Glyph(255, 444f<du>, 750f<du>, -250f<du>, 0f<du>, 222f<du>)); CG(8971, Glyph(256, 444f<du>, 750f<du>, -250f<du>, 0f<du>, 222f<du>))
+            CG(9633, Glyph(455, 778f<du>, 594f<du>, -94f<du>, 0f<du>, 389f<du>)); CG(9651, Glyph(456, 968f<du>, 750f<du>, -16f<du>, 0f<du>, 484f<du>))
+            CG(10216, Glyph(371, 389f<du>, 750f<du>, -250f<du>, 0f<du>, 194f<du>)); CG(10217, Glyph(372, 389f<du>, 750f<du>, -250f<du>, 0f<du>, 194f<du>))
+            CG(10229, Glyph(224, 1463f<du>, 516f<du>, -16f<du>, 0f<du>, 731f<du>)); CG(10230, Glyph(225, 1463f<du>, 516f<du>, -16f<du>, 0f<du>, 731f<du>))
+            CG(10234, Glyph(234, 1534f<du>, 532f<du>, -32f<du>, 0f<du>, 767f<du>))
         |]
 
 /// Single glyphs the library refers to that no alphabet covers.
@@ -387,15 +390,15 @@ module Operators =
     /// The plus sign.
     let plus = Glyph(11, 778f<du>, 594f<du>, -94f<du>, 0f<du>, 389f<du>)
     /// The minus sign, which is longer than the hyphen.
-    let minus = Glyph(355, 778f<du>, 282f<du>, 218f<du>, 0f<du>, 389f<du>)
+    let minus = Glyph(387, 778f<du>, 282f<du>, 218f<du>, 0f<du>, 389f<du>)
     /// The multiplication cross.
-    let times = Glyph(366, 778f<du>, 500f<du>, 0f<du>, 0f<du>, 389f<du>)
+    let times = Glyph(398, 778f<du>, 500f<du>, 0f<du>, 0f<du>, 389f<du>)
     /// The division sign.
-    let divide = Glyph(358, 778f<du>, 516f<du>, -16f<du>, 0f<du>, 389f<du>)
+    let divide = Glyph(390, 778f<du>, 516f<du>, -16f<du>, 0f<du>, 389f<du>)
     /// The equals sign.
     let equals = Glyph(29, 778f<du>, 375f<du>, 125f<du>, 0f<du>, 389f<du>)
     /// The centred dot of a product.
-    let cdot = Glyph(359, 278f<du>, 313f<du>, 187f<du>, 0f<du>, 139f<du>)
+    let cdot = Glyph(391, 278f<du>, 313f<du>, 187f<du>, 0f<du>, 139f<du>)
 
 /// Accents, which are placed by the point they attach over.
 module Accents =
@@ -427,189 +430,256 @@ module Delimiters =
         StretchyGlyph(
             Glyph(8, 389f<du>, 750f<du>, -250f<du>, 0f<du>, 194f<du>),
             [|
-                StretchSize(Glyph(8, 389f<du>, 750f<du>, -250f<du>, 0f<du>, 194f<du>), 997f<du>); StretchSize(Glyph(255, 422f<du>, 797f<du>, -297f<du>, 0f<du>, 211f<du>), 1095f<du>)
-                StretchSize(Glyph(263, 458f<du>, 860f<du>, -360f<du>, 0f<du>, 229f<du>), 1195f<du>); StretchSize(Glyph(271, 523f<du>, 985f<du>, -485f<du>, 0f<du>, 261f<du>), 1445f<du>)
-                StretchSize(Glyph(279, 597f<du>, 1157f<du>, -657f<du>, 0f<du>, 298f<du>), 1793f<du>); StretchSize(Glyph(287, 663f<du>, 1297f<du>, -797f<du>, 0f<du>, 331f<du>), 2093f<du>)
-                StretchSize(Glyph(295, 736f<du>, 1454f<du>, -954f<du>, 0f<du>, 368f<du>), 2393f<du>); StretchSize(Glyph(303, 875f<du>, 1750f<du>, -1250f<du>, 0f<du>, 437f<du>), 2991f<du>)
+                StretchSize(Glyph(8, 389f<du>, 750f<du>, -250f<du>, 0f<du>, 194f<du>), 997f<du>); StretchSize(Glyph(259, 422f<du>, 797f<du>, -297f<du>, 0f<du>, 211f<du>), 1095f<du>)
+                StretchSize(Glyph(271, 458f<du>, 860f<du>, -360f<du>, 0f<du>, 229f<du>), 1195f<du>); StretchSize(Glyph(283, 523f<du>, 985f<du>, -485f<du>, 0f<du>, 261f<du>), 1445f<du>)
+                StretchSize(Glyph(295, 597f<du>, 1157f<du>, -657f<du>, 0f<du>, 298f<du>), 1793f<du>); StretchSize(Glyph(307, 663f<du>, 1297f<du>, -797f<du>, 0f<du>, 331f<du>), 2093f<du>)
+                StretchSize(Glyph(319, 736f<du>, 1454f<du>, -954f<du>, 0f<du>, 368f<du>), 2393f<du>); StretchSize(Glyph(331, 875f<du>, 1750f<du>, -1250f<du>, 0f<du>, 437f<du>), 2991f<du>)
             |],
             [|
-                AssemblyPart(Glyph(305, 875f<du>, 1500f<du>, 0f<du>, 0f<du>, 437f<du>), 0f<du>, 249f<du>, 1495f<du>, false)
-                AssemblyPart(Glyph(306, 875f<du>, 500f<du>, 0f<du>, 0f<du>, 437f<du>), 498f<du>, 498f<du>, 498f<du>, true)
-                AssemblyPart(Glyph(307, 875f<du>, 1500f<du>, 0f<du>, 0f<du>, 437f<du>), 249f<du>, 0f<du>, 1495f<du>, false)
+                AssemblyPart(Glyph(333, 875f<du>, 1500f<du>, 0f<du>, 0f<du>, 437f<du>), 0f<du>, 249f<du>, 1495f<du>, false)
+                AssemblyPart(Glyph(334, 875f<du>, 500f<du>, 0f<du>, 0f<du>, 437f<du>), 498f<du>, 498f<du>, 498f<du>, true)
+                AssemblyPart(Glyph(335, 875f<du>, 1500f<du>, 0f<du>, 0f<du>, 437f<du>), 249f<du>, 0f<du>, 1495f<du>, false)
             |])
     /// The closing round bracket.
     let roundRight =
         StretchyGlyph(
             Glyph(9, 389f<du>, 750f<du>, -250f<du>, 0f<du>, 194f<du>),
             [|
-                StretchSize(Glyph(9, 389f<du>, 750f<du>, -250f<du>, 0f<du>, 194f<du>), 997f<du>); StretchSize(Glyph(256, 422f<du>, 797f<du>, -297f<du>, 0f<du>, 211f<du>), 1095f<du>)
-                StretchSize(Glyph(264, 458f<du>, 860f<du>, -360f<du>, 0f<du>, 229f<du>), 1195f<du>); StretchSize(Glyph(272, 523f<du>, 985f<du>, -485f<du>, 0f<du>, 261f<du>), 1445f<du>)
-                StretchSize(Glyph(280, 597f<du>, 1157f<du>, -657f<du>, 0f<du>, 298f<du>), 1793f<du>); StretchSize(Glyph(288, 663f<du>, 1297f<du>, -797f<du>, 0f<du>, 331f<du>), 2093f<du>)
-                StretchSize(Glyph(296, 736f<du>, 1454f<du>, -954f<du>, 0f<du>, 368f<du>), 2393f<du>); StretchSize(Glyph(304, 875f<du>, 1750f<du>, -1250f<du>, 0f<du>, 437f<du>), 2991f<du>)
+                StretchSize(Glyph(9, 389f<du>, 750f<du>, -250f<du>, 0f<du>, 194f<du>), 997f<du>); StretchSize(Glyph(260, 422f<du>, 797f<du>, -297f<du>, 0f<du>, 211f<du>), 1095f<du>)
+                StretchSize(Glyph(272, 458f<du>, 860f<du>, -360f<du>, 0f<du>, 229f<du>), 1195f<du>); StretchSize(Glyph(284, 523f<du>, 985f<du>, -485f<du>, 0f<du>, 261f<du>), 1445f<du>)
+                StretchSize(Glyph(296, 597f<du>, 1157f<du>, -657f<du>, 0f<du>, 298f<du>), 1793f<du>); StretchSize(Glyph(308, 663f<du>, 1297f<du>, -797f<du>, 0f<du>, 331f<du>), 2093f<du>)
+                StretchSize(Glyph(320, 736f<du>, 1454f<du>, -954f<du>, 0f<du>, 368f<du>), 2393f<du>); StretchSize(Glyph(332, 875f<du>, 1750f<du>, -1250f<du>, 0f<du>, 437f<du>), 2991f<du>)
             |],
             [|
-                AssemblyPart(Glyph(308, 875f<du>, 1500f<du>, 0f<du>, 0f<du>, 437f<du>), 0f<du>, 249f<du>, 1495f<du>, false)
-                AssemblyPart(Glyph(309, 875f<du>, 500f<du>, 0f<du>, 0f<du>, 437f<du>), 498f<du>, 498f<du>, 498f<du>, true)
-                AssemblyPart(Glyph(310, 875f<du>, 1500f<du>, 0f<du>, 0f<du>, 437f<du>), 249f<du>, 0f<du>, 1495f<du>, false)
+                AssemblyPart(Glyph(336, 875f<du>, 1500f<du>, 0f<du>, 0f<du>, 437f<du>), 0f<du>, 249f<du>, 1495f<du>, false)
+                AssemblyPart(Glyph(337, 875f<du>, 500f<du>, 0f<du>, 0f<du>, 437f<du>), 498f<du>, 498f<du>, 498f<du>, true)
+                AssemblyPart(Glyph(338, 875f<du>, 1500f<du>, 0f<du>, 0f<du>, 437f<du>), 249f<du>, 0f<du>, 1495f<du>, false)
             |])
     /// The opening square bracket.
     let squareLeft =
         StretchyGlyph(
             Glyph(59, 278f<du>, 750f<du>, -250f<du>, 6f<du>, 139f<du>),
             [|
-                StretchSize(Glyph(59, 278f<du>, 750f<du>, -250f<du>, 6f<du>, 139f<du>), 1001f<du>); StretchSize(Glyph(259, 340f<du>, 813f<du>, -313f<du>, 0f<du>, 170f<du>), 1101f<du>)
-                StretchSize(Glyph(267, 417f<du>, 860f<du>, -360f<du>, 0f<du>, 208f<du>), 1201f<du>); StretchSize(Glyph(275, 444f<du>, 985f<du>, -485f<du>, 0f<du>, 222f<du>), 1451f<du>)
-                StretchSize(Glyph(283, 472f<du>, 1157f<du>, -657f<du>, 4f<du>, 236f<du>), 1801f<du>); StretchSize(Glyph(291, 499f<du>, 1313f<du>, -813f<du>, 7f<du>, 249f<du>), 2101f<du>)
-                StretchSize(Glyph(299, 528f<du>, 1454f<du>, -954f<du>, 9f<du>, 264f<du>), 2401f<du>); StretchSize(Glyph(321, 667f<du>, 1750f<du>, -1250f<du>, 8f<du>, 333f<du>), 3001f<du>)
+                StretchSize(Glyph(59, 278f<du>, 750f<du>, -250f<du>, 6f<du>, 139f<du>), 1001f<du>); StretchSize(Glyph(263, 340f<du>, 813f<du>, -313f<du>, 0f<du>, 170f<du>), 1101f<du>)
+                StretchSize(Glyph(275, 417f<du>, 860f<du>, -360f<du>, 0f<du>, 208f<du>), 1201f<du>); StretchSize(Glyph(287, 444f<du>, 985f<du>, -485f<du>, 0f<du>, 222f<du>), 1451f<du>)
+                StretchSize(Glyph(299, 472f<du>, 1157f<du>, -657f<du>, 4f<du>, 236f<du>), 1801f<du>); StretchSize(Glyph(311, 499f<du>, 1313f<du>, -813f<du>, 7f<du>, 249f<du>), 2101f<du>)
+                StretchSize(Glyph(323, 528f<du>, 1454f<du>, -954f<du>, 9f<du>, 264f<du>), 2401f<du>); StretchSize(Glyph(349, 667f<du>, 1750f<du>, -1250f<du>, 8f<du>, 333f<du>), 3001f<du>)
             |],
             [|
-                AssemblyPart(Glyph(323, 667f<du>, 1500f<du>, 0f<du>, 0f<du>, 333f<du>), 0f<du>, 500f<du>, 1500f<du>, false)
-                AssemblyPart(Glyph(324, 667f<du>, 1000f<du>, 0f<du>, 0f<du>, 333f<du>), 1000f<du>, 1000f<du>, 1000f<du>, true)
-                AssemblyPart(Glyph(325, 667f<du>, 1500f<du>, 0f<du>, 0f<du>, 333f<du>), 500f<du>, 0f<du>, 1500f<du>, false)
+                AssemblyPart(Glyph(351, 667f<du>, 1500f<du>, 0f<du>, 0f<du>, 333f<du>), 0f<du>, 500f<du>, 1500f<du>, false)
+                AssemblyPart(Glyph(352, 667f<du>, 1000f<du>, 0f<du>, 0f<du>, 333f<du>), 1000f<du>, 1000f<du>, 1000f<du>, true)
+                AssemblyPart(Glyph(353, 667f<du>, 1500f<du>, 0f<du>, 0f<du>, 333f<du>), 500f<du>, 0f<du>, 1500f<du>, false)
             |])
     /// The closing square bracket.
     let squareRight =
         StretchyGlyph(
             Glyph(61, 278f<du>, 750f<du>, -250f<du>, 0f<du>, 139f<du>),
             [|
-                StretchSize(Glyph(61, 278f<du>, 750f<du>, -250f<du>, 0f<du>, 139f<du>), 1001f<du>); StretchSize(Glyph(260, 340f<du>, 813f<du>, -313f<du>, 0f<du>, 170f<du>), 1101f<du>)
-                StretchSize(Glyph(268, 417f<du>, 860f<du>, -360f<du>, 0f<du>, 208f<du>), 1201f<du>); StretchSize(Glyph(276, 444f<du>, 985f<du>, -485f<du>, 0f<du>, 222f<du>), 1451f<du>)
-                StretchSize(Glyph(284, 472f<du>, 1157f<du>, -657f<du>, 0f<du>, 236f<du>), 1801f<du>); StretchSize(Glyph(292, 499f<du>, 1313f<du>, -813f<du>, 0f<du>, 249f<du>), 2101f<du>)
-                StretchSize(Glyph(300, 528f<du>, 1454f<du>, -954f<du>, 0f<du>, 264f<du>), 2401f<du>); StretchSize(Glyph(322, 667f<du>, 1750f<du>, -1250f<du>, 0f<du>, 333f<du>), 3001f<du>)
+                StretchSize(Glyph(61, 278f<du>, 750f<du>, -250f<du>, 0f<du>, 139f<du>), 1001f<du>); StretchSize(Glyph(264, 340f<du>, 813f<du>, -313f<du>, 0f<du>, 170f<du>), 1101f<du>)
+                StretchSize(Glyph(276, 417f<du>, 860f<du>, -360f<du>, 0f<du>, 208f<du>), 1201f<du>); StretchSize(Glyph(288, 444f<du>, 985f<du>, -485f<du>, 0f<du>, 222f<du>), 1451f<du>)
+                StretchSize(Glyph(300, 472f<du>, 1157f<du>, -657f<du>, 0f<du>, 236f<du>), 1801f<du>); StretchSize(Glyph(312, 499f<du>, 1313f<du>, -813f<du>, 0f<du>, 249f<du>), 2101f<du>)
+                StretchSize(Glyph(324, 528f<du>, 1454f<du>, -954f<du>, 0f<du>, 264f<du>), 2401f<du>); StretchSize(Glyph(350, 667f<du>, 1750f<du>, -1250f<du>, 0f<du>, 333f<du>), 3001f<du>)
             |],
             [|
-                AssemblyPart(Glyph(326, 667f<du>, 1500f<du>, 0f<du>, 0f<du>, 333f<du>), 0f<du>, 500f<du>, 1500f<du>, false)
-                AssemblyPart(Glyph(327, 667f<du>, 1000f<du>, 0f<du>, 0f<du>, 333f<du>), 1000f<du>, 1000f<du>, 1000f<du>, true)
-                AssemblyPart(Glyph(328, 667f<du>, 1500f<du>, 0f<du>, 0f<du>, 333f<du>), 500f<du>, 0f<du>, 1500f<du>, false)
+                AssemblyPart(Glyph(354, 667f<du>, 1500f<du>, 0f<du>, 0f<du>, 333f<du>), 0f<du>, 500f<du>, 1500f<du>, false)
+                AssemblyPart(Glyph(355, 667f<du>, 1000f<du>, 0f<du>, 0f<du>, 333f<du>), 1000f<du>, 1000f<du>, 1000f<du>, true)
+                AssemblyPart(Glyph(356, 667f<du>, 1500f<du>, 0f<du>, 0f<du>, 333f<du>), 500f<du>, 0f<du>, 1500f<du>, false)
             |])
     /// The opening curly bracket.
     let curlyLeft =
         StretchyGlyph(
             Glyph(90, 500f<du>, 750f<du>, -250f<du>, 0f<du>, 250f<du>),
             [|
-                StretchSize(Glyph(90, 500f<du>, 750f<du>, -250f<du>, 0f<du>, 250f<du>), 1001f<du>); StretchSize(Glyph(257, 540f<du>, 813f<du>, -313f<du>, 0f<du>, 270f<du>), 1101f<du>)
-                StretchSize(Glyph(265, 583f<du>, 860f<du>, -360f<du>, 0f<du>, 291f<du>), 1201f<du>); StretchSize(Glyph(273, 624f<du>, 985f<du>, -485f<du>, 0f<du>, 312f<du>), 1451f<du>)
-                StretchSize(Glyph(281, 667f<du>, 1157f<du>, -657f<du>, 0f<du>, 333f<du>), 1801f<du>); StretchSize(Glyph(289, 707f<du>, 1313f<du>, -813f<du>, 0f<du>, 353f<du>), 2101f<du>)
-                StretchSize(Glyph(297, 750f<du>, 1454f<du>, -954f<du>, 0f<du>, 375f<du>), 2401f<du>); StretchSize(Glyph(311, 902f<du>, 1750f<du>, -1250f<du>, 0f<du>, 451f<du>), 3001f<du>)
+                StretchSize(Glyph(90, 500f<du>, 750f<du>, -250f<du>, 0f<du>, 250f<du>), 1001f<du>); StretchSize(Glyph(261, 540f<du>, 813f<du>, -313f<du>, 0f<du>, 270f<du>), 1101f<du>)
+                StretchSize(Glyph(273, 583f<du>, 860f<du>, -360f<du>, 0f<du>, 291f<du>), 1201f<du>); StretchSize(Glyph(285, 624f<du>, 985f<du>, -485f<du>, 0f<du>, 312f<du>), 1451f<du>)
+                StretchSize(Glyph(297, 667f<du>, 1157f<du>, -657f<du>, 0f<du>, 333f<du>), 1801f<du>); StretchSize(Glyph(309, 707f<du>, 1313f<du>, -813f<du>, 0f<du>, 353f<du>), 2101f<du>)
+                StretchSize(Glyph(321, 750f<du>, 1454f<du>, -954f<du>, 0f<du>, 375f<du>), 2401f<du>); StretchSize(Glyph(339, 902f<du>, 1750f<du>, -1250f<du>, 0f<du>, 451f<du>), 3001f<du>)
             |],
             [|
-                AssemblyPart(Glyph(313, 902f<du>, 750f<du>, 0f<du>, 0f<du>, 451f<du>), 0f<du>, 374f<du>, 750f<du>, false)
-                AssemblyPart(Glyph(314, 902f<du>, 750f<du>, 0f<du>, 0f<du>, 451f<du>), 748f<du>, 748f<du>, 748f<du>, true)
-                AssemblyPart(Glyph(315, 902f<du>, 1500f<du>, 0f<du>, 0f<du>, 451f<du>), 374f<du>, 374f<du>, 1500f<du>, false)
-                AssemblyPart(Glyph(314, 902f<du>, 750f<du>, 0f<du>, 0f<du>, 451f<du>), 748f<du>, 748f<du>, 748f<du>, true)
-                AssemblyPart(Glyph(316, 902f<du>, 750f<du>, 0f<du>, 0f<du>, 451f<du>), 374f<du>, 0f<du>, 750f<du>, false)
+                AssemblyPart(Glyph(341, 902f<du>, 750f<du>, 0f<du>, 0f<du>, 451f<du>), 0f<du>, 374f<du>, 750f<du>, false)
+                AssemblyPart(Glyph(342, 902f<du>, 750f<du>, 0f<du>, 0f<du>, 451f<du>), 748f<du>, 748f<du>, 748f<du>, true)
+                AssemblyPart(Glyph(343, 902f<du>, 1500f<du>, 0f<du>, 0f<du>, 451f<du>), 374f<du>, 374f<du>, 1500f<du>, false)
+                AssemblyPart(Glyph(342, 902f<du>, 750f<du>, 0f<du>, 0f<du>, 451f<du>), 748f<du>, 748f<du>, 748f<du>, true)
+                AssemblyPart(Glyph(344, 902f<du>, 750f<du>, 0f<du>, 0f<du>, 451f<du>), 374f<du>, 0f<du>, 750f<du>, false)
             |])
     /// The closing curly bracket.
     let curlyRight =
         StretchyGlyph(
             Glyph(92, 500f<du>, 750f<du>, -250f<du>, 0f<du>, 250f<du>),
             [|
-                StretchSize(Glyph(92, 500f<du>, 750f<du>, -250f<du>, 0f<du>, 250f<du>), 1001f<du>); StretchSize(Glyph(258, 540f<du>, 813f<du>, -313f<du>, 0f<du>, 270f<du>), 1101f<du>)
-                StretchSize(Glyph(266, 583f<du>, 860f<du>, -360f<du>, 0f<du>, 291f<du>), 1201f<du>); StretchSize(Glyph(274, 624f<du>, 985f<du>, -485f<du>, 0f<du>, 312f<du>), 1451f<du>)
-                StretchSize(Glyph(282, 667f<du>, 1157f<du>, -657f<du>, 0f<du>, 333f<du>), 1801f<du>); StretchSize(Glyph(290, 707f<du>, 1313f<du>, -813f<du>, 0f<du>, 353f<du>), 2101f<du>)
-                StretchSize(Glyph(298, 750f<du>, 1454f<du>, -954f<du>, 0f<du>, 375f<du>), 2401f<du>); StretchSize(Glyph(312, 902f<du>, 1750f<du>, -1250f<du>, 0f<du>, 451f<du>), 3001f<du>)
+                StretchSize(Glyph(92, 500f<du>, 750f<du>, -250f<du>, 0f<du>, 250f<du>), 1001f<du>); StretchSize(Glyph(262, 540f<du>, 813f<du>, -313f<du>, 0f<du>, 270f<du>), 1101f<du>)
+                StretchSize(Glyph(274, 583f<du>, 860f<du>, -360f<du>, 0f<du>, 291f<du>), 1201f<du>); StretchSize(Glyph(286, 624f<du>, 985f<du>, -485f<du>, 0f<du>, 312f<du>), 1451f<du>)
+                StretchSize(Glyph(298, 667f<du>, 1157f<du>, -657f<du>, 0f<du>, 333f<du>), 1801f<du>); StretchSize(Glyph(310, 707f<du>, 1313f<du>, -813f<du>, 0f<du>, 353f<du>), 2101f<du>)
+                StretchSize(Glyph(322, 750f<du>, 1454f<du>, -954f<du>, 0f<du>, 375f<du>), 2401f<du>); StretchSize(Glyph(340, 902f<du>, 1750f<du>, -1250f<du>, 0f<du>, 451f<du>), 3001f<du>)
             |],
             [|
-                AssemblyPart(Glyph(317, 902f<du>, 750f<du>, 0f<du>, 0f<du>, 451f<du>), 0f<du>, 374f<du>, 750f<du>, false)
-                AssemblyPart(Glyph(318, 902f<du>, 750f<du>, 0f<du>, 0f<du>, 451f<du>), 748f<du>, 748f<du>, 748f<du>, true)
-                AssemblyPart(Glyph(319, 902f<du>, 1500f<du>, 0f<du>, 0f<du>, 451f<du>), 374f<du>, 374f<du>, 1500f<du>, false)
-                AssemblyPart(Glyph(318, 902f<du>, 750f<du>, 0f<du>, 0f<du>, 451f<du>), 748f<du>, 748f<du>, 748f<du>, true)
-                AssemblyPart(Glyph(320, 902f<du>, 750f<du>, 0f<du>, 0f<du>, 451f<du>), 374f<du>, 0f<du>, 750f<du>, false)
+                AssemblyPart(Glyph(345, 902f<du>, 750f<du>, 0f<du>, 0f<du>, 451f<du>), 0f<du>, 374f<du>, 750f<du>, false)
+                AssemblyPart(Glyph(346, 902f<du>, 750f<du>, 0f<du>, 0f<du>, 451f<du>), 748f<du>, 748f<du>, 748f<du>, true)
+                AssemblyPart(Glyph(347, 902f<du>, 1500f<du>, 0f<du>, 0f<du>, 451f<du>), 374f<du>, 374f<du>, 1500f<du>, false)
+                AssemblyPart(Glyph(346, 902f<du>, 750f<du>, 0f<du>, 0f<du>, 451f<du>), 748f<du>, 748f<du>, 748f<du>, true)
+                AssemblyPart(Glyph(348, 902f<du>, 750f<du>, 0f<du>, 0f<du>, 451f<du>), 374f<du>, 0f<du>, 750f<du>, false)
             |])
     /// The opening angle bracket, as a bra opens.
     let angleLeft =
         StretchyGlyph(
-            Glyph(339, 389f<du>, 750f<du>, -250f<du>, 0f<du>, 194f<du>),
+            Glyph(371, 389f<du>, 750f<du>, -250f<du>, 0f<du>, 194f<du>),
             [|
-                StretchSize(Glyph(339, 389f<du>, 750f<du>, -250f<du>, 0f<du>, 194f<du>), 1001f<du>); StretchSize(Glyph(341, 428f<du>, 813f<du>, -313f<du>, 0f<du>, 214f<du>), 1101f<du>)
-                StretchSize(Glyph(343, 472f<du>, 860f<du>, -360f<du>, 0f<du>, 236f<du>), 1201f<du>); StretchSize(Glyph(345, 537f<du>, 985f<du>, -485f<du>, 0f<du>, 268f<du>), 1451f<du>)
-                StretchSize(Glyph(347, 611f<du>, 1157f<du>, -657f<du>, 0f<du>, 305f<du>), 1801f<du>); StretchSize(Glyph(349, 677f<du>, 1313f<du>, -813f<du>, 0f<du>, 338f<du>), 2101f<du>)
-                StretchSize(Glyph(351, 750f<du>, 1454f<du>, -954f<du>, 0f<du>, 375f<du>), 2401f<du>); StretchSize(Glyph(353, 908f<du>, 1750f<du>, -1250f<du>, 0f<du>, 454f<du>), 3001f<du>)
+                StretchSize(Glyph(371, 389f<du>, 750f<du>, -250f<du>, 0f<du>, 194f<du>), 1001f<du>); StretchSize(Glyph(373, 428f<du>, 813f<du>, -313f<du>, 0f<du>, 214f<du>), 1101f<du>)
+                StretchSize(Glyph(375, 472f<du>, 860f<du>, -360f<du>, 0f<du>, 236f<du>), 1201f<du>); StretchSize(Glyph(377, 537f<du>, 985f<du>, -485f<du>, 0f<du>, 268f<du>), 1451f<du>)
+                StretchSize(Glyph(379, 611f<du>, 1157f<du>, -657f<du>, 0f<du>, 305f<du>), 1801f<du>); StretchSize(Glyph(381, 677f<du>, 1313f<du>, -813f<du>, 0f<du>, 338f<du>), 2101f<du>)
+                StretchSize(Glyph(383, 750f<du>, 1454f<du>, -954f<du>, 0f<du>, 375f<du>), 2401f<du>); StretchSize(Glyph(385, 908f<du>, 1750f<du>, -1250f<du>, 0f<du>, 454f<du>), 3001f<du>)
             |],
             [||])
     /// The closing angle bracket, as a ket closes.
     let angleRight =
         StretchyGlyph(
-            Glyph(340, 389f<du>, 750f<du>, -250f<du>, 0f<du>, 194f<du>),
+            Glyph(372, 389f<du>, 750f<du>, -250f<du>, 0f<du>, 194f<du>),
             [|
-                StretchSize(Glyph(340, 389f<du>, 750f<du>, -250f<du>, 0f<du>, 194f<du>), 1001f<du>); StretchSize(Glyph(342, 428f<du>, 813f<du>, -313f<du>, 0f<du>, 214f<du>), 1101f<du>)
-                StretchSize(Glyph(344, 472f<du>, 860f<du>, -360f<du>, 0f<du>, 236f<du>), 1201f<du>); StretchSize(Glyph(346, 537f<du>, 985f<du>, -485f<du>, 0f<du>, 268f<du>), 1451f<du>)
-                StretchSize(Glyph(348, 611f<du>, 1157f<du>, -657f<du>, 0f<du>, 305f<du>), 1801f<du>); StretchSize(Glyph(350, 677f<du>, 1313f<du>, -813f<du>, 0f<du>, 338f<du>), 2101f<du>)
-                StretchSize(Glyph(352, 750f<du>, 1454f<du>, -954f<du>, 0f<du>, 375f<du>), 2401f<du>); StretchSize(Glyph(354, 908f<du>, 1750f<du>, -1250f<du>, 0f<du>, 454f<du>), 3001f<du>)
+                StretchSize(Glyph(372, 389f<du>, 750f<du>, -250f<du>, 0f<du>, 194f<du>), 1001f<du>); StretchSize(Glyph(374, 428f<du>, 813f<du>, -313f<du>, 0f<du>, 214f<du>), 1101f<du>)
+                StretchSize(Glyph(376, 472f<du>, 860f<du>, -360f<du>, 0f<du>, 236f<du>), 1201f<du>); StretchSize(Glyph(378, 537f<du>, 985f<du>, -485f<du>, 0f<du>, 268f<du>), 1451f<du>)
+                StretchSize(Glyph(380, 611f<du>, 1157f<du>, -657f<du>, 0f<du>, 305f<du>), 1801f<du>); StretchSize(Glyph(382, 677f<du>, 1313f<du>, -813f<du>, 0f<du>, 338f<du>), 2101f<du>)
+                StretchSize(Glyph(384, 750f<du>, 1454f<du>, -954f<du>, 0f<du>, 375f<du>), 2401f<du>); StretchSize(Glyph(386, 908f<du>, 1750f<du>, -1250f<du>, 0f<du>, 454f<du>), 3001f<du>)
             |],
             [||])
+    /// The opening floor bracket.
+    let floorLeft =
+        StretchyGlyph(
+            Glyph(255, 444f<du>, 750f<du>, -250f<du>, 0f<du>, 222f<du>),
+            [|
+                StretchSize(Glyph(255, 444f<du>, 750f<du>, -250f<du>, 0f<du>, 222f<du>), 1001f<du>); StretchSize(Glyph(267, 458f<du>, 813f<du>, -313f<du>, 0f<du>, 229f<du>), 1101f<du>)
+                StretchSize(Glyph(279, 472f<du>, 860f<du>, -360f<du>, 0f<du>, 236f<du>), 1201f<du>); StretchSize(Glyph(291, 499f<du>, 985f<du>, -485f<du>, 0f<du>, 249f<du>), 1451f<du>)
+                StretchSize(Glyph(303, 528f<du>, 1157f<du>, -657f<du>, 0f<du>, 264f<du>), 1801f<du>); StretchSize(Glyph(315, 555f<du>, 1313f<du>, -813f<du>, 0f<du>, 277f<du>), 2101f<du>)
+                StretchSize(Glyph(327, 583f<du>, 1454f<du>, -954f<du>, 0f<du>, 291f<du>), 2401f<du>); StretchSize(Glyph(359, 623f<du>, 1750f<du>, -1250f<du>, 0f<du>, 311f<du>), 3001f<du>)
+            |],
+            [|
+                AssemblyPart(Glyph(351, 667f<du>, 1500f<du>, 0f<du>, 0f<du>, 333f<du>), 0f<du>, 500f<du>, 1500f<du>, false)
+                AssemblyPart(Glyph(352, 667f<du>, 1000f<du>, 0f<du>, 0f<du>, 333f<du>), 1000f<du>, 1000f<du>, 1000f<du>, true)
+            |])
+    /// The closing floor bracket.
+    let floorRight =
+        StretchyGlyph(
+            Glyph(256, 444f<du>, 750f<du>, -250f<du>, 0f<du>, 222f<du>),
+            [|
+                StretchSize(Glyph(256, 444f<du>, 750f<du>, -250f<du>, 0f<du>, 222f<du>), 1001f<du>); StretchSize(Glyph(268, 458f<du>, 813f<du>, -313f<du>, 0f<du>, 229f<du>), 1101f<du>)
+                StretchSize(Glyph(280, 472f<du>, 860f<du>, -360f<du>, 0f<du>, 236f<du>), 1201f<du>); StretchSize(Glyph(292, 499f<du>, 985f<du>, -485f<du>, 0f<du>, 249f<du>), 1451f<du>)
+                StretchSize(Glyph(304, 528f<du>, 1157f<du>, -657f<du>, 0f<du>, 264f<du>), 1801f<du>); StretchSize(Glyph(316, 555f<du>, 1313f<du>, -813f<du>, 0f<du>, 277f<du>), 2101f<du>)
+                StretchSize(Glyph(328, 583f<du>, 1454f<du>, -954f<du>, 0f<du>, 291f<du>), 2401f<du>); StretchSize(Glyph(360, 623f<du>, 1750f<du>, -1250f<du>, 0f<du>, 311f<du>), 3001f<du>)
+            |],
+            [|
+                AssemblyPart(Glyph(354, 667f<du>, 1500f<du>, 0f<du>, 0f<du>, 333f<du>), 0f<du>, 500f<du>, 1500f<du>, false)
+                AssemblyPart(Glyph(355, 667f<du>, 1000f<du>, 0f<du>, 0f<du>, 333f<du>), 1000f<du>, 1000f<du>, 1000f<du>, true)
+            |])
+    /// The opening ceiling bracket.
+    let ceilingLeft =
+        StretchyGlyph(
+            Glyph(253, 444f<du>, 750f<du>, -250f<du>, 0f<du>, 222f<du>),
+            [|
+                StretchSize(Glyph(253, 444f<du>, 750f<du>, -250f<du>, 0f<du>, 222f<du>), 1001f<du>); StretchSize(Glyph(265, 458f<du>, 813f<du>, -313f<du>, 0f<du>, 229f<du>), 1101f<du>)
+                StretchSize(Glyph(277, 472f<du>, 860f<du>, -360f<du>, 0f<du>, 236f<du>), 1201f<du>); StretchSize(Glyph(289, 499f<du>, 985f<du>, -485f<du>, 0f<du>, 249f<du>), 1451f<du>)
+                StretchSize(Glyph(301, 528f<du>, 1157f<du>, -657f<du>, 0f<du>, 264f<du>), 1801f<du>); StretchSize(Glyph(313, 555f<du>, 1313f<du>, -813f<du>, 0f<du>, 277f<du>), 2101f<du>)
+                StretchSize(Glyph(325, 583f<du>, 1454f<du>, -954f<du>, 0f<du>, 291f<du>), 2401f<du>); StretchSize(Glyph(357, 623f<du>, 1750f<du>, -1250f<du>, 0f<du>, 311f<du>), 3001f<du>)
+            |],
+            [|
+                AssemblyPart(Glyph(352, 667f<du>, 1000f<du>, 0f<du>, 0f<du>, 333f<du>), 1000f<du>, 1000f<du>, 1000f<du>, true)
+                AssemblyPart(Glyph(353, 667f<du>, 1500f<du>, 0f<du>, 0f<du>, 333f<du>), 500f<du>, 0f<du>, 1500f<du>, false)
+            |])
+    /// The closing ceiling bracket.
+    let ceilingRight =
+        StretchyGlyph(
+            Glyph(254, 444f<du>, 750f<du>, -250f<du>, 0f<du>, 222f<du>),
+            [|
+                StretchSize(Glyph(254, 444f<du>, 750f<du>, -250f<du>, 0f<du>, 222f<du>), 1001f<du>); StretchSize(Glyph(266, 458f<du>, 813f<du>, -313f<du>, 0f<du>, 229f<du>), 1101f<du>)
+                StretchSize(Glyph(278, 472f<du>, 860f<du>, -360f<du>, 0f<du>, 236f<du>), 1201f<du>); StretchSize(Glyph(290, 499f<du>, 985f<du>, -485f<du>, 0f<du>, 249f<du>), 1451f<du>)
+                StretchSize(Glyph(302, 528f<du>, 1157f<du>, -657f<du>, 0f<du>, 264f<du>), 1801f<du>); StretchSize(Glyph(314, 555f<du>, 1313f<du>, -813f<du>, 0f<du>, 277f<du>), 2101f<du>)
+                StretchSize(Glyph(326, 583f<du>, 1454f<du>, -954f<du>, 0f<du>, 291f<du>), 2401f<du>); StretchSize(Glyph(358, 623f<du>, 1750f<du>, -1250f<du>, 0f<du>, 311f<du>), 3001f<du>)
+            |],
+            [|
+                AssemblyPart(Glyph(355, 667f<du>, 1000f<du>, 0f<du>, 0f<du>, 333f<du>), 1000f<du>, 1000f<du>, 1000f<du>, true)
+                AssemblyPart(Glyph(356, 667f<du>, 1500f<du>, 0f<du>, 0f<du>, 333f<du>), 500f<du>, 0f<du>, 1500f<du>, false)
+            |])
     /// The vertical bar of an absolute value, used on both sides.
     let bar =
         StretchyGlyph(
             Glyph(91, 278f<du>, 750f<du>, -250f<du>, 0f<du>, 139f<du>),
             [|
-                StretchSize(Glyph(91, 278f<du>, 750f<du>, -250f<du>, 0f<du>, 139f<du>), 1001f<du>); StretchSize(Glyph(372, 278f<du>, 860f<du>, -360f<du>, 0f<du>, 139f<du>), 1203f<du>)
-                StretchSize(Glyph(373, 278f<du>, 985f<du>, -485f<du>, 0f<du>, 139f<du>), 1445f<du>); StretchSize(Glyph(374, 278f<du>, 1125f<du>, -625f<du>, 0f<du>, 139f<du>), 1735f<du>)
-                StretchSize(Glyph(375, 278f<du>, 1297f<du>, -797f<du>, 0f<du>, 139f<du>), 2085f<du>); StretchSize(Glyph(376, 278f<du>, 1500f<du>, -1000f<du>, 0f<du>, 139f<du>), 2503f<du>)
-                StretchSize(Glyph(377, 278f<du>, 1766f<du>, -1266f<du>, 0f<du>, 139f<du>), 3005f<du>); StretchSize(Glyph(378, 278f<du>, 2063f<du>, -1563f<du>, 0f<du>, 139f<du>), 3607f<du>)
+                StretchSize(Glyph(91, 278f<du>, 750f<du>, -250f<du>, 0f<du>, 139f<du>), 1001f<du>); StretchSize(Glyph(405, 278f<du>, 860f<du>, -360f<du>, 0f<du>, 139f<du>), 1203f<du>)
+                StretchSize(Glyph(407, 278f<du>, 985f<du>, -485f<du>, 0f<du>, 139f<du>), 1445f<du>); StretchSize(Glyph(409, 278f<du>, 1125f<du>, -625f<du>, 0f<du>, 139f<du>), 1735f<du>)
+                StretchSize(Glyph(411, 278f<du>, 1297f<du>, -797f<du>, 0f<du>, 139f<du>), 2085f<du>); StretchSize(Glyph(413, 278f<du>, 1500f<du>, -1000f<du>, 0f<du>, 139f<du>), 2503f<du>)
+                StretchSize(Glyph(415, 278f<du>, 1766f<du>, -1266f<du>, 0f<du>, 139f<du>), 3005f<du>); StretchSize(Glyph(417, 278f<du>, 2063f<du>, -1563f<du>, 0f<du>, 139f<du>), 3607f<du>)
             |],
             [|
-                AssemblyPart(Glyph(379, 278f<du>, 1204f<du>, 0f<du>, 0f<du>, 139f<du>), 0f<du>, 601f<du>, 1202f<du>, false)
-                AssemblyPart(Glyph(380, 278f<du>, 1204f<du>, 0f<du>, 0f<du>, 139f<du>), 1202f<du>, 1202f<du>, 1202f<du>, true)
-                AssemblyPart(Glyph(381, 278f<du>, 1204f<du>, 0f<du>, 0f<du>, 139f<du>), 601f<du>, 0f<du>, 1202f<du>, false)
+                AssemblyPart(Glyph(418, 278f<du>, 1204f<du>, 0f<du>, 0f<du>, 139f<du>), 0f<du>, 601f<du>, 1202f<du>, false)
+                AssemblyPart(Glyph(419, 278f<du>, 1204f<du>, 0f<du>, 0f<du>, 139f<du>), 1202f<du>, 1202f<du>, 1202f<du>, true)
+                AssemblyPart(Glyph(420, 278f<du>, 1204f<du>, 0f<du>, 0f<du>, 139f<du>), 601f<du>, 0f<du>, 1202f<du>, false)
             |])
+    /// The slash of a division set on one line, used on both sides.
+    let slash =
+        StretchyGlyph(
+            Glyph(15, 500f<du>, 750f<du>, -250f<du>, 0f<du>, 250f<du>),
+            [|
+                StretchSize(Glyph(15, 500f<du>, 750f<du>, -250f<du>, 0f<du>, 250f<du>), 1001f<du>); StretchSize(Glyph(404, 617f<du>, 907f<du>, -407f<du>, 0f<du>, 308f<du>), 1311f<du>)
+                StretchSize(Glyph(406, 768f<du>, 1110f<du>, -610f<du>, 0f<du>, 384f<du>), 1717f<du>); StretchSize(Glyph(408, 964f<du>, 1375f<du>, -875f<du>, 0f<du>, 482f<du>), 2249f<du>)
+                StretchSize(Glyph(410, 1222f<du>, 1735f<du>, -1235f<du>, 0f<du>, 611f<du>), 2945f<du>); StretchSize(Glyph(412, 1557f<du>, 2188f<du>, -1688f<du>, 0f<du>, 778f<du>), 3859f<du>)
+                StretchSize(Glyph(414, 1997f<du>, 2782f<du>, -2282f<du>, 0f<du>, 998f<du>), 5055f<du>); StretchSize(Glyph(416, 2572f<du>, 3563f<du>, -3063f<du>, 0f<du>, 1286f<du>), 6621f<du>)
+            |],
+            [||])
 
 /// Large operators, which take a taller glyph in display style and may carry limits.
 module BigOperators =
     /// The summation sign.
     let sum =
         StretchyGlyph(
-            Glyph(419, 1056f<du>, 750f<du>, -250f<du>, 0f<du>, 528f<du>),
+            Glyph(459, 1056f<du>, 750f<du>, -250f<du>, 0f<du>, 528f<du>),
             [|
-                StretchSize(Glyph(419, 1056f<du>, 750f<du>, -250f<du>, 0f<du>, 528f<du>), 1001f<du>); StretchSize(Glyph(424, 1444f<du>, 954f<du>, -454f<du>, 0f<du>, 722f<du>), 1401f<du>)
+                StretchSize(Glyph(459, 1056f<du>, 750f<du>, -250f<du>, 0f<du>, 528f<du>), 1001f<du>); StretchSize(Glyph(464, 1444f<du>, 954f<du>, -454f<du>, 0f<du>, 722f<du>), 1401f<du>)
             |],
             [||])
     /// The product sign.
     let product =
         StretchyGlyph(
-            Glyph(420, 944f<du>, 750f<du>, -250f<du>, 0f<du>, 472f<du>),
+            Glyph(460, 944f<du>, 750f<du>, -250f<du>, 0f<du>, 472f<du>),
             [|
-                StretchSize(Glyph(420, 944f<du>, 750f<du>, -250f<du>, 0f<du>, 472f<du>), 1001f<du>); StretchSize(Glyph(425, 1278f<du>, 954f<du>, -454f<du>, 0f<du>, 639f<du>), 1401f<du>)
+                StretchSize(Glyph(460, 944f<du>, 750f<du>, -250f<du>, 0f<du>, 472f<du>), 1001f<du>); StretchSize(Glyph(465, 1278f<du>, 954f<du>, -454f<du>, 0f<du>, 639f<du>), 1401f<du>)
             |],
             [||])
     /// The coproduct sign.
     let coproduct =
         StretchyGlyph(
-            Glyph(421, 944f<du>, 750f<du>, -250f<du>, 0f<du>, 472f<du>),
+            Glyph(461, 944f<du>, 750f<du>, -250f<du>, 0f<du>, 472f<du>),
             [|
-                StretchSize(Glyph(421, 944f<du>, 750f<du>, -250f<du>, 0f<du>, 472f<du>), 1001f<du>); StretchSize(Glyph(426, 1278f<du>, 954f<du>, -454f<du>, 0f<du>, 639f<du>), 1401f<du>)
+                StretchSize(Glyph(461, 944f<du>, 750f<du>, -250f<du>, 0f<du>, 472f<du>), 1001f<du>); StretchSize(Glyph(466, 1278f<du>, 954f<du>, -454f<du>, 0f<du>, 639f<du>), 1401f<du>)
             |],
             [||])
     /// The integral sign.
     let integral =
         StretchyGlyph(
-            Glyph(417, 665f<du>, 813f<du>, -313f<du>, 332f<du>, 332f<du>),
+            Glyph(457, 665f<du>, 813f<du>, -313f<du>, 332f<du>, 332f<du>),
             [|
-                StretchSize(Glyph(417, 665f<du>, 813f<du>, -313f<du>, 332f<du>, 332f<du>), 1112f<du>); StretchSize(Glyph(422, 999f<du>, 1360f<du>, -860f<du>, 591f<du>, 499f<du>), 2223f<du>)
+                StretchSize(Glyph(457, 665f<du>, 813f<du>, -313f<du>, 332f<du>, 332f<du>), 1112f<du>); StretchSize(Glyph(462, 999f<du>, 1360f<du>, -860f<du>, 591f<du>, 499f<du>), 2223f<du>)
             |],
             [||])
     /// The contour integral sign.
     let contourIntegral =
         StretchyGlyph(
-            Glyph(418, 665f<du>, 813f<du>, -313f<du>, 332f<du>, 332f<du>),
+            Glyph(458, 665f<du>, 813f<du>, -313f<du>, 332f<du>, 332f<du>),
             [|
-                StretchSize(Glyph(418, 665f<du>, 813f<du>, -313f<du>, 332f<du>, 332f<du>), 1112f<du>); StretchSize(Glyph(423, 999f<du>, 1360f<du>, -860f<du>, 591f<du>, 499f<du>), 2223f<du>)
+                StretchSize(Glyph(458, 665f<du>, 813f<du>, -313f<du>, 332f<du>, 332f<du>), 1112f<du>); StretchSize(Glyph(463, 999f<du>, 1360f<du>, -860f<du>, 591f<du>, 499f<du>), 2223f<du>)
             |],
             [||])
     /// The n-ary union sign.
     let union =
         StretchyGlyph(
-            Glyph(388, 833f<du>, 750f<du>, -282f<du>, 0f<du>, 416f<du>),
+            Glyph(427, 833f<du>, 750f<du>, -282f<du>, 0f<du>, 416f<du>),
             [|
-                StretchSize(Glyph(388, 833f<du>, 750f<du>, -282f<du>, 0f<du>, 416f<du>), 1023f<du>); StretchSize(Glyph(389, 1111f<du>, 922f<du>, -438f<du>, 0f<du>, 555f<du>), 1357f<du>)
+                StretchSize(Glyph(427, 833f<du>, 750f<du>, -282f<du>, 0f<du>, 416f<du>), 1023f<du>); StretchSize(Glyph(428, 1111f<du>, 922f<du>, -438f<du>, 0f<du>, 555f<du>), 1357f<du>)
             |],
             [||])
     /// The n-ary intersection sign.
     let intersection =
         StretchyGlyph(
-            Glyph(386, 833f<du>, 782f<du>, -250f<du>, 0f<du>, 416f<du>),
+            Glyph(425, 833f<du>, 782f<du>, -250f<du>, 0f<du>, 416f<du>),
             [|
-                StretchSize(Glyph(386, 833f<du>, 782f<du>, -250f<du>, 0f<du>, 416f<du>), 1023f<du>); StretchSize(Glyph(387, 1111f<du>, 938f<du>, -422f<du>, 0f<du>, 555f<du>), 1357f<du>)
+                StretchSize(Glyph(425, 833f<du>, 782f<du>, -250f<du>, 0f<du>, 416f<du>), 1023f<du>); StretchSize(Glyph(426, 1111f<du>, 938f<du>, -422f<du>, 0f<du>, 555f<du>), 1357f<du>)
             |],
             [||])
 
@@ -618,16 +688,16 @@ module Radicals =
     /// The tick and bar of a root, which grows to cover the radicand.
     let surd =
         StretchyGlyph(
-            Glyph(427, 833f<du>, 47f<du>, -969f<du>, 0f<du>, 416f<du>),
+            Glyph(467, 833f<du>, 47f<du>, -969f<du>, 0f<du>, 416f<du>),
             [|
-                StretchSize(Glyph(427, 833f<du>, 47f<du>, -969f<du>, 0f<du>, 416f<du>), 1001f<du>); StretchSize(Glyph(431, 1000f<du>, 860f<du>, -360f<du>, 0f<du>, 500f<du>), 1201f<du>)
-                StretchSize(Glyph(432, 1000f<du>, 1157f<du>, -657f<du>, 0f<du>, 500f<du>), 1801f<du>); StretchSize(Glyph(433, 1000f<du>, 1454f<du>, -954f<du>, 0f<du>, 500f<du>), 2401f<du>)
-                StretchSize(Glyph(434, 1000f<du>, 1750f<du>, -1250f<du>, 0f<du>, 500f<du>), 3001f<du>)
+                StretchSize(Glyph(467, 833f<du>, 47f<du>, -969f<du>, 0f<du>, 416f<du>), 1001f<du>); StretchSize(Glyph(471, 1000f<du>, 860f<du>, -360f<du>, 0f<du>, 500f<du>), 1201f<du>)
+                StretchSize(Glyph(472, 1000f<du>, 1157f<du>, -657f<du>, 0f<du>, 500f<du>), 1801f<du>); StretchSize(Glyph(473, 1000f<du>, 1454f<du>, -954f<du>, 0f<du>, 500f<du>), 2401f<du>)
+                StretchSize(Glyph(474, 1000f<du>, 1750f<du>, -1250f<du>, 0f<du>, 500f<du>), 3001f<du>)
             |],
             [|
-                AssemblyPart(Glyph(428, 1056f<du>, 1829f<du>, 0f<du>, 0f<du>, 528f<du>), 0f<du>, 320f<du>, 1820f<du>, false)
-                AssemblyPart(Glyph(429, 1056f<du>, 641f<du>, 0f<du>, 0f<du>, 528f<du>), 640f<du>, 640f<du>, 640f<du>, true)
-                AssemblyPart(Glyph(430, 1056f<du>, 625f<du>, 0f<du>, 0f<du>, 528f<du>), 320f<du>, 0f<du>, 620f<du>, false)
+                AssemblyPart(Glyph(468, 1056f<du>, 1829f<du>, 0f<du>, 0f<du>, 528f<du>), 0f<du>, 320f<du>, 1820f<du>, false)
+                AssemblyPart(Glyph(469, 1056f<du>, 641f<du>, 0f<du>, 0f<du>, 528f<du>), 640f<du>, 640f<du>, 640f<du>, true)
+                AssemblyPart(Glyph(470, 1056f<du>, 625f<du>, 0f<du>, 0f<du>, 528f<du>), 320f<du>, 0f<du>, 620f<du>, false)
             |])
 
 /// Marks that grow along the line to span what they are set over or under.
@@ -657,36 +727,36 @@ module HorizontalMarks =
     /// The brace of \overbrace.
     let overbrace =
         StretchyGlyph(
-            Glyph(253, 492f<du>, 782f<du>, 531f<du>, 28f<du>, 246f<du>),
+            Glyph(257, 492f<du>, 782f<du>, 531f<du>, 28f<du>, 246f<du>),
             [|
-                StretchSize(Glyph(253, 492f<du>, 782f<du>, 531f<du>, 28f<du>, 246f<du>), 493f<du>); StretchSize(Glyph(261, 993f<du>, 829f<du>, 500f<du>, 29f<du>, 496f<du>), 994f<du>)
-                StretchSize(Glyph(269, 1494f<du>, 829f<du>, 500f<du>, 28f<du>, 747f<du>), 1495f<du>); StretchSize(Glyph(277, 1996f<du>, 829f<du>, 500f<du>, 28f<du>, 998f<du>), 1997f<du>)
-                StretchSize(Glyph(285, 2498f<du>, 844f<du>, 500f<du>, 28f<du>, 1249f<du>), 2499f<du>); StretchSize(Glyph(293, 3000f<du>, 844f<du>, 500f<du>, 28f<du>, 1500f<du>), 3001f<du>)
-                StretchSize(Glyph(301, 3502f<du>, 844f<du>, 484f<du>, 28f<du>, 1751f<du>), 3503f<du>); StretchSize(Glyph(329, 4006f<du>, 860f<du>, 484f<du>, 28f<du>, 2003f<du>), 4007f<du>)
+                StretchSize(Glyph(257, 492f<du>, 782f<du>, 531f<du>, 28f<du>, 246f<du>), 493f<du>); StretchSize(Glyph(269, 993f<du>, 829f<du>, 500f<du>, 29f<du>, 496f<du>), 994f<du>)
+                StretchSize(Glyph(281, 1494f<du>, 829f<du>, 500f<du>, 28f<du>, 747f<du>), 1495f<du>); StretchSize(Glyph(293, 1996f<du>, 829f<du>, 500f<du>, 28f<du>, 998f<du>), 1997f<du>)
+                StretchSize(Glyph(305, 2498f<du>, 844f<du>, 500f<du>, 28f<du>, 1249f<du>), 2499f<du>); StretchSize(Glyph(317, 3000f<du>, 844f<du>, 500f<du>, 28f<du>, 1500f<du>), 3001f<du>)
+                StretchSize(Glyph(329, 3502f<du>, 844f<du>, 484f<du>, 28f<du>, 1751f<du>), 3503f<du>); StretchSize(Glyph(361, 4006f<du>, 860f<du>, 484f<du>, 28f<du>, 2003f<du>), 4007f<du>)
             |],
             [|
-                AssemblyPart(Glyph(331, 1002f<du>, 735f<du>, 484f<du>, 0f<du>, 501f<du>), 0f<du>, 497f<du>, 1002f<du>, false)
-                AssemblyPart(Glyph(332, 994f<du>, 735f<du>, 609f<du>, 0f<du>, 497f<du>), 994f<du>, 994f<du>, 994f<du>, true)
-                AssemblyPart(Glyph(333, 2003f<du>, 860f<du>, 609f<du>, 0f<du>, 1001f<du>), 497f<du>, 497f<du>, 2003f<du>, false)
-                AssemblyPart(Glyph(332, 994f<du>, 735f<du>, 609f<du>, 0f<du>, 497f<du>), 994f<du>, 994f<du>, 994f<du>, true)
-                AssemblyPart(Glyph(334, 1001f<du>, 735f<du>, 484f<du>, 0f<du>, 500f<du>), 497f<du>, 0f<du>, 1001f<du>, false)
+                AssemblyPart(Glyph(363, 1002f<du>, 735f<du>, 484f<du>, 0f<du>, 501f<du>), 0f<du>, 497f<du>, 1002f<du>, false)
+                AssemblyPart(Glyph(364, 994f<du>, 735f<du>, 609f<du>, 0f<du>, 497f<du>), 994f<du>, 994f<du>, 994f<du>, true)
+                AssemblyPart(Glyph(365, 2003f<du>, 860f<du>, 609f<du>, 0f<du>, 1001f<du>), 497f<du>, 497f<du>, 2003f<du>, false)
+                AssemblyPart(Glyph(364, 994f<du>, 735f<du>, 609f<du>, 0f<du>, 497f<du>), 994f<du>, 994f<du>, 994f<du>, true)
+                AssemblyPart(Glyph(366, 1001f<du>, 735f<du>, 484f<du>, 0f<du>, 500f<du>), 497f<du>, 0f<du>, 1001f<du>, false)
             |])
     /// The brace of \underbrace.
     let underbrace =
         StretchyGlyph(
-            Glyph(254, 492f<du>, -109f<du>, -360f<du>, 28f<du>, 246f<du>),
+            Glyph(258, 492f<du>, -109f<du>, -360f<du>, 28f<du>, 246f<du>),
             [|
-                StretchSize(Glyph(254, 492f<du>, -109f<du>, -360f<du>, 28f<du>, 246f<du>), 493f<du>); StretchSize(Glyph(262, 993f<du>, -78f<du>, -391f<du>, 28f<du>, 496f<du>), 994f<du>)
-                StretchSize(Glyph(270, 1494f<du>, -78f<du>, -391f<du>, 28f<du>, 747f<du>), 1495f<du>); StretchSize(Glyph(278, 1996f<du>, -62f<du>, -407f<du>, 28f<du>, 998f<du>), 1997f<du>)
-                StretchSize(Glyph(286, 2498f<du>, -62f<du>, -407f<du>, 28f<du>, 1249f<du>), 2499f<du>); StretchSize(Glyph(294, 3000f<du>, -62f<du>, -407f<du>, 28f<du>, 1500f<du>), 3001f<du>)
-                StretchSize(Glyph(302, 3502f<du>, -62f<du>, -422f<du>, 28f<du>, 1751f<du>), 3503f<du>); StretchSize(Glyph(330, 4006f<du>, -62f<du>, -422f<du>, 28f<du>, 2003f<du>), 4007f<du>)
+                StretchSize(Glyph(258, 492f<du>, -109f<du>, -360f<du>, 28f<du>, 246f<du>), 493f<du>); StretchSize(Glyph(270, 993f<du>, -78f<du>, -391f<du>, 28f<du>, 496f<du>), 994f<du>)
+                StretchSize(Glyph(282, 1494f<du>, -78f<du>, -391f<du>, 28f<du>, 747f<du>), 1495f<du>); StretchSize(Glyph(294, 1996f<du>, -62f<du>, -407f<du>, 28f<du>, 998f<du>), 1997f<du>)
+                StretchSize(Glyph(306, 2498f<du>, -62f<du>, -407f<du>, 28f<du>, 1249f<du>), 2499f<du>); StretchSize(Glyph(318, 3000f<du>, -62f<du>, -407f<du>, 28f<du>, 1500f<du>), 3001f<du>)
+                StretchSize(Glyph(330, 3502f<du>, -62f<du>, -422f<du>, 28f<du>, 1751f<du>), 3503f<du>); StretchSize(Glyph(362, 4006f<du>, -62f<du>, -422f<du>, 28f<du>, 2003f<du>), 4007f<du>)
             |],
             [|
-                AssemblyPart(Glyph(335, 1002f<du>, -62f<du>, -297f<du>, 0f<du>, 501f<du>), 0f<du>, 497f<du>, 1002f<du>, false)
-                AssemblyPart(Glyph(336, 994f<du>, -187f<du>, -297f<du>, 0f<du>, 497f<du>), 994f<du>, 994f<du>, 994f<du>, true)
-                AssemblyPart(Glyph(337, 2003f<du>, -187f<du>, -422f<du>, 0f<du>, 1001f<du>), 497f<du>, 497f<du>, 2003f<du>, false)
-                AssemblyPart(Glyph(336, 994f<du>, -187f<du>, -297f<du>, 0f<du>, 497f<du>), 994f<du>, 994f<du>, 994f<du>, true)
-                AssemblyPart(Glyph(338, 1001f<du>, -62f<du>, -297f<du>, 0f<du>, 500f<du>), 497f<du>, 0f<du>, 1001f<du>, false)
+                AssemblyPart(Glyph(367, 1002f<du>, -62f<du>, -297f<du>, 0f<du>, 501f<du>), 0f<du>, 497f<du>, 1002f<du>, false)
+                AssemblyPart(Glyph(368, 994f<du>, -187f<du>, -297f<du>, 0f<du>, 497f<du>), 994f<du>, 994f<du>, 994f<du>, true)
+                AssemblyPart(Glyph(369, 2003f<du>, -187f<du>, -422f<du>, 0f<du>, 1001f<du>), 497f<du>, 497f<du>, 2003f<du>, false)
+                AssemblyPart(Glyph(368, 994f<du>, -187f<du>, -297f<du>, 0f<du>, 497f<du>), 994f<du>, 994f<du>, 994f<du>, true)
+                AssemblyPart(Glyph(370, 1001f<du>, -62f<du>, -297f<du>, 0f<du>, 500f<du>), 497f<du>, 0f<du>, 1001f<du>, false)
             |])
     /// The arrow of \overrightarrow.
     let rightArrow =
@@ -703,8 +773,8 @@ module HorizontalMarks =
 
 module internal FontFile =
     /// The math face, which every glyph but a blackboard bold capital comes from.
-    let byteLength = 75404
-    let sha256 = "e36dc23e5d4895c5e5d3f5157b40dc2b4215ded997e14d6be2c8aa8a14bda8ed"
+    let byteLength = 78264
+    let sha256 = "778acfb13d1753777965b15c5540a3e29dbc5f434b3f86fa25e4c06ed9b0ab52"
     /// The blackboard face.
     let blackboardByteLength = 8716
     let blackboardSha256 = "9578b5b9c86e6ab03846080b9d6fa4f7bc6b3044ac15604b8e7bfd4330295dda"
