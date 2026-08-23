@@ -432,7 +432,7 @@ let cursored(layout: Layout) =
             (fun (e: Editor) letter ->
                 match e.Press(MathKey.Character letter) with
                 | ValueSome typed -> typed
-                | ValueNone -> failwith $"{letter} cannot be typed")
+                | ValueNone -> failwith $"{letter.ToString()} cannot be typed")
             editor
     [
         "CursorBeforeAFraction", rightwards(row [ c 'a'; frac(s "b+1", c 'c'); c 'd' ], 1)

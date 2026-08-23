@@ -11,7 +11,7 @@ open FSUtils
 type LatexError(message: string, position: int) =
     member _.Message = message
     member _.Position = position
-    override _.ToString() = $"{message}, at character {position}"
+    override _.ToString() = $"{message}, at character {position.ToString()}"
 
 module internal Latexing =
 
@@ -94,14 +94,16 @@ module internal Latexing =
                     i <- i + 1
                     match standsFor codepoint with
                     | ValueSome letter -> take(Token.Char letter)
-                    | ValueNone -> fail($"U+{codepoint:X4} is no character this draws", start)
+                    | ValueNone ->
+                        let hex = codepoint.ToString "X4"
+                        fail($"U+{hex} is no character this draws", start)
                 elif Char.IsWhiteSpace c || not(inked c) then ()
                 else
                     match standsFor(int c) with
                     | ValueSome letter -> take(Token.Char letter)
                     // What the font cannot draw is refused here, so laying a formula out cannot fail.
                     | ValueNone when (Glyphs.variable c).IsNone ->
-                        fail($"{c} is no character this draws", start)
+                        fail($"{c.ToString()} is no character this draws", start)
                     | ValueNone -> take(Token.Char c)
         tokens.ToImmutable()
 
@@ -409,7 +411,7 @@ module internal Latexing =
         member private _.Upright(word: string, position: int) =
             let word = word |> String.filter inked
             for c in word do
-                if (Glyphs.upright c).IsNone then fail($"{c} is no character this sets upright", position)
+                if (Glyphs.upright c).IsNone then fail($"{c.ToString()} is no character this sets upright", position)
             word
 
         member private t.Written(word: string, position: int) = MA.Text(t.Upright(word, position))
@@ -672,11 +674,12 @@ module internal Latexing =
             | MA.Coloured(colour, x) ->
                 command "color"
                 put "{"
-                let rgb = $"#{colour.R:X2}{colour.G:X2}{colour.B:X2}"
+                let hex(part: byte) = part.ToString "X2"
+                let rgb = $"#{hex colour.R}{hex colour.G}{hex colour.B}"
                 put(
                     if colour.IsNamedColor then colour.Name
                     elif colour.A = 255uy then rgb
-                    else rgb + $"{colour.A:X2}")
+                    else rgb + hex colour.A)
                 put "}"
                 braced x
             | MA.Text word ->
