@@ -1,4 +1,4 @@
-module MathTableGen.Program
+﻿module MathTableGen.Program
 
 open System
 open System.IO
@@ -252,5 +252,5 @@ let main(args: string array): int =
         $"    let blackboardSha256 = \"{Convert.ToHexStringLower(SHA256.HashData blackboardBytes)}\""
 
     File.WriteAllText(outputPath, w.Text, Text.UTF8Encoding false)
-    printfn $"{outputPath}: {repertoire.Length} characters in the repertoire, {w.Text.Length} bytes"
+    System.Console.WriteLine $"{outputPath}: {repertoire.Length} characters in the repertoire, {w.Text.Length} bytes"
     0
