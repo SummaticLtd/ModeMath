@@ -428,8 +428,8 @@ let private writing =
     )
 
 let private colouring =
-    let msGreen = Color.FromArgb(255, 130, 212, 20)
-    let ours = Palette.Default.With("green", msGreen)
+    let differentGreen = Color.FromArgb(255, 130, 212, 20)
+    let ours = Palette.Default.With("green", differentGreen)
     let coloured(latex: string, palette: Palette) =
         match Latex.Read(latex, palette) with
         | Ok(MA.Coloured(colour, _)) -> colour
@@ -440,7 +440,7 @@ let private colouring =
         [   Test.Sync(
                 "aPaletteGivesTheColourAName",
                 fun () ->
-                    Assert.Equal(msGreen, coloured("\\color{green}{x}", ours), "the name given went unread")
+                    Assert.Equal(differentGreen, coloured("\\color{green}{x}", ours), "the name given went unread")
                     Assert.Equal(
                         Color.FromArgb(255, 0, 128, 0),
                         coloured("\\color{green}{x}", Palette.Default),
@@ -449,7 +449,7 @@ let private colouring =
             Test.Sync(
                 "aNameGivenTakesThePlaceOfTheOneAlreadyThere",
                 fun () ->
-                    Assert.Equal(msGreen, coloured("\\color{GREEN}{x}", ours), "case decided the colour")
+                    Assert.Equal(differentGreen, coloured("\\color{GREEN}{x}", ours), "case decided the colour")
                     Assert.Equal(
                         Color.FromArgb(255, 255, 0, 0),
                         coloured("\\color{red}{x}", ours),
@@ -458,8 +458,8 @@ let private colouring =
             Test.Sync(
                 "aColourOutsideThePaletteIsRefused",
                 fun () ->
-                    let bare = Palette(ImmutableDictionary.Empty.Add("green", msGreen))
-                    Assert.Equal(msGreen, coloured("\\color{green}{x}", bare), "the one name given")
+                    let bare = Palette(ImmutableDictionary.Empty.Add("green", differentGreen))
+                    Assert.Equal(differentGreen, coloured("\\color{green}{x}", bare), "the one name given")
                     match Latex.Read("\\color{red}{x}", bare) with
                     | Ok ma -> Assert.Fail $"red was read as {ma} from a palette without it"
                     | Error _ -> ()
@@ -467,7 +467,7 @@ let private colouring =
             Test.Sync(
                 "aColourNamedIsWrittenAsWhatItIsRatherThanWhatItWasCalled",
                 fun () ->
-                    let formula = MA.Coloured(msGreen, c 'x')
+                    let formula = MA.Coloured(differentGreen, c 'x')
                     Assert.Equal("\\color{#82D414}{x}", Latex.Write formula, "green was written by name")
                     Assert.Equal(formula, read(Latex.Write formula), "it did not read back the same")
             )
