@@ -256,6 +256,6 @@ let main(args: string array): int =
     w.Line
         $"    let blackboardSha256 = \"{Convert.ToHexStringLower(SHA256.HashData blackboardBytes)}\""
 
-    File.WriteAllText(outputPath, w.Text, Text.UTF8Encoding false)
+    File.WriteAllText(outputPath, w.Text, Text.UTF8Encoding true)
     System.Console.WriteLine $"{outputPath}: {repertoire.Length} characters in the repertoire, {w.Text.Length} bytes"
     0

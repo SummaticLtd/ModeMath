@@ -1,4 +1,4 @@
-module ModeMath.Tests.MathFontTests
+﻿module ModeMath.Tests.MathFontTests
 
 open System
 open System.IO

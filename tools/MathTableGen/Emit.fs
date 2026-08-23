@@ -1,4 +1,4 @@
-namespace MathTableGen
+﻿namespace MathTableGen
 
 open System.Text
 

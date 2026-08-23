@@ -1,4 +1,4 @@
-module ModeMath.Tests.PainterTests
+﻿module ModeMath.Tests.PainterTests
 
 open System.Collections.Immutable
 open System.Drawing

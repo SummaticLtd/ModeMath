@@ -1,4 +1,4 @@
-module ModeMath.Tests.EditorTests
+﻿module ModeMath.Tests.EditorTests
 
 open System.Collections.Immutable
 open SimpleTests

@@ -1,4 +1,4 @@
-module ModeMath.Tests.Program
+﻿module ModeMath.Tests.Program
 
 open SimpleTests
 

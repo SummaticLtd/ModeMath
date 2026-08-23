@@ -1,4 +1,4 @@
-module Playground.Desktop.Program
+﻿module Playground.Desktop.Program
 
 open Avalonia
 open Playground

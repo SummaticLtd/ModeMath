@@ -1,4 +1,4 @@
-namespace ModeMath
+﻿namespace ModeMath
 
 /// A font file the library draws from, which a glyph id means nothing without.
 type Face =

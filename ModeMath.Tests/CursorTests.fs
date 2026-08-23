@@ -1,4 +1,4 @@
-module ModeMath.Tests.CursorTests
+﻿module ModeMath.Tests.CursorTests
 
 open System.Collections.Immutable
 open SimpleTests

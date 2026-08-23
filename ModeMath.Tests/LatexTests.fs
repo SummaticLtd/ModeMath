@@ -1,4 +1,4 @@
-module ModeMath.Tests.LatexTests
+﻿module ModeMath.Tests.LatexTests
 
 open System.Collections.Immutable
 open System.Drawing
