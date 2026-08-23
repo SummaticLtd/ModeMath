@@ -285,4 +285,67 @@ let private laying =
         ]
     )
 
-let tests = TestFolder("Editor", [ editing; laying ])
+/// A fraction wider on top than below, so that a place in one is no place in the other.
+let private lopsided = MA.Frac(MA.String "abcdefgh", MA.Char 'x')
+
+/// A fraction of its own, which has a top and a bottom for a cursor entering it to tell apart.
+let private inner = MA.Row2(MA.Frac(MA.Char 'a', MA.Char 'b'), MA.Char 'c')
+
+let private nestedAbove = MA.Frac(inner, MA.String "xyz")
+let private nestedBelow = MA.Frac(MA.String "xyz", inner)
+
+let private moved(editor: Editor, direction: Direction) =
+    match editor.Press(MathKey.Move direction) with
+    | ValueSome moved -> moved
+    | ValueNone -> failwith $"{direction} had nowhere to go"
+
+let private moving =
+    TestList(
+        "Moving up and down",
+        [   Test.Sync(
+                "aBlockIsEnteredWhereTheCaretStandsRatherThanAtItsStart",
+                fun () ->
+                    let editor = opened lopsided
+                    let denominator = editor.Click(65f<px>, -14f<px>)
+                    let up = moved(denominator, Direction.Up)
+                    // Where a click at the same place in the numerator would have put it.
+                    Assert.Equal(
+                        editor.Click(denominator.Caret.X, 14f<px>).Caret.X,
+                        up.Caret.X,
+                        "up did not land where the caret stood")
+            )
+            Test.Sync(
+                "comingBackDownReachesWhereItSetOffFrom",
+                fun () ->
+                    let denominator = (opened lopsided).Click(65f<px>, -14f<px>)
+                    let there = moved(denominator, Direction.Up)
+                    Assert.Equal(
+                        denominator.Caret.X,
+                        moved(there, Direction.Down).Caret.X,
+                        "down came back somewhere else")
+            )
+            Test.Sync(
+                "movingChangesNothingAboutTheFormula",
+                fun () ->
+                    let editor = (opened nestedAbove).Click(4.5f<px>, -14f<px>)
+                    let up = moved(editor, Direction.Up)
+                    Assert.Equal(spell nestedAbove, spell up.Formula, "moving up edited the formula")
+                    Assert.True(
+                        obj.ReferenceEquals(editor.Placed.Pma, up.Placed.Pma),
+                        "moving up laid the formula out again")
+            )
+            Test.CasesSync(
+                // Going up reaches the foot of the block above, where its own bottom half stands.
+                "aBlockIsMetAtTheEdgeItWasEnteredThrough",
+                [
+                    "up", (Direction.Up, nestedAbove, -14f<px>, "frac{frac{a}{zb}c}{xyz}")
+                    "down", (Direction.Down, nestedBelow, 14f<px>, "frac{xyz}{frac{za}{b}c}")
+                ],
+                fun (direction, formula, y, expected) ->
+                    let there = moved((opened formula).Click(4.5f<px>, y), direction)
+                    Assert.Equal(expected, spell (pressed(there, 'z')).Formula, string direction)
+            )
+        ]
+    )
+
+let tests = TestFolder("Editor", [ editing; laying; moving ])

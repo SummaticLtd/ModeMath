@@ -121,8 +121,12 @@ type Editor(layout: Layout, cursor: PlacedCurs) =
 
     /// ValueNone at that end of the formula, so a caller can pass the key on. Lays nothing out.
     member private _.Move(direction: Direction) =
-        cursor.ToMACurs.Move direction
-        |> ValueOption.map (fun moved -> Editor(layout, PlacedCurs.Of(moved, cursor.Placed)))
+        let placing(moved: MACurs) =
+            let placed = PlacedCurs.Of(moved, cursor.Placed)
+            match direction with
+            | Direction.Up | Direction.Down -> placed.Reseated(cursor.Caret.X, direction)
+            | _ -> placed
+        cursor.ToMACurs.Move direction |> ValueOption.map (fun moved -> Editor(layout, placing moved))
 
     /// A character typed at the cursor, which completes a function name where one is spelled out.
     /// ValueNone where the font cannot draw it, so that a caller can pass the key on.
