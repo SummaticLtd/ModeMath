@@ -13,6 +13,36 @@ type LatexError(message: string, position: int) =
     member _.Position = position
     override _.ToString() = $"{message}, at character {position.ToString()}"
 
+/// The colours \color and \textcolor name, which a caller may give its own.
+[<Sealed>]
+type Palette(colours: ImmutableDictionary<string, Color>) =
+    /// LaTeX names a colour without regard to case, so darkGray and darkgray are the one name.
+    let named =
+        ImmutableDictionary.CreateRange(
+            StringComparer.OrdinalIgnoreCase,
+            colours |> Seq.map (fun c -> KeyValuePair(c.Key, Color.FromArgb(c.Value.ToArgb()))))
+
+    /// The nineteen colours xcolor names, in the shades .NET gives them.
+    static member val Default =
+        [
+            "red", Color.Red; "green", Color.Green; "blue", Color.Blue
+            "cyan", Color.Cyan; "magenta", Color.Magenta; "yellow", Color.Yellow
+            "black", Color.Black; "white", Color.White
+            "gray", Color.Gray; "darkgray", Color.DarkGray; "lightgray", Color.LightGray
+            "brown", Color.Brown; "lime", Color.Lime; "olive", Color.Olive
+            "orange", Color.Orange; "pink", Color.Pink; "purple", Color.Purple
+            "teal", Color.Teal; "violet", Color.Violet
+        ]
+        |> Seq.map (fun (name, colour) -> KeyValuePair(name, colour))
+        |> ImmutableDictionary.CreateRange
+        |> Palette
+
+    /// The colour a name stands for. ValueNone where this palette does not name one.
+    member _.Named(name: string) : Color voption = named |> ImmutableDictionary.tryFind name
+
+    /// The same palette naming one more colour, which takes the place of any name already given.
+    member _.With(name: string, colour: Color) = Palette(named.SetItem(name, colour))
+
 module internal Latexing =
 
     /// A control word or symbol stripped of its backslash, or a character LaTeX reads itself.
@@ -271,7 +301,7 @@ module internal Latexing =
         | 'r' -> ValueSome Alignment.Right
         | _ -> ValueNone
 
-    type Reader(tokens: ImmutableArray<struct(Token * int)>, source: string) =
+    type Reader(tokens: ImmutableArray<struct(Token * int)>, source: string, palette: Palette) =
         let mutable at = 0
 
         let here() =
@@ -494,8 +524,9 @@ module internal Latexing =
                     else error()
                 | false, _ -> error()
             else
-                let named = Color.FromName name
-                if named.IsKnownColor then named else error()
+                match palette.Named name with
+                | ValueSome colour -> colour
+                | ValueNone -> error()
 
         member private t.Bracketed(position: int) =
             let left = t.Delimiter position
@@ -690,10 +721,8 @@ module internal Latexing =
                 put "{"
                 let hex(part: byte) = part.ToString "X2"
                 let rgb = $"#{hex colour.R}{hex colour.G}{hex colour.B}"
-                put(
-                    if colour.IsNamedColor then colour.Name
-                    elif colour.A = 255uy then rgb
-                    else rgb + hex colour.A)
+                // Never the name .NET knows a colour by, which a palette may have given to another.
+                put(if colour.A = 255uy then rgb else rgb + hex colour.A)
                 put "}"
                 braced x
             | MA.Text word ->
@@ -741,16 +770,16 @@ module internal Latexing =
 
 [<AbstractClass; Sealed>]
 type Latex =
-    /// The formula a math-mode LaTeX string spells, or why it could not be read.
-    static member Read(latex: string) : Result<MA, LatexError> =
+    /// The formula a string spells, or why not. \color names its colours from the palette given.
+    static member Read(latex: string, ?palette: Palette) : Result<MA, LatexError> =
         try
-            let reader = Latexing.Reader(Latexing.lex latex, latex)
+            let palette = defaultArg palette Palette.Default
+            let reader = Latexing.Reader(Latexing.lex latex, latex, palette)
             let formula = reader.Formula().Flatten
             match reader.Unread with
             | ValueNone -> Ok formula
             | ValueSome position -> Error(LatexError("the formula ends before the string does", position))
         with Latexing.Rejected(message, position) -> Error(LatexError(message, position))
 
-    /// The math-mode LaTeX a formula is written as, which reads back as the same formula. A bracket
-    /// still waiting for its pair is written as the completed one, LaTeX having no way to offer one.
+    /// The math-mode LaTeX a formula is written as, which reads back as a formula that draws the same.
     static member Write(formula: MA) : string = Latexing.write formula

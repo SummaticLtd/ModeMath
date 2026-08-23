@@ -235,7 +235,9 @@ let private reading =
                 [
                     "a\\,b", row [ c 'a'; MA.Space Space.Thin; c 'b' ]
                     "a\\qquad b", row [ c 'a'; MA.Space Space.QQuad; c 'b' ]
-                    "\\color{red}{x}", MA.Coloured(Color.Red, c 'x')
+                    // A colour is what it paints, so a name reads as the hex for it reads.
+                    "\\color{red}{x}", read "\\color{#FF0000}{x}"
+                    "\\color{RED}{x}", read "\\color{#FF0000}{x}"
                     "\\textcolor{#0000FF}{x}", MA.Coloured(Color.FromArgb(255, 0, 0, 255), c 'x')
                 ]
             )
@@ -261,6 +263,9 @@ let private reading =
                     // TeX calls two of these in one group ambiguous, and so does this.
                     "a \\choose b \\choose c"
                     "\\color{fuchsias}{x}"
+                    // The desktop theme is no colour for a formula to be written in.
+                    "\\color{MenuHighlight}{x}"
+                    "\\color{Control}{x}"
                     // A space is no hex digit: counting one would read this as an alpha of zero.
                     "\\color{# FF0000 }{x}"
                     "\\color{#FF000 }{x}"
@@ -405,7 +410,7 @@ let private writing =
                     MA.Cases cells
                     MA.Table(cells, ImmutableArray.Create(Alignment.Right, Alignment.Centre))
                     MA.Spanned(Spanning.Overbrace, MA.String "ab")
-                    MA.Coloured(Color.Red, c 'x')
+                    MA.Coloured(Color.FromArgb(255, 255, 0, 0), c 'x')
                     MA.Coloured(Color.FromArgb(255, 1, 2, 3), c 'x')
                     MA.Coloured(Color.FromArgb(128, 1, 2, 3), c 'x')
                     MA.RootN(c ']', c 'x')
@@ -422,4 +427,60 @@ let private writing =
         ]
     )
 
-let tests = TestFolder("Latex", [ reading; writing ])
+let private colouring =
+    let differentGreen = Color.FromArgb(255, 130, 212, 20)
+    let ours = Palette.Default.With("green", differentGreen)
+    let coloured(latex: string, palette: Palette) =
+        match Latex.Read(latex, palette) with
+        | Ok(MA.Coloured(colour, _)) -> colour
+        | Ok other -> failwith $"{latex} was read as {other}"
+        | Error error -> failwith $"{latex}: {error}"
+    TestList(
+        "Palettes",
+        [   Test.Sync(
+                "aPaletteGivesTheColourAName",
+                fun () ->
+                    Assert.Equal(differentGreen, coloured("\\color{green}{x}", ours), "the name given went unread")
+                    Assert.Equal(
+                        Color.FromArgb(255, 0, 128, 0),
+                        coloured("\\color{green}{x}", Palette.Default),
+                        "one palette answered for another")
+            )
+            Test.Sync(
+                "aNameGivenTakesThePlaceOfTheOneAlreadyThere",
+                fun () ->
+                    Assert.Equal(differentGreen, coloured("\\color{GREEN}{x}", ours), "case decided the colour")
+                    Assert.Equal(
+                        Color.FromArgb(255, 255, 0, 0),
+                        coloured("\\color{red}{x}", ours),
+                        "a name not given was lost with the one that was")
+            )
+            Test.Sync(
+                "aColourOutsideThePaletteIsRefused",
+                fun () ->
+                    let bare = Palette(ImmutableDictionary.Empty.Add("green", differentGreen))
+                    Assert.Equal(differentGreen, coloured("\\color{green}{x}", bare), "the one name given")
+                    match Latex.Read("\\color{red}{x}", bare) with
+                    | Ok ma -> Assert.Fail $"red was read as {ma} from a palette without it"
+                    | Error _ -> ()
+            )
+            Test.Sync(
+                "aColourNamedIsWrittenAsWhatItIsRatherThanWhatItWasCalled",
+                fun () ->
+                    let formula = MA.Coloured(differentGreen, c 'x')
+                    Assert.Equal("\\color{#82D414}{x}", Latex.Write formula, "green was written by name")
+                    Assert.Equal(formula, read(Latex.Write formula), "it did not read back the same")
+            )
+            Test.Sync(
+                "aColourBuiltFromAKnownOneComesBackAsWhatItPaints",
+                fun () ->
+                    // Color.Red is equal to no other Color, so it comes back as its ARGB and not itself.
+                    let written = Latex.Write(MA.Coloured(Color.Red, c 'x'))
+                    Assert.Equal("\\color{#FF0000}{x}", written, "a known colour was written by name")
+                    Assert.Equal(MA.Coloured(Color.FromArgb(255, 255, 0, 0), c 'x'), read written, written)
+                    Assert.Equal(Color.Red.ToArgb(), (Color.FromArgb(255, 255, 0, 0)).ToArgb(), "what it paints")
+            )
+        ]
+    )
+
+let tests = TestFolder("Latex", [ reading; writing; colouring ])

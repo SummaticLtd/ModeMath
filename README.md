@@ -42,6 +42,13 @@ An opening bracket is drawn faint until its closing one is typed, a run of lette
 
 `Latex.Read` takes a math-mode string and `Latex.Write` gives one back, every argument in braces. What is not understood is refused with the position it stands at, rather than guessed at, and a character the font cannot draw is refused there too, so a formula that was read always lays out. One built from `MA` in code can hold a character the font has no glyph for, and `MA.Undrawable` is the characters it would fail on.
 
+`\color` and `\textcolor` name their colours from a `Palette`, which a caller may replace to give a name a colour of its own.
+
+```fsharp
+let palette = Palette.Default.With("green", Color.FromArgb(255, 130, 212, 20))
+let formula = Latex.Read(@"\color{green}{x}", palette)
+```
+
 ## Fonts
 
 Latin Modern Math, cut down to the glyphs ModeMath draws, and AMS Capital Blackboard Bold are carried inside the assembly along with the licences they are redistributed under. `fonts/README.md` says where each came from and how the metrics beside them are generated.
