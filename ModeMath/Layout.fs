@@ -1,4 +1,4 @@
-namespace ModeMath
+﻿namespace ModeMath
 
 open System.Collections.Immutable
 open FSUtils
@@ -67,23 +67,23 @@ type internal AccentMark =
     | Wide of StretchyGlyph
 
 module internal Conventions =
-    let relations = set [
-        '='; '<'; '>'; '≤'; '≥'; '≠'; '≈'; '≡'; '∈'; '∉'
-        '⊂'; '⊆'; '⊃'; '⊇'; '∴'; '∵'
-        '∼'; '≅'; '∝'; '⊥'; '∥'; '∣'
-        '→'; '←'; '↔'; '↦'; '⇒'; '⇐'; '⇔'; '⟺'
-        '↑'; '↓'; '⟶'; '⟵'; '↻'
-    ]
+    let relations = ImmutableHashSet.Create(
+        '=', '<', '>', '≤', '≥', '≠', '≈', '≡', '∈', '∉',
+        '⊂', '⊆', '⊃', '⊇', '∴', '∵',
+        '∼', '≅', '∝', '⊥', '∥', '∣',
+        '→', '←', '↔', '↦', '⇒', '⇐', '⇔', '⟺',
+        '↑', '↓', '⟶', '⟵', '↻'
+    )
 
-    let binaries = set [
-        '+'; '-'; '−'; '±'; '∓'; '×'; '÷'; '⋅'; '∗'; '∘'; '•'
-        '∩'; '∪'; '∧'; '∨'; '∖'; '⊕'; '⊗'
-    ]
+    let binaries = ImmutableHashSet.Create(
+        '+', '-', '−', '±', '∓', '×', '÷', '⋅', '∗', '∘', '•',
+        '∩', '∪', '∧', '∨', '∖', '⊕', '⊗'
+    )
 
-    let opens = set [ '('; '['; '{'; '⟨' ]
+    let opens = ImmutableHashSet.Create('(', '[', '{', '⟨')
     // A factorial closes what it stands after, as TeX classes the mark it is written with.
-    let closes = set [ ')'; ']'; '}'; '⟩'; '!' ]
-    let punctuation = set [ ','; ';'; ':' ]
+    let closes = ImmutableHashSet.Create(')', ']', '}', '⟩', '!')
+    let punctuation = ImmutableHashSet.Create(',', ';', ':')
 
     /// ValueNone where the side carries no bracket at all.
     let leftDelimiter(bracket: Bracket) =
@@ -161,13 +161,13 @@ module internal Conventions =
         else AtomClass.Ordinary
 
     /// The classes an atom presents to its neighbours. ValueNone for a gap, which stands between none.
-    let rec atomClasses(ma: MA): struct (AtomClass * AtomClass) voption =
-        let both(atomClass: AtomClass) = ValueSome(struct (atomClass, atomClass))
+    let rec atomClasses(ma: MA): struct(AtomClass * AtomClass) voption =
+        let both(atomClass: AtomClass) = ValueSome(struct(atomClass, atomClass))
         match ma with
         | MA.Char c -> both(charClass c)
         | MA.Function _ -> both AtomClass.Operator
         | MA.Frac _ | MA.Stack _ | MA.Table _ -> both AtomClass.Inner
-        | MA.Bracketed _ -> ValueSome(struct (AtomClass.Open, AtomClass.Close))
+        | MA.Bracketed _ -> ValueSome(struct(AtomClass.Open, AtomClass.Close))
         | MA.ScriptSuper(main, _, _) | MA.ScriptSub(main, _) -> atomClasses main
         // A colour changes how an atom is drawn, not what it binds to on either side.
         | MA.Coloured(_, x) -> atomClasses x
@@ -180,16 +180,16 @@ module internal Conventions =
 module private Spacing =
     /// Eighteenths of an em by left then right class, negated where only display and text styles space.
     let table =
-        [|
-            0; 3; -4; -5; 0; 0; 0; -3;
-            3; 3; 0; -5; 0; 0; 0; -3;
-            -4; -4; 0; 0; -4; 0; 0; -4;
-            -5; -5; 0; 0; -5; 0; 0; -5;
-            0; 0; 0; 0; 0; 0; 0; 0;
-            0; 3; -4; -5; 0; 0; 0; -3;
-            -3; -3; 0; -3; -3; -3; -3; -3;
-            -3; 3; -4; -5; -3; 0; -3; -3
-        |]
+        ImmutableArray.Create(
+            0, 3, -4, -5, 0, 0, 0, -3,
+            3, 3, 0, -5, 0, 0, 0, -3,
+            -4, -4, 0, 0, -4, 0, 0, -4,
+            -5, -5, 0, 0, -5, 0, 0, -5,
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 3, -4, -5, 0, 0, 0, -3,
+            -3, -3, 0, -3, -3, -3, -3, -3,
+            -3, 3, -4, -5, -3, 0, -3, -3
+        )
 
     /// A binary operator with nothing to bind on its left is ordinary, as in a leading minus sign.
     let isUnaryPosition(previous: AtomClass voption) =
@@ -249,9 +249,11 @@ type Layout(fontSize: float32<px>) =
         let repeats =
             if extenders.Length = 0 || round <= 0f<px> then 0
             else min 256 (max 0 (int (ceil ((length - shortest) / round))))
-        [| for part in parts do
+        let b = ImmutableArray.CreateBuilder<AssemblyPart>()
+        for part in parts do
             for _ in 1 .. (if part.IsExtender then repeats else 1) do
-                yield part |]
+                b.Add(part)
+        b.ToImmutable()
 
     let markOf(glyphs: ImmutableArray<PlacedGlyph>, width: float32<px>) =
         let ascent = ImmArray.maxWithSafe(glyphs, 0f<px>, fun g -> g.Top)
@@ -327,23 +329,24 @@ type Layout(fontSize: float32<px>) =
         match above with
         | ValueSome extent ->
             let start =
-                (
-                    if style.Cramped then MathConstants.SuperscriptShiftUpCramped
-                    else MathConstants.SuperscriptShiftUp)
+                (if style.Cramped then MathConstants.SuperscriptShiftUpCramped else MathConstants.SuperscriptShiftUp)
                 * s
             up <-
-                max
-                    (max start (b.Ascent - MathConstants.SuperscriptBaselineDropMax * s))
+                Measure.max32(
+                    Measure.max32(start, b.Ascent - MathConstants.SuperscriptBaselineDropMax * s),
                     (extent.Descent + MathConstants.SuperscriptBottomMin * s)
+                )
         | ValueNone -> ()
         match below with
         | ValueSome extent ->
             down <-
-                max
-                    (max
-                        (MathConstants.SubscriptShiftDown * s)
-                        (b.Descent + MathConstants.SubscriptBaselineDropMin * s))
+                Measure.max32(
+                    Measure.max32(
+                        (MathConstants.SubscriptShiftDown * s),
+                        (b.Descent + MathConstants.SubscriptBaselineDropMin * s)
+                    ),
                     (extent.Ascent - MathConstants.SubscriptTopMax * s)
+                )
         | ValueNone -> ()
         match above, below with
         | ValueSome over, ValueSome under ->
@@ -370,7 +373,7 @@ type Layout(fontSize: float32<px>) =
             match above, below with
             | ValueNone, ValueNone -> 0f<px>
             | ValueSome _, _ | _, ValueSome _ -> MathConstants.SpaceAfterScript * s
-        struct (up, down, subscriptX, width + after)
+        struct(up, down, subscriptX, width + after)
 
     member private t.Row(elements: ImmutableArray<MA>, style: Style) =
         if elements.IsEmpty then
@@ -381,9 +384,9 @@ type Layout(fontSize: float32<px>) =
             let classes = Array.init elements.Length (fun i -> Conventions.atomClasses elements.[i])
             // A space is a gap rather than an atom, so an operator binds straight through it.
             let bound = [| for i in 0 .. elements.Length - 1 do if classes.[i].IsSome then yield i |]
-            let facingLeft(i: int) = let struct (left, _) = classes.[i].Value in left
-            let facingRight(i: int) = let struct (_, right) = classes.[i].Value in right
-            let ordinary = ValueSome(struct (AtomClass.Ordinary, AtomClass.Ordinary))
+            let facingLeft(i: int) = let struct(left, _) = classes.[i].Value in left
+            let facingRight(i: int) = let struct(_, right) = classes.[i].Value in right
+            let ordinary = ValueSome(struct(AtomClass.Ordinary, AtomClass.Ordinary))
             // A binary atom with nothing to bind is ordinary, so each gap demotes whichever side it strands.
             for n in 0 .. bound.Length - 1 do
                 let i = bound.[n]
@@ -457,7 +460,7 @@ type Layout(fontSize: float32<px>) =
         let b = t.Of(main, style)
         let above = t.Of(super, style.Superscript)
         let below = sub |> ValueOption.map (fun ma -> t.Of(ma, style.Subscript))
-        let struct (up, down, subscriptX, width) =
+        let struct(up, down, subscriptX, width) =
             scriptPlacement(b.Extent, ValueSome above.Extent, extentOf below, style)
         let placedBelow = below |> ValueOption.map (fun p -> p.At(subscriptX, -down))
         atomOf(PlacedMA.ScriptSuper(b, above.At(b.Width, up), placedBelow), width, 0f<px>, style)
@@ -465,7 +468,7 @@ type Layout(fontSize: float32<px>) =
     member private t.ScriptSub(main: MA, sub: MA, style: Style) =
         let b = t.Of(main, style)
         let below = t.Of(sub, style.Subscript)
-        let struct (_, down, subscriptX, width) =
+        let struct(_, down, subscriptX, width) =
             scriptPlacement(b.Extent, ValueNone, ValueSome below.Extent, style)
         atomOf(PlacedMA.ScriptSub(b, below.At(subscriptX, -down)), width, 0f<px>, style)
 
@@ -503,7 +506,7 @@ type Layout(fontSize: float32<px>) =
         let below = lower |> ValueOption.map (fun ma -> t.Of(ma, style.Displayed.Subscript))
         if style.IsDisplay && Conventions.takesLimits op then t.Limits(op, operator, below, above, style)
         else
-            let struct (up, down, subscriptX, width) =
+            let struct(up, down, subscriptX, width) =
                 scriptPlacement(operator.Extent, extentOf above, extentOf below, style)
             let pma =
                 PlacedMA.BigOp(

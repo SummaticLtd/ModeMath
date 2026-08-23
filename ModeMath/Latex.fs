@@ -60,11 +60,11 @@ module internal Latexing =
 
     /// The tokens a string is made of, paired with where each begins.
     let lex(latex: string) =
-        let tokens = ImmutableArray.CreateBuilder<struct (Token * int)>()
+        let tokens = ImmutableArray.CreateBuilder<struct(Token * int)>()
         let mutable i = 0
         while i < latex.Length do
             let start = i
-            let take(token: Token) = tokens.Add(struct (token, start))
+            let take(token: Token) = tokens.Add(struct(token, start))
             let c = latex.[i]
             i <- i + 1
             match c with
@@ -143,7 +143,7 @@ module internal Latexing =
     /// ISO 80000-2 names the inverse hyperbolics for the area they take, not an arc.
     let private functions =
         [
-            for struct (name, f) in MathFunctions.named do yield name, f
+            for struct(name, f) in MathFunctions.named do yield name, f
             yield "arcsinh", MathFunction.Arsinh
             yield "arccosh", MathFunction.Arcosh
             yield "arctanh", MathFunction.Artanh
@@ -264,18 +264,18 @@ module internal Latexing =
         | 'r' -> ValueSome Alignment.Right
         | _ -> ValueNone
 
-    type Reader(tokens: ImmutableArray<struct (Token * int)>, source: string) =
+    type Reader(tokens: ImmutableArray<struct(Token * int)>, source: string) =
         let mutable at = 0
 
         let here() =
             if at < tokens.Length then
-                let struct (_, position) = tokens.[at]
+                let struct(_, position) = tokens.[at]
                 position
             else source.Length
 
         let peek() =
             if at < tokens.Length then
-                let struct (token, _) = tokens.[at]
+                let struct(token, _) = tokens.[at]
                 ValueSome token
             else ValueNone
 
@@ -305,11 +305,11 @@ module internal Latexing =
                 | ValueSome(Token.Command("choose" | "atop" as name)) ->
                     if chosenAlready then fail($"a second \\{name} in one group", position)
                     advance()
-                    chosen <- ValueSome(struct (name, MA.OfElements(elements.ToImmutable())))
+                    chosen <- ValueSome(struct(name, MA.OfElements(elements.ToImmutable())))
                 | _ -> elements.Add(t.Atom())
             match chosen with
-            | ValueSome(struct ("atop", top)) -> MA.Stack(top, t.Formula true)
-            | ValueSome(struct (_, top)) -> MA.Binom(top, t.Formula true)
+            | ValueSome(struct("atop", top)) -> MA.Stack(top, t.Formula true)
+            | ValueSome(struct(_, top)) -> MA.Binom(top, t.Formula true)
             | ValueNone -> MA.OfElements(elements.ToImmutable())
 
         member private t.Atom() =

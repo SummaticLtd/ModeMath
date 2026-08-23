@@ -1,6 +1,5 @@
-module ModeMath.Tests.LayoutTests
+﻿module ModeMath.Tests.LayoutTests
 
-open System
 open System.Collections.Immutable
 open System.Drawing
 open FSUtils
@@ -293,7 +292,7 @@ let private repertoire =
             )
             Test.CasesSync(
                 "everyFunctionNameCanBeSet",
-                [ for struct (name, f) in MathFunctions.named do yield name, f ],
+                [ for struct(name, f) in MathFunctions.named do yield name, f ],
                 fun f ->
                     // Not every name is letters: the indicator is 1 and the gamma function a capital.
                     Assert.True((laid(MA.Function f)).Width > 0f<px>, $"{f} is set as nothing")

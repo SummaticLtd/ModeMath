@@ -1,10 +1,9 @@
-namespace Playground
+﻿namespace Playground
 
 open Avalonia
 open Avalonia.Controls
 open Avalonia.Input
 open Avalonia.Media
-open Avalonia.Platform
 open Avalonia.Rendering.SceneGraph
 open Avalonia.Skia
 open SkiaSharp

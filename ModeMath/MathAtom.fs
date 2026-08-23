@@ -1,4 +1,4 @@
-namespace ModeMath
+﻿namespace ModeMath
 
 open System.Collections.Immutable
 open System.Drawing
@@ -98,7 +98,7 @@ module MathFunctions =
         | MathFunction.Csch -> "csch"
 
     /// Every function against its name, which is what a reader and a writer both work from.
-    let named = [| for f in System.Enum.GetValues<MathFunction>() -> struct (name f, f) |]
+    let named = [| for f in System.Enum.GetValues<MathFunction>() -> struct(name f, f) |]
 
 /// Operators large enough to carry limits, which sit above and below them in display style.
 type BigOperator =

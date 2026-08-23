@@ -1,4 +1,4 @@
-namespace ModeMath
+﻿namespace ModeMath
 
 open System
 open System.Collections.Immutable
@@ -7,29 +7,29 @@ open FSUtils
 module internal FunctionNames =
     /// What typing a name out spells, longest spelling first so that arcsin is not taken for sin.
     let table =
-        [|
-            "sin", MathFunction.Sin
-            "cos", MathFunction.Cos
-            "tan", MathFunction.Tan
-            "asin", MathFunction.Asin
-            "acos", MathFunction.Acos
-            "atan", MathFunction.Atan
-            "arcsin", MathFunction.Asin
-            "arccos", MathFunction.Acos
-            "arctan", MathFunction.Atan
-            "sinh", MathFunction.Sinh
-            "cosh", MathFunction.Cosh
-            "tanh", MathFunction.Tanh
-            "log", MathFunction.Log
-            "ln", MathFunction.Ln
-            "sec", MathFunction.Sec
-            "csc", MathFunction.Csc
-            "cot", MathFunction.Cot
-            "erf", MathFunction.Erf
-            "min", MathFunction.Min
-            "max", MathFunction.Max
-        |]
-        |> Array.sortByDescending (fun (spelling, _) -> spelling.Length)
+        ImmutableArray.Create(
+            struct("sin", MathFunction.Sin),
+            struct("cos", MathFunction.Cos),
+            struct("tan", MathFunction.Tan),
+            struct("asin", MathFunction.Asin),
+            struct("acos", MathFunction.Acos),
+            struct("atan", MathFunction.Atan),
+            struct("arcsin", MathFunction.Asin),
+            struct("arccos", MathFunction.Acos),
+            struct("arctan", MathFunction.Atan),
+            struct("sinh", MathFunction.Sinh),
+            struct("cosh", MathFunction.Cosh),
+            struct("tanh", MathFunction.Tanh),
+            struct("log", MathFunction.Log),
+            struct("ln", MathFunction.Ln),
+            struct("sec", MathFunction.Sec),
+            struct("csc", MathFunction.Csc),
+            struct("cot", MathFunction.Cot),
+            struct("erf", MathFunction.Erf),
+            struct("min", MathFunction.Min),
+            struct("max", MathFunction.Max)
+        )
+        |> ImmArray.sortByDescending (fun struct(spelling, _) -> spelling.Length)
 
 /// Math formula Input with a cursor
 [<RequireQualifiedAccess>]
@@ -574,17 +574,17 @@ type internal MACurs =
 
     /// Rewrites the atoms on either side of the cursor in the slot it stands among.
     member t.Rewrite
-        (build: ImmutableArray<MA> * ImmutableArray<MA> -> struct (ImmutableArray<MA> * ImmutableArray<MA>))
+        (build: ImmutableArray<MA> * ImmutableArray<MA> -> struct(ImmutableArray<MA> * ImmutableArray<MA>))
         : MACurs =
         let again(curs: MACurs) = curs.Rewrite build
         match t with
         | CursorOrEmpty ->
-            let struct (before, after) = build(ImmutableArray.Empty, ImmutableArray.Empty)
+            let struct(before, after) = build(ImmutableArray.Empty, ImmutableArray.Empty)
             MACurs.MakeRow(before, CursorOrEmpty, after)
         | Row(before, inner, after) ->
             if not inner.IsCursorOrEmpty then MACurs.MakeRow(before, again inner, after)
             else
-                let struct (before, after) = build(before, after)
+                let struct(before, after) = build(before, after)
                 MACurs.MakeRow(before, CursorOrEmpty, after)
         | ScriptMainSuper(main, super, sub) -> ScriptMainSuper(again main, super, sub)
         | ScriptMainSub(main, sub) -> ScriptMainSub(again main, sub)
@@ -618,10 +618,10 @@ type internal MACurs =
 
     /// The atoms before and after the cursor in the slot it stands among.
     /// ValueNone where the cursor stands inside an atom rather than among them.
-    member t.Split: struct (ImmutableArray<MA> * ImmutableArray<MA>) voption =
+    member t.Split: struct(ImmutableArray<MA> * ImmutableArray<MA>) voption =
         match t with
-        | CursorOrEmpty -> ValueSome(struct (ImmutableArray.Empty, ImmutableArray.Empty))
-        | Row(before, CursorOrEmpty, after) -> ValueSome(struct (before, after))
+        | CursorOrEmpty -> ValueSome(struct(ImmutableArray.Empty, ImmutableArray.Empty))
+        | Row(before, CursorOrEmpty, after) -> ValueSome(struct(before, after))
         | Row _ | ScriptMainSuper _ | ScriptMainSub _ | ScriptSuper _ | ScriptSub _ | FracNum _
         | FracDen _ | Bracketed _ | RootNDegree _ | RootNMain _ | Sqrt _ -> ValueNone
 
@@ -639,7 +639,7 @@ type internal MACurs =
             | ValueNone ->
                 match (if completion.LeftCompleted then ValueNone else inner.Split) with
                 | ValueNone -> ValueNone
-                | ValueSome(struct (before, after)) ->
+                | ValueSome(struct(before, after)) ->
                     MACurs.MakeRow(
                         before,
                         Bracketed(
@@ -680,7 +680,7 @@ type internal MACurs =
                 let closing(inner: MA) = MA.Bracketed(Brackets(b.Left, right), inner, BracketCompletion.Completed)
                 match inner.Split with
                 | ValueNone -> closing(inner.ToMA) |> MACurs.AtEnd |> ValueSome
-                | ValueSome(struct (before, after)) ->
+                | ValueSome(struct(before, after)) ->
                     MACurs.MakeRow(
                         ImmutableArray.Create(closing(MA.OfElements before)),
                         CursorOrEmpty,
@@ -730,26 +730,26 @@ type internal MACurs =
                 | MA.Char c -> c
                 | _ -> ' '))
         let spelled(letters: string) =
-            FunctionNames.table |> Array.tryPick (fun (spelling, f) ->
-                if spelling = letters then Some f else None)
+            FunctionNames.table |> ImmArray.tryPick (fun struct(spelling, f) ->
+                if spelling = letters then ValueSome f else ValueNone)
         /// The name of the function standing before the letters, if one stands there.
         let before =
-            if start = 0 then None
+            if start = 0 then ValueNone
             else
                 match elements.[start - 1] with
-                | MA.Function f -> Some(MathFunctions.name f)
-                | _ -> None
+                | MA.Function f -> ValueSome(MathFunctions.name f)
+                | _ -> ValueNone
         let matched =
             FunctionNames.table
-            |> Array.tryFind (fun (spelling, _) -> letters.EndsWith(spelling, StringComparison.Ordinal))
+            |> ImmArray.tryFind (fun struct(spelling, _) -> letters.EndsWith(spelling, StringComparison.Ordinal))
         match matched with
-        | Some(spelling, f) ->
+        | ValueSome(spelling, f) ->
             (elements |> ImmArray.truncate (elements.Length - spelling.Length)).Add(MA.Function f)
-        | None ->
+        | ValueNone ->
             // A name no run of letters spells may be one a function before them goes on to spell.
-            match before |> Option.bind (fun name -> spelled(name + letters)) with
-            | Some f -> (elements |> ImmArray.truncate (start - 1)).Add(MA.Function f)
-            | None -> elements
+            match before |> ValueOption.bind (fun name -> spelled(name + letters)) with
+            | ValueSome f -> (elements |> ImmArray.truncate (start - 1)).Add(MA.Function f)
+            | ValueNone -> elements
 
     /// Adds a character at the cursor, replacing a completed function name with that function.
     member t.AddAlphanumeric(c: char): MACurs =
