@@ -3,3 +3,6 @@ obj/
 .vs/
 *.user
 artifacts/
+nupkgs/
+*.nupkg
+*.snupkg
