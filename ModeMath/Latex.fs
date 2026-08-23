@@ -13,6 +13,31 @@ type LatexError(message: string, position: int) =
     member _.Position = position
     override _.ToString() = $"{message}, at character {position.ToString()}"
 
+/// The colours \color and \textcolor name, which a caller may give its own.
+[<Sealed>]
+type Palette(colours: ImmutableDictionary<string, Color>) =
+    /// LaTeX names a colour without regard to case, so darkGray and darkgray are the one name.
+    let named = colours.WithComparers StringComparer.OrdinalIgnoreCase
+
+    /// Every colour .NET knows by name, save the system ones, which follow the desktop theme.
+    static member val Default =
+        Enum.GetValues<KnownColor>()
+        |> Seq.map Color.FromKnownColor
+        |> Seq.filter (fun colour -> not colour.IsSystemColor)
+        |> Seq.map (fun colour -> KeyValuePair(colour.Name, colour))
+        |> ImmutableDictionary.CreateRange
+        |> Palette
+
+    /// The colour a name stands for. ValueNone where this palette does not name one.
+    member _.Named(name: string) : Color voption =
+        match named.TryGetValue name with
+        // Rebuilt, since a Color .NET knows by name equals no other however alike they paint.
+        | true, colour -> ValueSome(Color.FromArgb(colour.ToArgb()))
+        | false, _ -> ValueNone
+
+    /// The same palette naming one more colour, which takes the place of any name already given.
+    member _.With(name: string, colour: Color) = Palette(named.SetItem(name, colour))
+
 module internal Latexing =
 
     /// A control word or symbol stripped of its backslash, or a character LaTeX reads itself.
@@ -271,7 +296,7 @@ module internal Latexing =
         | 'r' -> ValueSome Alignment.Right
         | _ -> ValueNone
 
-    type Reader(tokens: ImmutableArray<struct(Token * int)>, source: string) =
+    type Reader(tokens: ImmutableArray<struct(Token * int)>, source: string, palette: Palette) =
         let mutable at = 0
 
         let here() =
@@ -494,8 +519,9 @@ module internal Latexing =
                     else error()
                 | false, _ -> error()
             else
-                let named = Color.FromName name
-                if named.IsKnownColor then named else error()
+                match palette.Named name with
+                | ValueSome colour -> colour
+                | ValueNone -> error()
 
         member private t.Bracketed(position: int) =
             let left = t.Delimiter position
@@ -690,10 +716,8 @@ module internal Latexing =
                 put "{"
                 let hex(part: byte) = part.ToString "X2"
                 let rgb = $"#{hex colour.R}{hex colour.G}{hex colour.B}"
-                put(
-                    if colour.IsNamedColor then colour.Name
-                    elif colour.A = 255uy then rgb
-                    else rgb + hex colour.A)
+                // Never the name .NET knows a colour by, which a palette may have given to another.
+                put(if colour.A = 255uy then rgb else rgb + hex colour.A)
                 put "}"
                 braced x
             | MA.Text word ->
@@ -742,9 +766,12 @@ module internal Latexing =
 [<AbstractClass; Sealed>]
 type Latex =
     /// The formula a math-mode LaTeX string spells, or why it could not be read.
-    static member Read(latex: string) : Result<MA, LatexError> =
+    static member Read(latex: string) : Result<MA, LatexError> = Latex.Read(latex, Palette.Default)
+
+    /// The same, with the palette \color and \textcolor name their colours from.
+    static member Read(latex: string, palette: Palette) : Result<MA, LatexError> =
         try
-            let reader = Latexing.Reader(Latexing.lex latex, latex)
+            let reader = Latexing.Reader(Latexing.lex latex, latex, palette)
             let formula = reader.Formula().Flatten
             match reader.Unread with
             | ValueNone -> Ok formula
