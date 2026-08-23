@@ -47,6 +47,9 @@ def rename(font):
             record.string = FAMILY
         elif record.nameID in (4, 6):
             record.string = POSTSCRIPT
+        elif record.nameID == 3:
+            # The identifier a font cache keys on, which two faces may not share.
+            record.string = f"{record};{POSTSCRIPT}"
     cff = font["CFF "].cff
     top = cff[cff.fontNames[0]]
     top.FullName = POSTSCRIPT

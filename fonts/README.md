@@ -32,7 +32,7 @@ regenerating.
 ## Scope
 
 Latin Modern Math is 733,736 bytes: 89% CFF outlines, 3% the `MATH` table, and 2% each of `hmtx`,
-`cmap` and `GSUB`. Trimmed it is 75,360, of which 83% is CFF. The blackboard face is 8,716 bytes,
+`cmap` and `GSUB`. Trimmed it is 75,404, of which 92% is CFF. The blackboard face is 8,716 bytes,
 carries no `MATH` table, and is embedded whole.
 
 4802 glyphs, of which 2045 are reachable through `cmap` and a further 716 only as stretched variants

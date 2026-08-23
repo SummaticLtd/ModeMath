@@ -703,8 +703,8 @@ module HorizontalMarks =
 
 module internal FontFile =
     /// The math face, which every glyph but a blackboard bold capital comes from.
-    let byteLength = 75360
-    let sha256 = "5a55ef8172b8cfdda0af756759ced7660a400f9441e66ea6faef2a88786f7f4e"
+    let byteLength = 75404
+    let sha256 = "e36dc23e5d4895c5e5d3f5157b40dc2b4215ded997e14d6be2c8aa8a14bda8ed"
     /// The blackboard face.
     let blackboardByteLength = 8716
     let blackboardSha256 = "9578b5b9c86e6ab03846080b9d6fa4f7bc6b3044ac15604b8e7bfd4330295dda"
