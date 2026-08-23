@@ -26,10 +26,8 @@ that laying a formula out cannot fail. `Editor.Type` turns such a key down the s
 
 | Turned down | Formulas | Why |
 |---|---|---|
-| Alignment markers outside any environment | 100 | A house convention rather than LaTeX, and not one to read |
+| Alignment markers outside any environment | 112 | A house convention rather than LaTeX, and not one to read |
 | Malformed content | 31 | A trailing `\`, `s_{stop}_{b}`, `\l(`, an unclosed group, `$$` |
-| `\right/` | 2 | A delimiter that is not a bracket |
-| `\lceil` | 1 | Needs a ceiling bracket |
 | `\red` | 1 | A text macro caught in a formula by the extraction |
 
 ## 3. Remaining mathematics
