@@ -29,4 +29,4 @@ jobs:
         run: dotnet build ModeMath.slnx --configuration Release
 
       - name: Test
-        run: dotnet test --project ModeMath.Tests/ModeMath.Tests.fsproj --configuration Release
+        run: dotnet run --project ModeMath.Tests/ModeMath.Tests.fsproj -c Release
