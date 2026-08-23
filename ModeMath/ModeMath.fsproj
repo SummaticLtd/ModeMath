@@ -1,5 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <PropertyGroup>
+    <IsAotCompatible>true</IsAotCompatible>
+    <!-- Without this every union and record drags FSharp.Core's structured formatter in. -->
+    <OtherFlags>$(OtherFlags) --reflectionfree</OtherFlags>
+  </PropertyGroup>
+
   <ItemGroup>
     <Compile Include="Units.fs" />
     <Compile Include="MathFontTypes.fs" />
