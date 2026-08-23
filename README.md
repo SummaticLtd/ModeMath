@@ -46,7 +46,7 @@ Latin Modern Math, cut down to the glyphs ModeMath draws, and AMS Capital Blackb
 
 ## Acknowledgements
 
-[CSharpMath](https://github.com/verybadcat/CSharpMath) is what this project was written in admiration of. Most of the formulas in `examples/` are taken from its rendering tests, which is where the typesetting here was checked against, and the blackboard bold face is the copy it ships.
+ModeMath is inspired by [CSharpMath](https://github.com/verybadcat/CSharpMath). Most of the formulas in `examples/` are taken from its rendering tests, and the typesetting is checked against those. ModeMath has no plan to work with any text outside of math mode, so for a LaTeX renderer that includes both text and maths you should use CSharpMath.
 
 ## Licence
 
