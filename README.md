@@ -1,5 +1,7 @@
 # ModeMath
 
+[![NuGet](https://img.shields.io/nuget/v/ModeMath.svg)](https://www.nuget.org/packages/ModeMath)
+
 Mathematical formula display and editing for .NET, rendered with SkiaSharp.
 
 A formula is an `MA`: a tree of what is written, not of what it means. `Layout` places one at a font size, and `Painter` draws what was placed onto an `SKCanvas`.
