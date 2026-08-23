@@ -59,10 +59,8 @@ Uses are counts in the SummaticApp content library, which asks for no `\mathcal`
 
 `MA.Coloured` carries a `System.Drawing.Color`, as CSharpMath's `Colored` does. It is 24 bytes for
 what is four bytes of RGBA, and one of its four fields is a string reference, so every colour in a
-formula is a pointer the collector tracks. Two of them that paint alike can also compare unequal,
-which would make two formulas that draw the same unequal, so `Palette` rebuilds every colour it
-hands out from its ARGB. `SKColor` is four bytes but would put SkiaSharp in the semantic model, and
-`Summatic.Drawing` is not published.
+formula is a pointer the collector tracks. `SKColor` is four bytes but would put SkiaSharp in the
+semantic model, and `Summatic.Drawing` is not published.
 
 ## Tracked separately
 

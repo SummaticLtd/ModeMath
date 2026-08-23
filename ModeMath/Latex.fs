@@ -17,7 +17,10 @@ type LatexError(message: string, position: int) =
 [<Sealed>]
 type Palette(colours: ImmutableDictionary<string, Color>) =
     /// LaTeX names a colour without regard to case, so darkGray and darkgray are the one name.
-    let named = colours.WithComparers StringComparer.OrdinalIgnoreCase
+    let named =
+        ImmutableDictionary.CreateRange(
+            StringComparer.OrdinalIgnoreCase,
+            colours |> Seq.map (fun c -> KeyValuePair(c.Key, Color.FromArgb(c.Value.ToArgb()))))
 
     /// The nineteen colours xcolor names, in the shades .NET gives them.
     static member val Default =
@@ -35,11 +38,7 @@ type Palette(colours: ImmutableDictionary<string, Color>) =
         |> Palette
 
     /// The colour a name stands for. ValueNone where this palette does not name one.
-    member _.Named(name: string) : Color voption =
-        named
-        |> ImmutableDictionary.tryFind name
-        // Rebuilt, since a Color .NET knows by name equals no other however alike the two paint.
-        |> ValueOption.map (fun colour -> Color.FromArgb(colour.ToArgb()))
+    member _.Named(name: string) : Color voption = named |> ImmutableDictionary.tryFind name
 
     /// The same palette naming one more colour, which takes the place of any name already given.
     member _.With(name: string, colour: Color) = Palette(named.SetItem(name, colour))
