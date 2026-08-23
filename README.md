@@ -17,7 +17,7 @@ use painter = Painter.Embedded()
 painter.Draw(placed, canvas, 0f<px>, placed.Ascent, paint)
 ```
 
-`examples/` shows what renders, each picture beside the formula it came from.
+`examples/` shows what renders, a picture of each formula against its name and size. The formulas themselves are in `tools/RenderExamples/Examples.fs`.
 
 ## Editing
 
@@ -38,7 +38,7 @@ An opening bracket is drawn faint until its closing one is typed, a run of lette
 
 ## LaTeX
 
-`Latex.Read` takes a math-mode string and `Latex.Write` gives one back, every argument in braces. What is not understood is refused with the position it stands at, rather than guessed at, and a character the font cannot draw is refused there too, so laying a formula out cannot fail.
+`Latex.Read` takes a math-mode string and `Latex.Write` gives one back, every argument in braces. What is not understood is refused with the position it stands at, rather than guessed at, and a character the font cannot draw is refused there too, so a formula that was read always lays out. One built from `MA` in code can hold a character the font has no glyph for, and `MA.Undrawable` is the characters it would fail on.
 
 ## Fonts
 
