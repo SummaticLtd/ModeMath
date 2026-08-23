@@ -770,12 +770,10 @@ module internal Latexing =
 
 [<AbstractClass; Sealed>]
 type Latex =
-    /// The formula a math-mode LaTeX string spells, or why it could not be read.
-    static member Read(latex: string) : Result<MA, LatexError> = Latex.Read(latex, Palette.Default)
-
-    /// The same, with the palette \color and \textcolor name their colours from.
-    static member Read(latex: string, palette: Palette) : Result<MA, LatexError> =
+    /// The formula a string spells, or why not. \color names its colours from the palette given.
+    static member Read(latex: string, ?palette: Palette) : Result<MA, LatexError> =
         try
+            let palette = defaultArg palette Palette.Default
             let reader = Latexing.Reader(Latexing.lex latex, latex, palette)
             let formula = reader.Formula().Flatten
             match reader.Unread with
