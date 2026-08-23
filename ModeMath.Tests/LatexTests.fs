@@ -235,9 +235,9 @@ let private reading =
                 [
                     "a\\,b", row [ c 'a'; MA.Space Space.Thin; c 'b' ]
                     "a\\qquad b", row [ c 'a'; MA.Space Space.QQuad; c 'b' ]
-                    // A name stands for the colour itself, not for the one .NET knows by that name.
-                    "\\color{red}{x}", MA.Coloured(Color.FromArgb(255, 255, 0, 0), c 'x')
-                    "\\color{RED}{x}", MA.Coloured(Color.FromArgb(255, 255, 0, 0), c 'x')
+                    // A colour is what it paints, so a name reads as the hex for it reads.
+                    "\\color{red}{x}", read "\\color{#FF0000}{x}"
+                    "\\color{RED}{x}", read "\\color{#FF0000}{x}"
                     "\\textcolor{#0000FF}{x}", MA.Coloured(Color.FromArgb(255, 0, 0, 255), c 'x')
                 ]
             )
@@ -470,6 +470,15 @@ let private colouring =
                     let formula = MA.Coloured(msGreen, c 'x')
                     Assert.Equal("\\color{#82D414}{x}", Latex.Write formula, "green was written by name")
                     Assert.Equal(formula, read(Latex.Write formula), "it did not read back the same")
+            )
+            Test.Sync(
+                "aColourBuiltFromAKnownOneComesBackAsWhatItPaints",
+                fun () ->
+                    // Color.Red is equal to no other Color, so it comes back as its ARGB and not itself.
+                    let written = Latex.Write(MA.Coloured(Color.Red, c 'x'))
+                    Assert.Equal("\\color{#FF0000}{x}", written, "a known colour was written by name")
+                    Assert.Equal(MA.Coloured(Color.FromArgb(255, 255, 0, 0), c 'x'), read written, written)
+                    Assert.Equal(Color.Red.ToArgb(), (Color.FromArgb(255, 255, 0, 0)).ToArgb(), "what it paints")
             )
         ]
     )

@@ -19,21 +19,27 @@ type Palette(colours: ImmutableDictionary<string, Color>) =
     /// LaTeX names a colour without regard to case, so darkGray and darkgray are the one name.
     let named = colours.WithComparers StringComparer.OrdinalIgnoreCase
 
-    /// Every colour .NET knows by name, save the system ones, which follow the desktop theme.
+    /// The nineteen colours xcolor names, in the shades .NET gives them.
     static member val Default =
-        Enum.GetValues<KnownColor>()
-        |> Seq.map Color.FromKnownColor
-        |> Seq.filter (fun colour -> not colour.IsSystemColor)
-        |> Seq.map (fun colour -> KeyValuePair(colour.Name, colour))
+        [
+            "red", Color.Red; "green", Color.Green; "blue", Color.Blue
+            "cyan", Color.Cyan; "magenta", Color.Magenta; "yellow", Color.Yellow
+            "black", Color.Black; "white", Color.White
+            "gray", Color.Gray; "darkgray", Color.DarkGray; "lightgray", Color.LightGray
+            "brown", Color.Brown; "lime", Color.Lime; "olive", Color.Olive
+            "orange", Color.Orange; "pink", Color.Pink; "purple", Color.Purple
+            "teal", Color.Teal; "violet", Color.Violet
+        ]
+        |> Seq.map (fun (name, colour) -> KeyValuePair(name, colour))
         |> ImmutableDictionary.CreateRange
         |> Palette
 
     /// The colour a name stands for. ValueNone where this palette does not name one.
     member _.Named(name: string) : Color voption =
-        match named.TryGetValue name with
-        // Rebuilt, since a Color .NET knows by name equals no other however alike they paint.
-        | true, colour -> ValueSome(Color.FromArgb(colour.ToArgb()))
-        | false, _ -> ValueNone
+        named
+        |> ImmutableDictionary.tryFind name
+        // Rebuilt, since a Color .NET knows by name equals no other however alike the two paint.
+        |> ValueOption.map (fun colour -> Color.FromArgb(colour.ToArgb()))
 
     /// The same palette naming one more colour, which takes the place of any name already given.
     member _.With(name: string, colour: Color) = Palette(named.SetItem(name, colour))
@@ -778,6 +784,5 @@ type Latex =
             | ValueSome position -> Error(LatexError("the formula ends before the string does", position))
         with Latexing.Rejected(message, position) -> Error(LatexError(message, position))
 
-    /// The math-mode LaTeX a formula is written as, which reads back as the same formula. A bracket
-    /// still waiting for its pair is written as the completed one, LaTeX having no way to offer one.
+    /// The math-mode LaTeX a formula is written as, which reads back as a formula that draws the same.
     static member Write(formula: MA) : string = Latexing.write formula
