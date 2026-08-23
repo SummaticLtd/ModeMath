@@ -24,7 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="..\fonts\latinmodern-math.otf" LogicalName="ModeMath.latinmodern-math.otf" />
+    <EmbeddedResource Include="..\fonts\modemath-math.otf" LogicalName="ModeMath.modemath-math.otf" />
     <EmbeddedResource
       Include="..\fonts\AMS-Capital-Blackboard-Bold.otf"
       LogicalName="ModeMath.AMS-Capital-Blackboard-Bold.otf" />
