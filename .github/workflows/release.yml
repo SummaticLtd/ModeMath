@@ -10,6 +10,8 @@ env:
 jobs:
   release:
     runs-on: ubuntu-latest
+    # A dispatch may name any branch, where trusted publishing trusts the workflow rather than the ref.
+    if: github.ref == 'refs/heads/master'
     permissions:
       contents: read
       id-token: write
@@ -41,5 +43,10 @@ jobs:
         with:
           user: charles.roddie
 
-      - name: Push to NuGet
-        run: dotnet nuget push ./nupkgs/*.nupkg --api-key ${{ steps.login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+      # Each artifact is pushed by name, so a run that got one of them up can be dispatched again
+      # for the other. Pushing the package alone would take its symbols with it, and skip both.
+      - name: Push the package
+        run: dotnet nuget push ./nupkgs/*.nupkg --api-key ${{ steps.login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate --no-symbols
+
+      - name: Push the symbols
+        run: dotnet nuget push ./nupkgs/*.snupkg --api-key ${{ steps.login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
