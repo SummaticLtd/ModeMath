@@ -257,5 +257,8 @@ let main(args: string array): int =
         $"    let blackboardSha256 = \"{Convert.ToHexStringLower(SHA256.HashData blackboardBytes)}\""
 
     File.WriteAllText(outputPath, w.Text, Text.UTF8Encoding true)
-    System.Console.WriteLine $"{outputPath}: {repertoire.Length} characters in the repertoire, {w.Text.Length} bytes"
+    // The file rather than the string it was written from, which the byte order mark is not in.
+    System.Console.WriteLine
+        $"{outputPath}: {repertoire.Length} characters in the repertoire, \
+            {FileInfo(outputPath).Length} bytes"
     0
