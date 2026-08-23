@@ -79,10 +79,10 @@ type MathFont =
         | NonNull stream -> stream
         | Null -> failwith $"{name} was not embedded in the assembly"
 
-    /// The file a face was generated from, whose glyph ids Glyph.Id refers to.
+    /// The file a face is drawn from, which carries the glyphs Glyph.Id names and no others.
     static member OpenFontFile(face: Face): Stream =
         match face with
-        | Face.Math -> MathFont.OpenEmbedded "ModeMath.latinmodern-math.otf"
+        | Face.Math -> MathFont.OpenEmbedded "ModeMath.modemath-math.otf"
         | Face.Blackboard -> MathFont.OpenEmbedded "ModeMath.AMS-Capital-Blackboard-Bold.otf"
 
     /// The licence a face is redistributed under, which every copy of it has to carry.
