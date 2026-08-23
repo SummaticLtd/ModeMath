@@ -463,8 +463,8 @@ let private brackets =
                                     Brackets(Bracket.Square, Bracket.Normal),
                                     inner,
                                     BracketCompletion.Completed)))
-                    Assert.Equal(square, glyphIds left, "[0, 1) opens with the square bracket's glyph")
-                    Assert.Equal(round, glyphIds right, "and closes with the round one's")
+                    Assert.CollectionEqual(square, glyphIds left, "[0, 1) opens with the square bracket's glyph")
+                    Assert.CollectionEqual(round, glyphIds right, "and closes with the round one's")
             )
             Test.Sync(
                 "anAbsentBracketDrawsNothingAtAll",
@@ -473,8 +473,8 @@ let private brackets =
                     let open_ =
                         laid(MA.Bracketed(Brackets(Bracket.None, Bracket.Line), inner, BracketCompletion.Completed))
                     let left, right = sides open_
-                    Assert.Equal(0, (glyphIds left).Length, "the absent side drew a delimiter")
-                    Assert.True((glyphIds right).Length > 0, "the bar was not drawn")
+                    Assert.Empty(glyphIds left, "the absent side drew a delimiter")
+                    Assert.Greater((glyphIds right).Length, 0, "the bar was not drawn")
                     nearly((laid inner).Width + right.Width, open_.Width, "the absent side took width")
             )
             Test.Sync(
