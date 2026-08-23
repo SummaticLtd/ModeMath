@@ -1,4 +1,4 @@
-namespace ModeMath
+﻿namespace ModeMath
 
 open System
 open System.Collections.Generic
@@ -475,17 +475,20 @@ module internal Latexing =
 
         member private t.Colour(position: int) =
             let name = t.Words position
+            let error() = fail($"{name} is no colour", position)
             if name.StartsWith('#') then
                 let byteAt(value: uint32, shift: int) = int ((value >>> shift) &&& 255u)
-                match UInt32.TryParse(name.AsSpan 1, Globalization.NumberStyles.HexNumber, null) with
-                | true, value when name.Length = 7 ->
-                    Color.FromArgb(255, byteAt(value, 16), byteAt(value, 8), byteAt(value, 0))
-                | true, value when name.Length = 9 ->
-                    Color.FromArgb(byteAt(value, 0), byteAt(value, 24), byteAt(value, 16), byteAt(value, 8))
-                | _ -> fail($"{name} is no colour", position)
+                match UInt32.TryParse(name.AsSpan 1, Globalization.NumberStyles.AllowHexSpecifier, null) with
+                | true, value ->
+                    if name.Length = 7 then
+                        Color.FromArgb(255, byteAt(value, 16), byteAt(value, 8), byteAt(value, 0))
+                    elif name.Length = 9 then
+                        Color.FromArgb(byteAt(value, 0), byteAt(value, 24), byteAt(value, 16), byteAt(value, 8))
+                    else error()
+                | false, _ -> error()
             else
                 let named = Color.FromName name
-                if named.IsKnownColor then named else fail($"{name} is no colour", position)
+                if named.IsKnownColor then named else error()
 
         member private t.Bracketed(position: int) =
             let left = t.Delimiter position

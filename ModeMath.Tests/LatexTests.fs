@@ -236,6 +236,11 @@ let private reading =
                     // TeX calls two of these in one group ambiguous, and so does this.
                     "a \\choose b \\choose c"
                     "\\color{fuchsias}{x}"
+                    // A space is no hex digit: counting one would read this as an alpha of zero.
+                    "\\color{# FF0000 }{x}"
+                    "\\color{#FF000 }{x}"
+                    // Six digits or eight, so the three CSS allows are not stretched into six.
+                    "\\color{#FFF}{x}"
                     "\\"
                 ]
             )
