@@ -427,7 +427,7 @@ let private bigOperators =
     )
 
 /// The glyphs a mark is drawn from, so that a delimiter can be told from its neighbour.
-let private glyphIds(mark: PlacedGlyphs) = [ for glyph in mark.Glyphs do yield glyph.Glyph.Id ]
+let private glyphIds(mark: PlacedGlyphs) = mark.Glyphs |> ImmArray.map(fun g -> g.Glyph.Id)
 
 /// The delimiters a bracketed formula was drawn with, which surround its content.
 let private sides(placed: Placed) =
@@ -473,7 +473,7 @@ let private brackets =
                     let open_ =
                         laid(MA.Bracketed(Brackets(Bracket.None, Bracket.Line), inner, BracketCompletion.Completed))
                     let left, right = sides open_
-                    Assert.Equal(([]: int list), glyphIds left, "the absent side drew a delimiter")
+                    Assert.Equal(0, (glyphIds left).Length, "the absent side drew a delimiter")
                     Assert.True((glyphIds right).Length > 0, "the bar was not drawn")
                     nearly((laid inner).Width + right.Width, open_.Width, "the absent side took width")
             )
