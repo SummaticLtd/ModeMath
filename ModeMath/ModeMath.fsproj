@@ -48,7 +48,7 @@
   <ItemGroup>
     <PackageReference Include="FSharp.Core" Version="10.1.300" />
     <PackageReference Include="SkiaSharp" Version="3.119.4" />
-    <PackageReference Include="Summatic.FSUtils" Version="0.2.0" />
+    <PackageReference Include="Summatic.FSUtils" Version="0.3.0" />
   </ItemGroup>
 
   <ItemGroup>

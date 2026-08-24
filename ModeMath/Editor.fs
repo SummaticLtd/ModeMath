@@ -23,6 +23,10 @@ type MathKey =
     /// A character itself, which is any the font can draw rather than a list of the ones it knows.
     | Character of char
     | Move of Direction
+    /// The start of the whole formula, whatever the cursor stands inside.
+    | Home
+    /// Its end, likewise.
+    | End
     | Backspace
     | Delete
     | Fraction
@@ -127,6 +131,11 @@ type EditorState(layout: Layout, cursor: PlacedCurs) =
     member private _.Move(direction: Direction) =
         cursor.ToMACurs.Move direction
         |> ValueOption.map (fun moved -> EditorState(layout, PlacedCurs.Of(moved, cursor.Placed)))
+
+    /// ValueNone where the cursor stands there already, so a caller can pass the key on.
+    member private t.At(curs: MACurs) =
+        if curs = cursor.ToMACurs then ValueNone
+        else ValueSome(EditorState(layout, PlacedCurs.Of(curs, cursor.Placed)))
 
     /// A character typed at the cursor, which completes a function name where one is spelled out.
     /// ValueNone where the font cannot draw it, so that a caller can pass the key on.
@@ -240,6 +249,8 @@ type EditorState(layout: Layout, cursor: PlacedCurs) =
         match key with
         | MathKey.Character character -> t.Type character
         | MathKey.Move direction -> t.Move direction
+        | MathKey.Home -> t.At(MACurs.AtStart t.Formula)
+        | MathKey.End -> t.At(MACurs.AtEnd t.Formula)
         | MathKey.Backspace -> t.BackSpace
         | MathKey.Delete -> t.Delete
         | MathKey.Fraction -> ValueSome t.InsertFraction
@@ -290,7 +301,7 @@ type Editor(state: EditorState) =
         match state.Press key with
         | ValueSome pressed ->
             match key with
-            | MathKey.Move _ -> moved pressed
+            | MathKey.Move _ | MathKey.Home | MathKey.End -> moved pressed
             | MathKey.Character _ -> edited(pressed, true)
             | _ -> edited(pressed, false)
             true
@@ -301,10 +312,14 @@ type Editor(state: EditorState) =
 
     member _.Insert(addition: MA) = edited(state.Insert addition, false)
 
-    /// The formula as it stands. Setting it stands the cursor at the end of what is put in.
+    /// The formula as it stands. Setting it opens one afresh, the cursor at its end and no undo behind it.
     member _.Formula
         with get () = state.Formula
-        and set (formula: MA) = edited(EditorState.AtEnd(state.Layout, formula), false)
+        and set (formula: MA) =
+            past.Clear()
+            future.Clear()
+            state <- EditorState.AtEnd(state.Layout, formula)
+            typing <- false
 
     /// False where nothing has been edited yet.
     member _.Undo() =

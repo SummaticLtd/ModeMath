@@ -6,7 +6,7 @@ open System.Drawing
 open SkiaSharp
 open FSUtils
 
-/// Draws a Placed onto an SKCanvas, whose y grows downwards where a Placed's grows upwards.
+/// Draws a Placed onto an SKCanvas, whose y grows downwards where a Placed's grows upwards. One draw at a time.
 type Painter(math: SKTypeface, blackboard: SKTypeface) =
     let fonts = Dictionary<struct(Face * float32<px>), SKFont>()
 
@@ -45,6 +45,18 @@ type Painter(math: SKTypeface, blackboard: SKTypeface) =
 
     /// Draws a formula with its cursor, which is drawn over the formula rather than among it.
     member t.Draw(curs: PlacedCurs, canvas: SKCanvas, x: float32<px>, baseline: float32<px>, paint: SKPaint) =
+        t.Draw(curs, canvas, x, baseline, paint, paint)
+
+    /// The same, with the cursor drawn in a paint of its own.
+    member t.Draw
+        (
+            curs: PlacedCurs,
+            canvas: SKCanvas,
+            x: float32<px>,
+            baseline: float32<px>,
+            paint: SKPaint,
+            cursor: SKPaint
+        ) =
         t.Draw(curs.Placed, canvas, x, baseline, paint)
         let caret = curs.Caret
         canvas.DrawRect(
@@ -53,8 +65,9 @@ type Painter(math: SKTypeface, blackboard: SKTypeface) =
                 number(baseline - caret.Y - caret.Thickness),
                 number caret.Width,
                 number caret.Thickness),
-            paint)
+            cursor)
 
+    /// A colour in the formula is set on the paints and put back, so nothing may use them meanwhile.
     member t.Draw
         (
             placed: Placed,

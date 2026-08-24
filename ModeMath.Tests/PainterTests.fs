@@ -87,6 +87,27 @@ let private painting =
                         $"the cursor added nothing: {inked without} then {inked withCursor}")
             )
             Test.Sync(
+                "aCursorTakesAPaintOfItsOwnWhereItIsGivenOne",
+                fun () ->
+                    let curs = (Layout size).Of(MACurs.AtEnd((MA.String "ab").Flatten))
+                    let bounds = curs.Bounds
+                    let whole(length: float32<px>) = int (ceil (Measure.removeFloat32Unit<px> length)) + 4
+                    use painter = Painter.Embedded()
+                    use bitmap = new SKBitmap(whole bounds.Width, whole bounds.Thickness)
+                    use canvas = new SKCanvas(bitmap)
+                    canvas.Clear SKColors.White
+                    use paint = new SKPaint(Color = SKColors.Black, IsAntialias = true)
+                    use cursor = new SKPaint(Color = SKColors.Red, IsAntialias = true)
+                    painter.Draw(
+                        curs, canvas, margin - bounds.X, margin + bounds.Y + bounds.Thickness, paint, cursor)
+                    let pixels = Array2D.init bitmap.Width bitmap.Height (fun x y -> bitmap.GetPixel(x, y))
+                    Assert.True(lastColumn(red, pixels) >= 0, "the cursor was not drawn in the paint it was given")
+                    Assert.True(lastColumn(black, pixels) >= 0, "the formula went into the cursor's paint too")
+                    Assert.True(
+                        lastColumn(black, pixels) < lastColumn(red, pixels),
+                        "the formula reached past the cursor at the end of it")
+            )
+            Test.Sync(
                 "aFormulaWithoutACursorDrawsNoneOfIt",
                 fun () ->
                     let formula = (MA.String "abc").Flatten

@@ -22,6 +22,8 @@ let private key(character: char) =
     | '\u221B' -> MathKey.Root
     | '^' -> MathKey.Superscript
     | '_' -> MathKey.Subscript
+    | '⇤' -> MathKey.Home
+    | '⇥' -> MathKey.End
     | '<' -> MathKey.Move Direction.Left
     | '>' -> MathKey.Move Direction.Right
     | '\u232B' -> MathKey.Backspace
@@ -132,6 +134,25 @@ let private editing =
                     "aBracketedGroupIsTakenUpWhole", ("(x+1)/c", "frac{(x+1)}{c}")
                 ],
                 fun (keys, expected) -> Assert.Equal(expected, after keys, keys)
+            )
+            Test.CasesSync(
+                "homeAndEndReachTheEndsOfTheWholeFormula",
+                [
+                    "homeGoesBeforeEverything", ("ab⇤c", "cab")
+                    "endGoesAfterIt", ("ab⇤⇥c", "abc")
+                    "homeClimbsOutOfWhateverItStandsIn", ("ab/c⇤d", "dfrac{ab}{c}")
+                    "endClimbsOutAsWell", ("ab/c⇥d", "frac{ab}{c}d")
+                ],
+                fun (keys, expected) -> Assert.Equal(expected, after keys, keys)
+            )
+            Test.Sync(
+                "aKeyReachingWhereTheCursorStandsAlreadyIsPassedOn",
+                fun () ->
+                    let editor = opened(MA.String "ab")
+                    Assert.True((editor.Press MathKey.Home).IsNone, "home was answered at the start")
+                    Assert.True((editor.Press MathKey.End).IsSome, "end had nothing to do at the start")
+                    let ended = (editor.Press MathKey.End).Value
+                    Assert.True((ended.Press MathKey.End).IsNone, "end was answered at the end")
             )
             Test.CasesSync(
                 "aScriptGoesOnTheAtomBeforeIt",
@@ -345,6 +366,13 @@ let private history =
                     undoing ""
             )
             Test.Sync(
+                "reachingAnEndIsNothingToUndoEither",
+                fun () ->
+                    let editor = held "ab⇤"
+                    Assert.True(editor.Undo(), "there was nothing to undo")
+                    Assert.Equal("", spell editor.Formula, "home was put by as an undo of its own")
+            )
+            Test.Sync(
                 "movingTheCursorIsNothingToUndo",
                 fun () ->
                     let editor = held "ab<"
@@ -371,6 +399,19 @@ let private history =
                     editor.Formula <- MA.String "de"
                     Assert.True(editor.Press(key 'f'), "f had nothing to do")
                     Assert.Equal("def", spell editor.Formula, "after typing at a formula put in")
+            )
+            Test.Sync(
+                "aFormulaOpenedAfreshHasNothingBehindIt",
+                fun () ->
+                    let editor = held "ab"
+                    editor.Undo() |> ignore
+                    editor.Formula <- MA.String "cd"
+                    Assert.True(not (editor.Undo()), "the formula it was opened over came back")
+                    Assert.True(not (editor.Redo()), "what was undone before it opened came back")
+                    Assert.True(editor.Press(key 'e'), "e had nothing to do")
+                    Assert.Equal("cde", spell editor.Formula, "after typing at a formula opened afresh")
+                    Assert.True(editor.Undo(), "what was typed after opening could not be undone")
+                    Assert.Equal("cd", spell editor.Formula, "after undoing")
             )
             Test.Sync(
                 "anEditorWithNothingBehindItUndoesNothing",

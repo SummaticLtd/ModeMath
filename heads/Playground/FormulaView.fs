@@ -113,6 +113,8 @@ type FormulaView() as t =
             | Key.Right -> ValueSome(MathKey.Move Direction.Right)
             | Key.Up -> ValueSome(MathKey.Move Direction.Up)
             | Key.Down -> ValueSome(MathKey.Move Direction.Down)
+            | Key.Home -> ValueSome MathKey.Home
+            | Key.End -> ValueSome MathKey.End
             | Key.Back -> ValueSome MathKey.Backspace
             | Key.Delete -> ValueSome MathKey.Delete
             | _ -> ValueNone
