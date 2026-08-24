@@ -956,7 +956,8 @@ let private positions(ma: MA) =
     if walked.Length = 1000 then failwith "the walk did not end"
     walked
 
-/// One formula for each atom a cursor can go inside, so that every PlacedMACurs case is reached.
+/// One for each atom a cursor can go inside, so every PlacedMACurs is reached, and one whose pen
+/// reaches outside what it draws.
 let private cursored = [
     row [ c 'a'; MA.Frac(MA.String "b+1", c 'c'); c 'd' ]
     MA.ScriptSuper(c 'x', c '2', ValueSome(c 'i'))
@@ -965,6 +966,7 @@ let private cursored = [
     MA.RootN(c '3', MA.String "x+1")
     MA.Sqrt(MA.String "2y")
     MA.Frac(MA.Empty, c 'c')
+    row [ MA.Space Space.NegativeThin; c 'x' ]
 ]
 
 let private cursors =

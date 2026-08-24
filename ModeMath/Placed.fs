@@ -129,6 +129,20 @@ and [<RequireQualifiedAccess>] Part =
     /// A child drawn in a colour of its own, which the one around it goes back to afterwards.
     | Painted of colour: Color * child: Placed
 
+type Placed with
+    /// How far either side of its origin the pen reaches, which a negative space carries outside it.
+    member internal t.Reach: struct(float32<px> * float32<px>) =
+        let mutable low = min 0f<px> t.Width
+        let mutable high = max 0f<px> t.Width
+        for part in t.Parts do
+            match part with
+            | Part.Child child | Part.Painted(_, child) ->
+                let struct(childLow, childHigh) = child.Reach
+                low <- min low (child.X + childLow)
+                high <- max high (child.X + childHigh)
+            | Part.Glyph _ | Part.Rule _ -> ()
+        struct(low, high)
+
 type PlacedMA with
     /// Everything this atom draws, in the order it is drawn. Built once, and kept by the Placed that
     /// holds it, so painting reads Placed.Parts rather than building them again.
@@ -314,15 +328,16 @@ and [<Struct>] PlacedCurs(placed: Placed, curs: PlacedMACurs) =
     /// The atom itself, which is laid out the same whatever the cursor in it is doing.
     member _.Placed = placed
     member _.Curs = curs
-    /// The formula and the cursor in it together, with room for the bar at either end of the line.
+    /// The formula and the cursor in it together, with room for the bar wherever the pen reaches.
     member t.Bounds: PlacedRule =
         let caret = t.Caret
+        let struct(low, high) = placed.Reach
         let room = PlacedCurs.Thickness placed.EmSize / 2f
         let bottom = min -placed.Descent caret.Y
         PlacedRule(
-            placed.Width + room * 2f,
+            high - low + room * 2f,
             (max placed.Ascent (caret.Y + caret.Thickness)) - bottom,
-            -room,
+            low - room,
             bottom)
 
     /// Where the cursor is, in pixels from this atom's origin, fitted to what the formula covers.
