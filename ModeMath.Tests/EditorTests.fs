@@ -57,7 +57,7 @@ let rec private spell(ma: MA) =
     | MA.RootN(degree, radicand) -> $"root{{{spell degree}}}{{{spell radicand}}}"
     | MA.ScriptSuper(main, super, ValueNone) -> $"{carrying main}^{{{spell super}}}"
     | MA.ScriptSuper(main, super, ValueSome sub) ->
-        $"{carrying main}^{{{spell super}}}_{{{spell sub}}}"
+        $"{carrying main}_{{{spell sub}}}^{{{spell super}}}"
     | MA.ScriptSub(main, sub) -> $"{carrying main}_{{{spell sub}}}"
     | MA.Bracketed(brackets, inner, completion) ->
         let side(bracket: Bracket, opening: bool, completed: bool) =
@@ -138,8 +138,8 @@ let private editing =
                 [
                     "onTheOneAtomBeforeItRatherThanTheTerm", ("ab^2", "ab^{2}")
                     "aSuperscriptGoesOnWhatTheCursorStandsAfter", ("x^2", "x^{2}")
-                    "aSubscriptJoinsTheSuperscriptTheAtomCarries", ("x^2>_i", "x^{2}_{i}")
-                    "aSuperscriptJoinsTheSubscriptTheAtomCarries", ("x_i>^2", "x^{2}_{i}")
+                    "aSubscriptJoinsTheSuperscriptTheAtomCarries", ("x^2>_i", "x_{i}^{2}")
+                    "aSuperscriptJoinsTheSubscriptTheAtomCarries", ("x_i>^2", "x_{i}^{2}")
                     "aSecondSuperscriptGoesIntoTheOneAlreadyThere", ("x^2>^3", "x^{23}")
                     "aScriptWithNothingBeforeItIsSetOnAnEmptySlot", ("^2", "{}^{2}")
                 ],
