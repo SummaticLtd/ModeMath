@@ -22,6 +22,8 @@ module private BracketKeys =
 type MathKey =
     /// A character itself, which is any the font can draw rather than a list of the ones it knows.
     | Character of char
+    /// A function with a pair of round brackets after it, which the cursor stands in.
+    | Function of MathFunction
     | Move of Direction
     /// The start of the whole formula, whatever the cursor stands inside.
     | Home
@@ -91,6 +93,24 @@ type EditorState(layout: Layout, cursor: PlacedCurs) =
 
     /// The cursor with the tentative brackets it has moved out past made good.
     let settled() = cursor.ToMACurs.Rewrite settling
+
+    /// A bracket opened at a cursor given, which is the one standing unless a key put something in.
+    let opening(standing: MACurs, bracket: Bracket) =
+        let given(before: ImmutableArray<MA>, after: ImmutableArray<MA>) =
+            struct(before, openingFirst (ValueSome bracket) after)
+        let taken = standing.Rewrite given
+        if taken <> standing then taken
+        else
+            let curs = standing.Rewrite settling
+            match curs.OpenBracket bracket with
+            | ValueSome opened -> opened
+            | ValueNone ->
+                let enclosing(inner: MA) =
+                    MACurs.Bracketed(
+                        Brackets.Matching bracket,
+                        MACurs.AtStart inner,
+                        BracketCompletion.Left)
+                curs.ReplaceAfter enclosing
 
     /// The term a fraction takes up, which reaches back to whatever last broke one.
     let term(before: ImmutableArray<MA>) =
@@ -164,23 +184,7 @@ type EditorState(layout: Layout, cursor: PlacedCurs) =
     /// the cursor stands in that atom or just before it, and what was before the cursor comes out of
     /// it. Otherwise what is after the cursor is taken into a new atom the cursor then starts, whose
     /// closing bracket is drawn tentative until one is typed.
-    member private _.InsertBracket(bracket: Bracket) =
-        let standing = cursor.ToMACurs
-        let given(before: ImmutableArray<MA>, after: ImmutableArray<MA>) =
-            struct(before, openingFirst (ValueSome bracket) after)
-        let taken = standing.Rewrite given
-        if taken <> standing then over taken
-        else
-            let curs = settled()
-            match curs.OpenBracket bracket with
-            | ValueSome opened -> over opened
-            | ValueNone ->
-                let enclosing(inner: MA) =
-                    MACurs.Bracketed(
-                        Brackets.Matching bracket,
-                        MACurs.AtStart inner,
-                        BracketCompletion.Left)
-                over(curs.ReplaceAfter enclosing)
+    member private _.InsertBracket(bracket: Bracket) = over(opening(cursor.ToMACurs, bracket))
 
     /// A closing bracket typed at the cursor. A bracketed atom waiting for one takes it, whether
     /// the cursor stands in that atom or just after it, and what was after the cursor comes out of
@@ -248,6 +252,8 @@ type EditorState(layout: Layout, cursor: PlacedCurs) =
     member t.Press(key: MathKey) : EditorState voption =
         match key with
         | MathKey.Character character -> t.Type character
+        | MathKey.Function f ->
+            ValueSome(over(opening((settled()).AddMACurs(MACurs.AtEnd(MA.Function f)), Bracket.Normal)))
         | MathKey.Move direction -> t.Move direction
         | MathKey.Home -> t.At(MACurs.AtStart t.Formula)
         | MathKey.End -> t.At(MACurs.AtEnd t.Formula)

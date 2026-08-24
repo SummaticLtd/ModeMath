@@ -135,6 +135,21 @@ let private editing =
                 ],
                 fun (keys, expected) -> Assert.Equal(expected, after keys, keys)
             )
+            Test.Sync(
+                "aFunctionKeyOpensBracketsForWhatItIsCalledOn",
+                fun () ->
+                    let called(editor: EditorState, f: MathFunction) =
+                        match editor.Press(MathKey.Function f) with
+                        | ValueSome pressed -> pressed
+                        | ValueNone -> failwith $"{MathFunctions.name f} had nothing to do"
+                    let sin = called(opened MA.Empty, MathFunction.Sin)
+                    Assert.Equal("fn{sin}(~)~", spell sin.Formula, "after the function key")
+                    Assert.Equal("fn{sin}(x~)~", spell (typed(sin, "x")).Formula, "after typing in it")
+                    let closed = typed(sin, "x)y")
+                    Assert.Equal("fn{sin}(x)y", spell closed.Formula, "after closing the brackets")
+                    let over = called(typed(opened MA.Empty, "2"), MathFunction.Cos)
+                    Assert.Equal("2fn{cos}(~)~", spell over.Formula, "after a function on what was typed")
+            )
             Test.CasesSync(
                 "homeAndEndReachTheEndsOfTheWholeFormula",
                 [
