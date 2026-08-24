@@ -668,9 +668,9 @@ module internal Latexing =
             | MA.Function f -> command(MathFunctions.name f)
             | MA.ScriptSuper(main, super, sub) ->
                 atom main
+                sub |> ValueOption.iter (fun sub -> put "_"; braced sub)
                 put "^"
                 braced super
-                sub |> ValueOption.iter (fun sub -> put "_"; braced sub)
             | MA.ScriptSub(main, sub) ->
                 atom main
                 put "_"

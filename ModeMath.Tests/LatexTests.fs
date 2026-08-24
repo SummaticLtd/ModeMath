@@ -330,11 +330,20 @@ let private reading =
 let private writing =
     TestList(
         "Writing LaTeX",
-        [   writes(
+        [   Test.Sync(
+                "aPairOfScriptsIsWrittenTheOneWayRoundHoweverItWasRead",
+                fun () ->
+                    // TeX takes them in either order, and the subscript goes first as it does on \sum.
+                    for latex in [ "x_1^2"; "x^2_1" ] do
+                        match Latex.Read latex with
+                        | Ok ma -> Assert.Equal("x_{1}^{2}", Latex.Write ma, $"reading {latex}")
+                        | Error error -> failwith $"{latex} was turned down: {error.Message}"
+            )
+            writes(
                 "everyArgumentIsWrittenInBraces",
                 [
                     MA.ScriptSub(c 'f', c 'x'), "f_{x}"
-                    MA.ScriptSuper(c 'x', c '2', ValueSome(c 'i')), "x^{2}_{i}"
+                    MA.ScriptSuper(c 'x', c '2', ValueSome(c 'i')), "x_{i}^{2}"
                     MA.Frac(c '1', c '2'), @"\frac{1}{2}"
                     MA.Sqrt(c 'x'), @"\sqrt{x}"
                     MA.RootN(c '3', c 'x'), @"\sqrt[{3}]{x}"
