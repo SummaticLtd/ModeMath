@@ -262,6 +262,15 @@ let private laying =
                         "moving the cursor laid the formula out again")
             )
             Test.Sync(
+                "anEditorGivesBackTheLayoutItWasBuiltOver",
+                fun () ->
+                    let editor = Editor(Layout 30f<px>, MA.String "x")
+                    let again = Editor(editor.Layout, MA.String "x")
+                    Assert.True(
+                        abs (editor.Placed.Width - again.Placed.Width) < 0.01f<px>,
+                        $"{editor.Placed.Width} against {again.Placed.Width}")
+            )
+            Test.Sync(
                 "clickingLaysNothingOut",
                 fun () ->
                     let editor = typed(opened MA.Empty, "abc")

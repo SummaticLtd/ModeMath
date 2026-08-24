@@ -115,6 +115,9 @@ type Editor(layout: Layout, cursor: PlacedCurs) =
     /// The formula as it stands, with no cursor in it.
     member _.Formula = cursor.Placed.Pma.ToMA
 
+    /// What this was laid out with, which another editor at the same size is built over.
+    member _.Layout = layout
+
     /// The cursor put at a point, from the formula's origin with y upwards. Lays nothing out.
     member _.Click(x: float32<px>, y: float32<px>) =
         Editor(layout, PlacedCurs.Nearest(cursor.Placed, x, y))
