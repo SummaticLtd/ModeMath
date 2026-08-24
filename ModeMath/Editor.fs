@@ -22,6 +22,8 @@ module private BracketKeys =
 type MathKey =
     /// A character itself, which is any the font can draw rather than a list of the ones it knows.
     | Character of char
+    /// A function with a pair of round brackets after it, which the cursor stands in.
+    | Function of MathFunction
     | Move of Direction
     /// The start of the whole formula, whatever the cursor stands inside.
     | Home
@@ -248,6 +250,7 @@ type EditorState(layout: Layout, cursor: PlacedCurs) =
     member t.Press(key: MathKey) : EditorState voption =
         match key with
         | MathKey.Character character -> t.Type character
+        | MathKey.Function f -> ValueSome((t.Insert(MA.Function f)).InsertBracket Bracket.Normal)
         | MathKey.Move direction -> t.Move direction
         | MathKey.Home -> t.At(MACurs.AtStart t.Formula)
         | MathKey.End -> t.At(MACurs.AtEnd t.Formula)
