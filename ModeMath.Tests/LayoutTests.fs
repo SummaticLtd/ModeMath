@@ -1054,6 +1054,20 @@ let private cursors =
                             nearly(first.Thickness, b.Thickness, $"height in {formula}")
             )
             Test.Sync(
+                "aFormulaBeingEditedStandsOnALineWhateverIsTypedOnIt",
+                fun () ->
+                    // A caller placing the formula by its ascent draws the cursor above it otherwise.
+                    for ma in [ MA.Empty; MA.String "x"; MA.String "ag"; MA.String "xb" ] do
+                        let placed = layout.Of(MACurs.AtEnd(ma.Flatten))
+                        let caret = placed.Caret
+                        Assert.True(
+                            caret.Y + caret.Thickness <= placed.Placed.Ascent + 0.01f<px>,
+                            $"the bar rose {caret.Y + caret.Thickness} over an ascent of {placed.Placed.Ascent}")
+                        Assert.True(
+                            caret.Y >= -placed.Placed.Descent - 0.01f<px>,
+                            $"the bar fell to {caret.Y} under a descent of {placed.Placed.Descent}")
+            )
+            Test.Sync(
                 "theCursorStandsTheSameHoweverMuchHasBeenTypedAtIt",
                 fun () ->
                     // A bar that took its height from the atoms would jump as the first was typed.
