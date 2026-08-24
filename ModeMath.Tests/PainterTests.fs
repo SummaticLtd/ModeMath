@@ -166,6 +166,31 @@ let private painting =
                     Assert.True((cold = first), "a painter that had drawn before differed from one that had not")
             )
             Test.Sync(
+                "aPainterDrawnAtEverMoreSizesDropsTheBlobsItKeptRatherThanHoldingThemAll",
+                fun () ->
+                    use painter = Painter.Embedded()
+                    use bitmap = new SKBitmap(200, 200)
+                    use canvas = new SKCanvas(bitmap)
+                    use paint = new SKPaint(Color = SKColors.Black, IsAntialias = true)
+                    let drawAt(em: float32<px>) =
+                        let placed = (Layout em).Of(c 'x')
+                        painter.Draw(placed, canvas, margin, margin + placed.Ascent, paint)
+                    let mutable highest = 0
+                    for i in 1 .. 6000 do
+                        drawAt(float32 i * 0.01f<px>)
+                        highest <- max highest painter.KeptBlobs
+                    Assert.True(highest > 0, "no blob was ever kept")
+                    Assert.True(
+                        painter.KeptBlobs < highest,
+                        $"every one of the {highest} blobs was still kept after 6,000 sizes")
+                    // The formula still draws once the kept blobs have gone.
+                    let after = drawnBy(painter, (MA.String "abc").Flatten, 0f<px>)
+                    use fresh = Painter.Embedded()
+                    Assert.True(
+                        (after = drawnBy(fresh, (MA.String "abc").Flatten, 0f<px>)),
+                        "a painter that had dropped its blobs drew differently")
+            )
+            Test.Sync(
                 "aFormulaMovedHalfAPixelAlongIsDrawnOnDifferentPixels",
                 fun () ->
                     // Glyphs are positioned to the subpixel, which drawing from a kept blob must keep.
