@@ -24,6 +24,12 @@ type MathKey =
     | Character of char
     /// A function with a pair of round brackets after it, which the cursor stands in.
     | Function of MathFunction
+    /// The square a keypad offers, put on what stands before the cursor.
+    | Squared
+    /// A logarithm with a base to type in, and brackets after it for what it is taken of.
+    | LogBase
+    /// The d over d a derivative is written with, the cursor after the d underneath.
+    | Derivative
     | Move of Direction
     /// The start of the whole formula, whatever the cursor stands inside.
     | Home
@@ -260,6 +266,15 @@ type EditorState(layout: Layout, cursor: PlacedCurs) =
         | MathKey.Character character -> t.Type character
         | MathKey.Function f ->
             ValueSome(over(opening((settled()).AddMACurs(MACurs.AtEnd(MA.Function f)), Bracket.Normal)))
+        | MathKey.Squared ->
+            // Standing after the square rather than in it, since a keypad's key is the whole of it.
+            t.InsertSuperscript.Type '2'
+            |> ValueOption.map (fun squared -> squared.Move Direction.Right |> ValueOption.defaultValue squared)
+        | MathKey.LogBase ->
+            let brackets = MA.Bracketed(Brackets.Matching Bracket.Normal, MA.Empty, BracketCompletion.Completed)
+            let taken = MA.ScriptSub(MA.Function MathFunction.Log, MA.Empty)
+            ValueSome(t.Put(MA.Row(ImmutableArray.Create(taken, brackets))))
+        | MathKey.Derivative -> (t.Put(MA.Frac(MA.Char 'd', MA.Empty))).Type 'd'
         | MathKey.Move direction -> t.Move direction
         | MathKey.Home -> t.At(MACurs.AtStart t.Formula)
         | MathKey.End -> t.At(MACurs.AtEnd t.Formula)

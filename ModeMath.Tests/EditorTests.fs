@@ -136,6 +136,23 @@ let private editing =
                 fun (keys, expected) -> Assert.Equal(expected, after keys, keys)
             )
             Test.Sync(
+                "theKeysAKeypadOffersEachStandTheCursorWhereTypingGoesOn",
+                fun () ->
+                    let pressing(editor: EditorState, key: MathKey) =
+                        match editor.Press key with
+                        | ValueSome pressed -> pressed
+                        | ValueNone -> failwith $"{key} had nothing to do"
+                    let squared = pressing(typed(opened MA.Empty, "x"), MathKey.Squared)
+                    Assert.Equal("x^{2}", spell squared.Formula, "the square")
+                    Assert.Equal("x^{2}y", spell (typed(squared, "y")).Formula, "typed after the square")
+                    let logged = pressing(opened MA.Empty, MathKey.LogBase)
+                    Assert.Equal("fn{log}_{}()", spell logged.Formula, "the logarithm")
+                    Assert.Equal("fn{log}_{2}()", spell (typed(logged, "2")).Formula, "its base typed in")
+                    let derivative = pressing(opened MA.Empty, MathKey.Derivative)
+                    Assert.Equal("frac{d}{d}", spell derivative.Formula, "the derivative")
+                    Assert.Equal("frac{d}{dx}", spell (typed(derivative, "x")).Formula, "taken with respect to x")
+            )
+            Test.Sync(
                 "aShapePutInStandsTheCursorInTheFirstSlotWithNothingInIt",
                 fun () ->
                     let numerator = (opened MA.Empty).Put(MA.Frac(MA.Empty, MA.Empty))
@@ -403,6 +420,16 @@ let private history =
                     let editor = held "ab⇤"
                     Assert.True(editor.Undo(), "there was nothing to undo")
                     Assert.Equal("", spell editor.Formula, "home was put by as an undo of its own")
+            )
+            Test.Sync(
+                "aKeyAKeypadOffersIsOneThingToUndo",
+                fun () ->
+                    for key in [ MathKey.Squared; MathKey.LogBase; MathKey.Derivative ] do
+                        let editor = Editor(layout, MA.Empty)
+                        Assert.True(editor.Press(MathKey.Character 'x'), "x had nothing to do")
+                        Assert.True(editor.Press key, $"{key} had nothing to do")
+                        Assert.True(editor.Undo(), $"there was nothing to undo after {key}")
+                        Assert.Equal("x", spell editor.Formula, $"{key} took more than one undo")
             )
             Test.Sync(
                 "movingTheCursorIsNothingToUndo",
