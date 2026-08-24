@@ -143,6 +143,20 @@ type Placed with
             | Part.Glyph _ | Part.Rule _ -> ()
         struct(low, high)
 
+    /// How far above and below its baseline a cursor is drawn, counting atoms none can go inside.
+    member internal t.CaretReach: struct(float32<px> * float32<px>) =
+        let scale = t.EmSize / MathConstants.UnitsPerEm
+        let mutable low = Slot.box.Bottom * scale
+        let mutable high = Slot.box.Top * scale
+        for part in t.Parts do
+            match part with
+            | Part.Child child | Part.Painted(_, child) ->
+                let struct(childLow, childHigh) = child.CaretReach
+                low <- min low (child.Y + childLow)
+                high <- max high (child.Y + childHigh)
+            | Part.Glyph _ | Part.Rule _ -> ()
+        struct(low, high)
+
 type PlacedMA with
     /// Everything this atom draws, in the order it is drawn. Built once, and kept by the Placed that
     /// holds it, so painting reads Placed.Parts rather than building them again.
@@ -328,30 +342,18 @@ and [<Struct>] PlacedCurs(placed: Placed, curs: PlacedMACurs) =
     /// The atom itself, which is laid out the same whatever the cursor in it is doing.
     member _.Placed = placed
     member _.Curs = curs
-    /// The formula and the cursor in it together, with room for the bar wherever the pen reaches.
-    member t.Bounds: PlacedRule =
-        let caret = t.Caret
+    /// The formula with room for the bar wherever in it the cursor may stand.
+    member _.Bounds: PlacedRule =
         let struct(low, high) = placed.Reach
+        let struct(bottom, top) = placed.CaretReach
         let room = PlacedCurs.Thickness placed.EmSize / 2f
-        let bottom = min -placed.Descent caret.Y
-        PlacedRule(
-            high - low + room * 2f,
-            (max placed.Ascent (caret.Y + caret.Thickness)) - bottom,
-            low - room,
-            bottom)
+        let floor = min -placed.Descent bottom
+        PlacedRule(high - low + room * 2f, (max placed.Ascent top) - floor, low - room, floor)
 
-    /// Where the cursor is, in pixels from this atom's origin, fitted to what the formula covers.
+    /// Where the cursor is, in pixels from this atom's origin, as tall as the slot it stands in.
     member t.Caret: PlacedRule =
-        let caret = t.Unfitted
-        let bottom = max caret.Y (-placed.Descent)
-        let top = min (caret.Y + caret.Thickness) placed.Ascent
-        // A formula covering nothing gives the bar nothing to fit to, and leaves it as it stands.
-        if top > bottom then PlacedRule(caret.Width, top - bottom, caret.X, bottom) else caret
-
-    /// Where the cursor is as the slot it stands in sizes it, before it is fitted to the formula.
-    member private t.Unfitted: PlacedRule =
         let below(child: PlacedCurs) =
-            let caret = child.Unfitted
+            let caret = child.Caret
             PlacedRule(caret.Width, caret.Thickness, child.Placed.X + caret.X, child.Placed.Y + caret.Y)
         match curs with
         | PlacedMACurs.Fills caret | PlacedMACurs.Between(_, caret, _) -> caret
