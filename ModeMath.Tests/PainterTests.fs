@@ -37,6 +37,17 @@ let private drawnWithCursor(curs: MACurs) =
     painter.Draw(placed, canvas, margin - bounds.X, margin + bounds.Y + bounds.Thickness, paint)
     placed, Array2D.init bitmap.Width bitmap.Height (fun x y -> bitmap.GetPixel(x, y))
 
+/// Every pixel a painter draws a formula onto, moved along the line by a fraction of one.
+let private drawnBy(painter: Painter, ma: MA, offset: float32<px>) =
+    let placed = (Layout size).Of ma
+    let whole(length: float32<px>) = int (ceil (Measure.removeFloat32Unit<px> length)) + 4
+    use bitmap = new SKBitmap(whole placed.Width, whole placed.Height)
+    use canvas = new SKCanvas(bitmap)
+    canvas.Clear SKColors.White
+    use paint = new SKPaint(Color = SKColors.Black, IsAntialias = true)
+    painter.Draw(placed, canvas, margin + offset, margin + placed.Ascent, paint)
+    Array2D.init bitmap.Width bitmap.Height (fun x y -> bitmap.GetPixel(x, y))
+
 /// Ink in a red of its own, which antialiasing lightens but leaves the reddest of the three.
 let private red(pixel: SKColor) =
     int pixel.Red > int pixel.Green + 60 && int pixel.Red > int pixel.Blue + 60
@@ -141,6 +152,53 @@ let private painting =
                         float32 last < Measure.removeFloat32Unit<px>(margin + after),
                         "the colour ran on past the atom it was given to")
                     Assert.True(lastColumn(black, pixels) >= 0, "the atom after it lost the black paint")
+            )
+            Test.Sync(
+                "aGlyphIsDrawnTheSameHoweverManyTimesItHasBeenDrawnBefore",
+                fun () ->
+                    use painter = Painter.Embedded()
+                    use fresh = Painter.Embedded()
+                    let formula = (MA.String "abc").Flatten
+                    let first = drawnBy(painter, formula, 0f<px>)
+                    let again = drawnBy(painter, formula, 0f<px>)
+                    let cold = drawnBy(fresh, formula, 0f<px>)
+                    Assert.True((again = first), "the second drawing differed from the first")
+                    Assert.True((cold = first), "a painter that had drawn before differed from one that had not")
+            )
+            Test.Sync(
+                "aPainterDrawnAtEverMoreSizesDropsTheBlobsItKeptRatherThanHoldingThemAll",
+                fun () ->
+                    use painter = Painter.Embedded()
+                    use bitmap = new SKBitmap(200, 200)
+                    use canvas = new SKCanvas(bitmap)
+                    use paint = new SKPaint(Color = SKColors.Black, IsAntialias = true)
+                    let drawAt(em: float32<px>) =
+                        let placed = (Layout em).Of(c 'x')
+                        painter.Draw(placed, canvas, margin, margin + placed.Ascent, paint)
+                    let mutable highest = 0
+                    for i in 1 .. 6000 do
+                        drawAt(float32 i * 0.01f<px>)
+                        highest <- max highest painter.KeptBlobs
+                    Assert.True(highest > 0, "no blob was ever kept")
+                    Assert.True(
+                        painter.KeptBlobs < highest,
+                        $"every one of the {highest} blobs was still kept after 6,000 sizes")
+                    // The formula still draws once the kept blobs have gone.
+                    let after = drawnBy(painter, (MA.String "abc").Flatten, 0f<px>)
+                    use fresh = Painter.Embedded()
+                    Assert.True(
+                        (after = drawnBy(fresh, (MA.String "abc").Flatten, 0f<px>)),
+                        "a painter that had dropped its blobs drew differently")
+            )
+            Test.Sync(
+                "aFormulaMovedHalfAPixelAlongIsDrawnOnDifferentPixels",
+                fun () ->
+                    // Glyphs are positioned to the subpixel, which drawing from a kept blob must keep.
+                    use painter = Painter.Embedded()
+                    let formula = (MA.String "abc").Flatten
+                    let atWhole = drawnBy(painter, formula, 0f<px>)
+                    let atHalf = drawnBy(painter, formula, 0.5f<px>)
+                    Assert.True(atHalf <> atWhole, "half a pixel over gave the very same pixels")
             )
             Test.Sync(
                 "aColourReachesTheRulesAnAtomDrawsAndNotOnlyItsGlyphs",

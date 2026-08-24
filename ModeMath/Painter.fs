@@ -9,6 +9,7 @@ open FSUtils
 /// Draws a Placed onto an SKCanvas, whose y grows downwards where a Placed's grows upwards. One draw at a time.
 type Painter(math: SKTypeface, blackboard: SKTypeface) =
     let fonts = Dictionary<struct(Face * float32<px>), SKFont>()
+    let blobs = Dictionary<struct(Face * float32<px> * int), SKTextBlob>()
 
     /// SkiaSharp takes the numbers themselves, so the measure comes off here and nowhere else.
     let number(value: float32<px>) = Measure.removeFloat32Unit<px> value
@@ -29,6 +30,36 @@ type Painter(math: SKTypeface, blackboard: SKTypeface) =
             created.Edging <- SKFontEdging.SubpixelAntialias
             fonts.[key] <- created
             created
+
+    /// The blob one glyph goes down as, built at the origin so a draw anywhere is the same pixels.
+    let blob(glyph: Glyph, size: float32<px>) : SKTextBlob | null =
+        let key = struct(glyph.Face, size, glyph.Id)
+        match blobs |> Dictionary.tryFind key with
+        | ValueSome found -> found
+        | ValueNone ->
+            let id = BitConverter.GetBytes(uint16 glyph.Id)
+            let created =
+                SKTextBlob.Create(
+                    ReadOnlySpan<byte> id,
+                    SKTextEncoding.GlyphId,
+                    font(glyph.Face, size),
+                    SKPoint.Empty)
+            // A glyph the font cannot blob is not kept, so that the failure is not kept either.
+            match created with
+            | NonNull created ->
+                blobs.[key] <- created
+                created
+            | Null -> null
+
+    let emptyBlobs() =
+        for blob in blobs.Values do
+            blob.Dispose()
+        blobs.Clear()
+
+    /// The blobs kept before the lot are dropped, which is far more than one drawing asks for.
+    static member private MostBlobsKept = 4096
+
+    member internal _.KeptBlobs = blobs.Count
 
     /// A painter over the files the metrics were generated from.
     static member Embedded() =
@@ -77,18 +108,29 @@ type Painter(math: SKTypeface, blackboard: SKTypeface) =
             solid: SKPaint,
             tentative: SKPaint
         ) =
+        // A caller scaling continuously gives every frame a size of its own, and every size its own
+        // blobs, so the kept ones go once there are more than any one drawing could want.
+        if blobs.Count > Painter.MostBlobsKept then emptyBlobs()
+        t.Walk(placed, canvas, x, baseline, solid, tentative)
+
+    member private t.Walk
+        (
+            placed: Placed,
+            canvas: SKCanvas,
+            x: float32<px>,
+            baseline: float32<px>,
+            solid: SKPaint,
+            tentative: SKPaint
+        ) =
         let paint(ink: Ink) = if ink = Ink.Tentative then tentative else solid
         for part in placed.Parts do
             match part with
             | Part.Glyph(glyph, ink) ->
-                let id = BitConverter.GetBytes(uint16 glyph.Glyph.Id)
-                use blob =
-                    SKTextBlob.Create(
-                        ReadOnlySpan<byte> id,
-                        SKTextEncoding.GlyphId,
-                        font(glyph.Glyph.Face, glyph.Size),
-                        SKPoint(number(x + glyph.X), number(baseline - glyph.Y)))
-                canvas.DrawText(blob, 0f, 0f, paint ink)
+                canvas.DrawText(
+                    blob(glyph.Glyph, glyph.Size),
+                    number(x + glyph.X),
+                    number(baseline - glyph.Y),
+                    paint ink)
             | Part.Rule(rule, ink) ->
                 canvas.DrawRect(
                     SKRect.Create(
@@ -98,7 +140,7 @@ type Painter(math: SKTypeface, blackboard: SKTypeface) =
                         number rule.Thickness),
                     paint ink)
             | Part.Child child ->
-                t.Draw(child, canvas, x + child.X, baseline - child.Y, solid, tentative)
+                t.Walk(child, canvas, x + child.X, baseline - child.Y, solid, tentative)
             | Part.Painted(colour, child) ->
                 // The paints belong to the caller, so the colours go back once the child is drawn.
                 let wasSolid = solid.Color
@@ -106,12 +148,13 @@ type Painter(math: SKTypeface, blackboard: SKTypeface) =
                 let painted = SKColor(colour.R, colour.G, colour.B, colour.A)
                 solid.Color <- painted
                 tentative.Color <- painted.WithAlpha(byte (int colour.A / 3))
-                t.Draw(child, canvas, x + child.X, baseline - child.Y, solid, tentative)
+                t.Walk(child, canvas, x + child.X, baseline - child.Y, solid, tentative)
                 solid.Color <- wasSolid
                 tentative.Color <- wasTentative
 
     interface IDisposable with
         member _.Dispose() =
+            emptyBlobs()
             for font in fonts.Values do
                 font.Dispose()
             fonts.Clear()
