@@ -9,6 +9,7 @@ open FSUtils
 /// Draws a Placed onto an SKCanvas, whose y grows downwards where a Placed's grows upwards. One draw at a time.
 type Painter(math: SKTypeface, blackboard: SKTypeface) =
     let fonts = Dictionary<struct(Face * float32<px>), SKFont>()
+    let blobs = Dictionary<struct(Face * float32<px> * int), SKTextBlob | null>()
 
     /// SkiaSharp takes the numbers themselves, so the measure comes off here and nowhere else.
     let number(value: float32<px>) = Measure.removeFloat32Unit<px> value
@@ -28,6 +29,22 @@ type Painter(math: SKTypeface, blackboard: SKTypeface) =
             created.Subpixel <- true
             created.Edging <- SKFontEdging.SubpixelAntialias
             fonts.[key] <- created
+            created
+
+    /// The blob one glyph goes down as, built at the origin so a draw anywhere is the same pixels.
+    let blob(glyph: Glyph, size: float32<px>) =
+        let key = struct(glyph.Face, size, glyph.Id)
+        match blobs |> Dictionary.tryFind key with
+        | ValueSome found -> found
+        | ValueNone ->
+            let id = BitConverter.GetBytes(uint16 glyph.Id)
+            let created =
+                SKTextBlob.Create(
+                    ReadOnlySpan<byte> id,
+                    SKTextEncoding.GlyphId,
+                    font(glyph.Face, size),
+                    SKPoint.Empty)
+            blobs.[key] <- created
             created
 
     /// A painter over the files the metrics were generated from.
@@ -81,14 +98,11 @@ type Painter(math: SKTypeface, blackboard: SKTypeface) =
         for part in placed.Parts do
             match part with
             | Part.Glyph(glyph, ink) ->
-                let id = BitConverter.GetBytes(uint16 glyph.Glyph.Id)
-                use blob =
-                    SKTextBlob.Create(
-                        ReadOnlySpan<byte> id,
-                        SKTextEncoding.GlyphId,
-                        font(glyph.Glyph.Face, glyph.Size),
-                        SKPoint(number(x + glyph.X), number(baseline - glyph.Y)))
-                canvas.DrawText(blob, 0f, 0f, paint ink)
+                canvas.DrawText(
+                    blob(glyph.Glyph, glyph.Size),
+                    number(x + glyph.X),
+                    number(baseline - glyph.Y),
+                    paint ink)
             | Part.Rule(rule, ink) ->
                 canvas.DrawRect(
                     SKRect.Create(
@@ -112,6 +126,11 @@ type Painter(math: SKTypeface, blackboard: SKTypeface) =
 
     interface IDisposable with
         member _.Dispose() =
+            for blob in blobs.Values do
+                match blob with
+                | NonNull blob -> blob.Dispose()
+                | Null -> ()
+            blobs.Clear()
             for font in fonts.Values do
                 font.Dispose()
             fonts.Clear()
