@@ -48,7 +48,7 @@ type FormulaView() as t =
     let painter = Painter.Embedded()
     let margin = 24f<px>
     let size = 48f<px>
-    let mutable editor = Editor(Layout size, MA.Empty)
+    let mutable editor = EditorState(Layout size, MA.Empty)
 
     let redraw() =
         t.InvalidateVisual()
@@ -58,9 +58,9 @@ type FormulaView() as t =
         t.Cursor <- new Cursor(StandardCursorType.Ibeam)
 
     /// What the formula stands at, which loading LaTeX or a font size replaces.
-    member _.Editor
+    member _.State
         with get () = editor
-        and set (value: Editor) =
+        and set (value: EditorState) =
             editor <- value
             redraw()
 

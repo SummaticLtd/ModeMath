@@ -432,15 +432,15 @@ let implemented = [
 /// The same, edited: each is what the keys named leave behind.
 let cursored(layout: Layout) =
     let rightwards(formula: MA, times: int) =
-        let mutable editor = Editor(layout, formula)
+        let mutable editor = EditorState(layout, formula)
         for _ in 1 .. times do
             editor <- (editor.Press(MathKey.Move Direction.Right)).Value
         editor
-    let pressing(key: MathKey) = ((Editor(layout, MA.Empty)).Press key).Value
-    let typed(editor: Editor, letters: string) =
+    let pressing(key: MathKey) = ((EditorState(layout, MA.Empty)).Press key).Value
+    let typed(editor: EditorState, letters: string) =
         letters
         |> Seq.fold
-            (fun (e: Editor) letter ->
+            (fun (e: EditorState) letter ->
                 match e.Press(MathKey.Character letter) with
                 | ValueSome typed -> typed
                 | ValueNone -> failwith $"{letter.ToString()} cannot be typed")
@@ -448,11 +448,11 @@ let cursored(layout: Layout) =
     [
         "CursorBeforeAFraction", rightwards(row [ c 'a'; frac(s "b+1", c 'c'); c 'd' ], 1)
         "CursorAfterALetterInTheNumerator", rightwards(row [ c 'a'; frac(s "b+1", c 'c'); c 'd' ], 3)
-        "CursorInAnEmptyFormula", Editor(layout, MA.Empty)
+        "CursorInAnEmptyFormula", EditorState(layout, MA.Empty)
         "CursorInABracketNotYetClosed",
             typed(pressing(MathKey.Open BracketKey.Round), "x+1")
         "CursorInAnEmptySlot", pressing MathKey.Fraction
-        "CursorOverATypedFunction", typed(Editor(layout, MA.Empty), "cos")
+        "CursorOverATypedFunction", typed(EditorState(layout, MA.Empty), "cos")
     ]
 
 /// Examples from the same folder that MA cannot express yet, with the roadmap item each waits on.

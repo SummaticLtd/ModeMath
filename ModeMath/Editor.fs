@@ -39,8 +39,8 @@ type MathKey =
 
 /// A formula being edited: laid out with the cursor in it, and what to lay it out again with.
 [<Sealed>]
-type Editor(layout: Layout, cursor: PlacedCurs) =
-    let over(curs: MACurs) = Editor(layout, layout.Of curs)
+type EditorState(layout: Layout, cursor: PlacedCurs) =
+    let over(curs: MACurs) = EditorState(layout, layout.Of curs)
 
     /// Whether an atom carries a term on rather than breaking it, asked of the side facing the cursor.
     let carriesOn(ma: MA) =
@@ -95,10 +95,10 @@ type Editor(layout: Layout, cursor: PlacedCurs) =
         count
 
     /// A formula opened for editing with the cursor at its left-hand end.
-    new(layout: Layout, formula: MA) = Editor(layout, layout.Of(MACurs.AtStart formula))
+    new(layout: Layout, formula: MA) = EditorState(layout, layout.Of(MACurs.AtStart formula))
 
     /// The same, with the cursor at its right-hand end.
-    static member AtEnd(layout: Layout, formula: MA) = Editor(layout, layout.Of(MACurs.AtEnd formula))
+    static member AtEnd(layout: Layout, formula: MA) = EditorState(layout, layout.Of(MACurs.AtEnd formula))
 
     /// Everything drawn, which is the same whatever the cursor is doing.
     member _.Placed = cursor.Placed
@@ -120,12 +120,12 @@ type Editor(layout: Layout, cursor: PlacedCurs) =
 
     /// The cursor put at a point, from the formula's origin with y upwards. Lays nothing out.
     member _.Click(x: float32<px>, y: float32<px>) =
-        Editor(layout, PlacedCurs.Nearest(cursor.Placed, x, y))
+        EditorState(layout, PlacedCurs.Nearest(cursor.Placed, x, y))
 
     /// ValueNone at that end of the formula, so a caller can pass the key on. Lays nothing out.
     member private _.Move(direction: Direction) =
         cursor.ToMACurs.Move direction
-        |> ValueOption.map (fun moved -> Editor(layout, PlacedCurs.Of(moved, cursor.Placed)))
+        |> ValueOption.map (fun moved -> EditorState(layout, PlacedCurs.Of(moved, cursor.Placed)))
 
     /// A character typed at the cursor, which completes a function name where one is spelled out.
     /// ValueNone where the font cannot draw it, so that a caller can pass the key on.
@@ -235,7 +235,7 @@ type Editor(layout: Layout, cursor: PlacedCurs) =
 
     /// The formula a key leaves behind. ValueNone where the key had nothing to do here, so that a
     /// caller can pass it on to whatever else answers keys.
-    member t.Press(key: MathKey) : Editor voption =
+    member t.Press(key: MathKey) : EditorState voption =
         match key with
         | MathKey.Character character -> t.Type character
         | MathKey.Move direction -> t.Move direction

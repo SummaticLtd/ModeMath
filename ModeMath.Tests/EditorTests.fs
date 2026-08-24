@@ -5,7 +5,7 @@ open SimpleTests
 open ModeMath
 
 let private layout = Layout 20f<px>
-let private opened(ma: MA) = Editor(layout, ma)
+let private opened(ma: MA) = EditorState(layout, ma)
 let private arr(xs: MA list) = xs.ToImmutableArray()
 
 /// Which key a character in a case stands for. The arrows are < and >, backspace and delete the
@@ -28,7 +28,7 @@ let private key(character: char) =
     | '\u2326' -> MathKey.Delete
     | _ -> MathKey.Character character
 
-let private pressed(editor: Editor, character: char) =
+let private pressed(editor: EditorState, character: char) =
     // The cursor put back at the start, which is opening the formula afresh rather than a key.
     if character = '\u2196' then opened editor.Formula
     else
@@ -36,8 +36,8 @@ let private pressed(editor: Editor, character: char) =
         | ValueSome pressed -> pressed
         | ValueNone -> failwith $"{character} had nothing to do"
 
-let private typing(editor: Editor, c: char) = pressed(editor, c)
-let private typed(editor: Editor, s: string) = s |> Seq.fold (fun e c -> pressed(e, c)) editor
+let private typing(editor: EditorState, c: char) = pressed(editor, c)
+let private typed(editor: EditorState, s: string) = s |> Seq.fold (fun e c -> pressed(e, c)) editor
 
 /// The formula the keys leave behind, starting from nothing.
 let private pressing(keys: string) =
@@ -264,8 +264,8 @@ let private laying =
             Test.Sync(
                 "anEditorGivesBackTheLayoutItWasBuiltOver",
                 fun () ->
-                    let editor = Editor(Layout 30f<px>, MA.String "x")
-                    let again = Editor(editor.Layout, MA.String "x")
+                    let editor = EditorState(Layout 30f<px>, MA.String "x")
+                    let again = EditorState(editor.Layout, MA.String "x")
                     Assert.True(
                         abs (editor.Placed.Width - again.Placed.Width) < 0.01f<px>,
                         $"{editor.Placed.Width} against {again.Placed.Width}")
@@ -313,4 +313,4 @@ let private laying =
         ]
     )
 
-let tests = TestFolder("Editor", [ editing; laying ])
+let tests = TestFolder("EditorState", [ editing; laying ])

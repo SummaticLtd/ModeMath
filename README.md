@@ -1,4 +1,4 @@
-# ModeMath
+﻿# ModeMath
 
 [![NuGet](https://img.shields.io/nuget/v/ModeMath.svg)](https://www.nuget.org/packages/ModeMath)
 
@@ -23,15 +23,15 @@ painter.Draw(placed, canvas, 0f<px>, placed.Ascent, paint)
 
 ## Editing
 
-`Editor` holds a formula with a cursor in it. Every key reaches it through `Press`, which answers with a new editor rather than changing this one, so a caller keeps whichever it likes and undo costs nothing. `ValueNone` says the key had nothing to do here, leaving the caller free to pass it on.
+`EditorState` holds a formula with a cursor in it. Every key reaches it through `Press`, which answers with a new state rather than changing this one, so a caller keeps whichever it likes and undo costs nothing. `ValueNone` says the key had nothing to do here, leaving the caller free to pass it on.
 
 ```fsharp
-let pressing(editor: Editor, key: MathKey) =
+let pressing(editor: EditorState, key: MathKey) =
     editor.Press key |> ValueOption.defaultValue editor
 
 let typed =
     [ MathKey.Character 'x'; MathKey.Superscript; MathKey.Character '2' ]
-    |> List.fold (fun editor key -> pressing(editor, key)) (Editor(Layout 24f<px>, MA.Empty))
+    |> List.fold (fun editor key -> pressing(editor, key)) (EditorState(Layout 24f<px>, MA.Empty))
 
 let clicked = typed.Click(x, y)
 ```
