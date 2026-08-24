@@ -166,6 +166,12 @@ type EditorState(layout: Layout, cursor: PlacedCurs) =
     /// A formula put in at the cursor, which the cursor then stands after.
     member _.Insert(addition: MA) = over((settled()).AddMACurs(MACurs.AtEnd addition))
 
+    /// A shape put in at the cursor, which then stands in the first slot of it with nothing in it.
+    /// Where it has no such slot the cursor stands after it, as Insert leaves it.
+    member _.Put(shape: MA) =
+        let inner = MACurs.AtFirstHole shape |> ValueOption.defaultValue (MACurs.AtEnd shape)
+        over((settled()).AddMACurs inner)
+
     /// A fraction over the term before the cursor, which then stands in the denominator. Where no
     /// term stands there the fraction is empty and the cursor goes in the numerator instead.
     member private _.InsertFraction =
@@ -317,6 +323,9 @@ type Editor(state: EditorState) =
     member _.Click(x: float32<px>, y: float32<px>) = moved(state.Click(x, y))
 
     member _.Insert(addition: MA) = edited(state.Insert addition, false)
+
+    /// A shape put in with the cursor standing in the first slot of it with nothing in it.
+    member _.Put(shape: MA) = edited(state.Put shape, false)
 
     /// The formula as it stands. Setting it opens one afresh, the cursor at its end and no undo behind it.
     member _.Formula

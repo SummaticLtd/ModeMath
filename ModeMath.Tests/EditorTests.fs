@@ -136,6 +136,23 @@ let private editing =
                 fun (keys, expected) -> Assert.Equal(expected, after keys, keys)
             )
             Test.Sync(
+                "aShapePutInStandsTheCursorInTheFirstSlotWithNothingInIt",
+                fun () ->
+                    let numerator = (opened MA.Empty).Put(MA.Frac(MA.Empty, MA.Empty))
+                    Assert.Equal("frac{x}{}", spell (typed(numerator, "x")).Formula, "in a fraction put in")
+                    // What a keypad's log button gives: a base to type in, and brackets after it.
+                    let log =
+                        MA.Row(
+                            arr [
+                                MA.ScriptSub(MA.Function MathFunction.Log, MA.Empty)
+                                MA.Bracketed(Brackets.Matching Bracket.Normal, MA.Empty, BracketCompletion.Completed)
+                            ])
+                    let based = (opened MA.Empty).Put log
+                    Assert.Equal("fn{log}_{2}()", spell (typed(based, "2")).Formula, "in a log put in")
+                    let whole = (opened MA.Empty).Put(MA.Char 'y')
+                    Assert.Equal("yz", spell (typed(whole, "z")).Formula, "after a shape with no such slot")
+            )
+            Test.Sync(
                 "aFunctionKeyOpensBracketsForWhatItIsCalledOn",
                 fun () ->
                     let called(editor: EditorState, f: MathFunction) =
