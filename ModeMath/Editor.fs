@@ -175,7 +175,9 @@ type EditorState(layout: Layout, cursor: PlacedCurs) =
     /// A shape put in at the cursor, which then stands in the first slot of it with nothing in it.
     /// Where it has no such slot the cursor stands after it, as Insert leaves it.
     member _.Put(shape: MA) =
-        let inner = MACurs.AtFirstHole shape |> ValueOption.defaultValue (MACurs.AtEnd shape)
+        // Flattened first, so that a slot standing empty is one wherever the shape was built nested.
+        let flat = shape.Flatten
+        let inner = MACurs.AtFirstHole flat |> ValueOption.defaultValue (MACurs.AtEnd flat)
         over((settled()).AddMACurs inner)
 
     /// A fraction over the term before the cursor, which then stands in the denominator. Where no

@@ -166,6 +166,14 @@ let private editing =
                             ])
                     let based = (opened MA.Empty).Put log
                     Assert.Equal("fn{log}_{2}()", spell (typed(based, "2")).Formula, "in a log put in")
+                    let nested = (opened MA.Empty).Put(MA.Frac(MA.Row(arr [ MA.Empty ]), MA.Char 'd'))
+                    Assert.Equal("frac{x}{d}", spell (typed(nested, "x")).Formula, "in a slot holding an empty row")
+                    // A shape built nested holds the same slots, so the same one takes the cursor.
+                    let nested = (opened MA.Empty).Put(MA.Frac(MA.Row(arr [ MA.Empty; MA.Empty ]), MA.Char 'd'))
+                    Assert.Equal("frac{x}{d}", spell (typed(nested, "x")).Formula, "in a slot built as a row")
+                    let deep = MA.Row(arr [ MA.Row(arr [ MA.Char 'a'; MA.Frac(MA.Empty, MA.Char 'b') ]) ])
+                    let inDeep = (opened MA.Empty).Put deep
+                    Assert.Equal("afrac{x}{b}", spell (typed(inDeep, "x")).Formula, "in a slot inside a nested row")
                     let whole = (opened MA.Empty).Put(MA.Char 'y')
                     Assert.Equal("yz", spell (typed(whole, "z")).Formula, "after a shape with no such slot")
             )
@@ -420,6 +428,20 @@ let private history =
                     let editor = held "ab⇤"
                     Assert.True(editor.Undo(), "there was nothing to undo")
                     Assert.Equal("", spell editor.Formula, "home was put by as an undo of its own")
+            )
+            Test.Sync(
+                "aShapePutInIsOneThingToUndoHoweverManySlotsItHas",
+                fun () ->
+                    let editor = Editor(layout, MA.Empty)
+                    Assert.True(editor.Press(MathKey.Character 'x'), "x had nothing to do")
+                    editor.Put(MA.Frac(MA.Empty, MA.Frac(MA.Empty, MA.Char 'b')))
+                    Assert.True(editor.Press(MathKey.Character 'y'), "y had nothing to do")
+                    Assert.Equal("xfrac{y}{frac{}{b}}", spell editor.Formula, "typed in the shape put in")
+                    Assert.True(editor.Undo(), "there was nothing to undo after typing")
+                    Assert.True(editor.Undo(), "there was nothing to undo after the shape")
+                    Assert.Equal("x", spell editor.Formula, "the shape took more than one undo")
+                    Assert.True(editor.Redo(), "the shape did not come back")
+                    Assert.Equal("xfrac{}{frac{}{b}}", spell editor.Formula, "after redoing the shape")
             )
             Test.Sync(
                 "aKeyAKeypadOffersIsOneThingToUndo",
