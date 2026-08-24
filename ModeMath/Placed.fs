@@ -143,7 +143,7 @@ type Placed with
             | Part.Glyph _ | Part.Rule _ -> ()
         struct(low, high)
 
-    /// How far above and below its baseline a cursor standing anywhere in it is drawn.
+    /// How far above and below its baseline a cursor is drawn, counting atoms none can go inside.
     member internal t.CaretReach: struct(float32<px> * float32<px>) =
         let scale = t.EmSize / MathConstants.UnitsPerEm
         let mutable low = Slot.box.Bottom * scale
