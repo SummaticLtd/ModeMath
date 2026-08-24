@@ -36,7 +36,7 @@ let typed =
 let clicked = typed.Click(x, y)
 ```
 
-An opening bracket is drawn faint until its closing one is typed, a run of letters spelling a function name becomes that function, and a formula can be built from `MA` directly instead.
+An opening bracket is drawn faint until its closing one is typed, a run of letters spelling a name becomes what it names — a function, the radical `sqrt` opens, or the mark `degree` gives — and a formula can be built from `MA` directly instead.
 
 ## LaTeX
 

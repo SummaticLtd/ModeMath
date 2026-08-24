@@ -94,6 +94,12 @@ let private editing =
                 [
                     "typingBuildsTheFormulaTyped", ("abc", "abc")
                     "typingAFunctionNameMakesTheFunction", ("sin", "fn{sin}")
+                    "aLongerNameIsTakenOverAShorterOneItStartsWith", ("sinh", "fn{sinh}")
+                    "andEveryOtherNameTypingKnows", ("exp", "fn{exp}")
+                    "underTheSpellingACalculatorGivesIt", ("asin", "fn{arcsin}")
+                    "andOverOneAlreadyRecognised", ("sech", "fn{sech}")
+                    "typingSqrtLeavesTheCursorInsideTheRadical", ("sqrtx", "sqrt{x}")
+                    "typingDegreeGivesTheMark", ("90degree", "90°")
                     "aSquareRootLeavesTheCursorInsideIt", ("\u221Ax", "sqrt{x}")
                     "aRootLeavesTheCursorInItsDegree", ("\u221B3", "root{3}{}")
                     "andTheRadicandComesAfterIt", ("\u221B3>x", "root{3}{x}")
@@ -101,6 +107,19 @@ let private editing =
                     "deleteTakesBackWhatIsAhead", ("abc<\u2326", "ab")
                 ],
                 fun (keys, expected) -> Assert.Equal(expected, after keys, keys)
+            )
+            Test.Sync(
+                // Recognising the shorter name first would strand the letters that follow it.
+                "everyNameStartingWithOneRecognisedIsRecognisedItself",
+                fun () ->
+                    let spellings =
+                        SpelledNames.table |> Seq.map (fun struct(spelling, _) -> spelling) |> Set.ofSeq
+                    let extends(name: string) =
+                        spellings
+                        |> Set.exists (fun s -> s <> name && name.StartsWith(s, System.StringComparison.Ordinal))
+                    for struct(name, f) in MathFunctions.named do
+                        if extends name then
+                            Assert.Equal(spell (MA.Function f), after name, $"{name} was left as its letters")
             )
             Test.CasesSync(
                 "aFractionTakesUpTheTermBeforeIt",

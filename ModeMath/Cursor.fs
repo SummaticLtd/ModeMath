@@ -4,31 +4,40 @@ open System
 open System.Collections.Immutable
 open FSUtils
 
-module internal FunctionNames =
+/// What a name typed out in letters gives.
+[<RequireQualifiedAccess>]
+type internal Spelled =
+    /// An atom the cursor then stands after, as a function name gives.
+    | Atom of MA
+    /// A radical the cursor then stands inside.
+    | Sqrt
+
+module internal SpelledNames =
+    /// The functions typing a name gives, kept short so a product of variables does not become one.
+    let private functions =
+        ImmutableArray.Create(
+            MathFunction.Sin, MathFunction.Cos, MathFunction.Tan,
+            MathFunction.Asin, MathFunction.Acos, MathFunction.Atan,
+            MathFunction.Sinh, MathFunction.Cosh, MathFunction.Tanh,
+            MathFunction.Sech, MathFunction.Csch, MathFunction.Coth,
+            MathFunction.Exp, MathFunction.Log, MathFunction.Ln,
+            MathFunction.Sec, MathFunction.Csc, MathFunction.Cot,
+            MathFunction.Erf, MathFunction.Min, MathFunction.Max)
+
     /// What typing a name out spells, longest spelling first so that arcsin is not taken for sin.
     let table =
-        ImmutableArray.Create(
-            struct("sin", MathFunction.Sin),
-            struct("cos", MathFunction.Cos),
-            struct("tan", MathFunction.Tan),
-            struct("asin", MathFunction.Asin),
-            struct("acos", MathFunction.Acos),
-            struct("atan", MathFunction.Atan),
-            struct("arcsin", MathFunction.Asin),
-            struct("arccos", MathFunction.Acos),
-            struct("arctan", MathFunction.Atan),
-            struct("sinh", MathFunction.Sinh),
-            struct("cosh", MathFunction.Cosh),
-            struct("tanh", MathFunction.Tanh),
-            struct("log", MathFunction.Log),
-            struct("ln", MathFunction.Ln),
-            struct("sec", MathFunction.Sec),
-            struct("csc", MathFunction.Csc),
-            struct("cot", MathFunction.Cot),
-            struct("erf", MathFunction.Erf),
-            struct("min", MathFunction.Min),
-            struct("max", MathFunction.Max)
-        )
+        let spellings = ImmutableArray.CreateBuilder<struct(string * Spelled)>()
+        let add(spelling: string, what: Spelled) = spellings.Add(struct(spelling, what))
+        let fn(spelling: string, f: MathFunction) = add(spelling, Spelled.Atom(MA.Function f))
+        for f in functions do
+            fn(MathFunctions.name f, f)
+        // What a calculator calls the inverse trigonometric functions, which are written arcsin.
+        fn("asin", MathFunction.Asin)
+        fn("acos", MathFunction.Acos)
+        fn("atan", MathFunction.Atan)
+        add("degree", Spelled.Atom(MA.Char '°'))
+        add("sqrt", Spelled.Sqrt)
+        spellings.ToImmutable()
         |> ImmArray.sortByDescending (fun struct(spelling, _) -> spelling.Length)
 
 /// Math formula Input with a cursor
@@ -715,8 +724,8 @@ type internal MACurs =
         | RootNMain(n, x) -> RootNMain(n, x.AddMACurs addition)
         | Sqrt x -> Sqrt(x.AddMACurs addition)
 
-    /// Replaces a trailing run of letters spelling a function name with that function.
-    static member private RecogniseFunction(elements: ImmutableArray<MA>) =
+    /// A trailing run of letters replaced by what it spells, with where the cursor then stands.
+    static member private Recognised(elements: ImmutableArray<MA>) : struct(ImmutableArray<MA> * MACurs) =
         let isLetter(i: int) =
             match elements.[i] with
             | MA.Char c -> Char.IsLetter c
@@ -730,8 +739,13 @@ type internal MACurs =
                 | MA.Char c -> c
                 | _ -> ' '))
         let spelled(letters: string) =
-            FunctionNames.table |> ImmArray.tryPick (fun struct(spelling, f) ->
-                if spelling = letters then ValueSome f else ValueNone)
+            SpelledNames.table |> ImmArray.tryPick (fun struct(spelling, what) ->
+                if spelling = letters then ValueSome what else ValueNone)
+        let replacing(count: int, what: Spelled) =
+            let kept = elements |> ImmArray.truncate count
+            match what with
+            | Spelled.Atom atom -> struct(kept.Add atom, CursorOrEmpty)
+            | Spelled.Sqrt -> struct(kept, Sqrt CursorOrEmpty)
         /// The name of the function standing before the letters, if one stands there.
         let before =
             if start = 0 then ValueNone
@@ -740,23 +754,23 @@ type internal MACurs =
                 | MA.Function f -> ValueSome(MathFunctions.name f)
                 | _ -> ValueNone
         let matched =
-            FunctionNames.table
+            SpelledNames.table
             |> ImmArray.tryFind (fun struct(spelling, _) -> letters.EndsWith(spelling, StringComparison.Ordinal))
         match matched with
-        | ValueSome(spelling, f) ->
-            (elements |> ImmArray.truncate (elements.Length - spelling.Length)).Add(MA.Function f)
+        | ValueSome(spelling, what) -> replacing(elements.Length - spelling.Length, what)
         | ValueNone ->
             // A name no run of letters spells may be one a function before them goes on to spell.
             match before |> ValueOption.bind (fun name -> spelled(name + letters)) with
-            | ValueSome f -> (elements |> ImmArray.truncate (start - 1)).Add(MA.Function f)
-            | ValueNone -> elements
+            | ValueSome what -> replacing(start - 1, what)
+            | ValueNone -> struct(elements, CursorOrEmpty)
 
     /// Adds a character at the cursor, replacing a completed function name with that function.
     member t.AddAlphanumeric(c: char): MACurs =
         match t with
         | CursorOrEmpty -> MACurs.AtEnd(MA.Char c)
         | Row(before, CursorOrEmpty, after) ->
-            MACurs.MakeRow(MACurs.RecogniseFunction(before.Add(MA.Char c)), CursorOrEmpty, after)
+            let struct(atoms, inner) = MACurs.Recognised(before.Add(MA.Char c))
+            MACurs.MakeRow(atoms, inner, after)
         | Row(before, inner, after) -> MACurs.MakeRow(before, inner.AddAlphanumeric c, after)
         | ScriptMainSuper(main, super, sub) -> ScriptMainSuper(main.AddAlphanumeric c, super, sub)
         | ScriptMainSub(main, sub) -> ScriptMainSub(main.AddAlphanumeric c, sub)
