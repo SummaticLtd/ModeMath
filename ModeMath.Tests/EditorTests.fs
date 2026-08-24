@@ -313,4 +313,87 @@ let private laying =
         ]
     )
 
-let tests = TestFolder("EditorState", [ editing; laying ])
+/// An editor with the keys typed at it, which is the mutable one rather than a state.
+let private held(keys: string) =
+    let editor = Editor(layout, MA.Empty)
+    for character in keys do
+        Assert.True(editor.Press(key character), $"{character} had nothing to do")
+    editor
+
+let private history =
+    TestList(
+        "History",
+        [   Test.Sync(
+                "aRunOfCharactersIsUndoneInOneGo",
+                fun () ->
+                    let editor = held "abc"
+                    Assert.True(editor.Undo(), "there was nothing to undo")
+                    Assert.Equal("", spell editor.State.Formula, "after undoing")
+                    Assert.True(editor.Redo(), "there was nothing to redo")
+                    Assert.Equal("abc", spell editor.State.Formula, "after redoing")
+            )
+            Test.Sync(
+                "everyOtherKeyEndsTheRunItFollows",
+                fun () ->
+                    // The fraction stands between two runs of letters, and is an edit of its own.
+                    let editor = held "ab/c"
+                    let undoing(left: string) =
+                        Assert.True(editor.Undo(), $"there was nothing to undo before {left}")
+                        Assert.Equal(left, spell editor.State.Formula, "after undoing")
+                    undoing "frac{ab}{}"
+                    undoing "ab"
+                    undoing ""
+            )
+            Test.Sync(
+                "movingTheCursorIsNothingToUndo",
+                fun () ->
+                    let editor = held "ab<"
+                    Assert.True(editor.Undo(), "there was nothing to undo")
+                    Assert.Equal("", spell editor.State.Formula, "the letters did not come back at once")
+                    Assert.True(not (editor.Undo()), "the move was put by as an undo of its own")
+            )
+            Test.Sync(
+                "aMoveBreaksTheRunItStandsIn",
+                fun () ->
+                    let editor = held "ab<c"
+                    Assert.Equal("acb", spell editor.State.Formula, "before undoing")
+                    Assert.True(editor.Undo(), "there was nothing to undo")
+                    Assert.Equal("ab", spell editor.State.Formula, "the c was undone with the letters before it")
+                    Assert.True(editor.Undo(), "the letters before the move were not put by")
+                    Assert.Equal("", spell editor.State.Formula, "after undoing the letters")
+            )
+            Test.Sync(
+                "anEditorWithNothingBehindItUndoesNothing",
+                fun () ->
+                    let editor = Editor(layout, MA.Empty)
+                    Assert.True(not (editor.Undo()), "an untouched editor undid something")
+                    Assert.True(not (editor.Redo()), "an untouched editor redid something")
+                    Assert.True(not (editor.Press(MathKey.Move Direction.Left)), "a key was answered")
+            )
+            Test.Sync(
+                "editingAfterUndoingLeavesNothingToRedo",
+                fun () ->
+                    let editor = held "a"
+                    editor.Undo() |> ignore
+                    Assert.True(editor.Press(key 'b'), "b had nothing to do")
+                    Assert.True(not (editor.Redo()), "the a came back after b was typed")
+                    Assert.Equal("b", spell editor.State.Formula, "after typing over what was undone")
+            )
+            Test.Sync(
+                "layingOutAgainKeepsTheCursorAndWhatIsBehindIt",
+                fun () ->
+                    let editor = held "ab"
+                    let narrow = editor.State.Bounds.Width
+                    editor.Layout <- Layout 40f<px>
+                    Assert.True(
+                        editor.State.Bounds.Width > narrow,
+                        $"{editor.State.Bounds.Width} was no wider than {narrow}")
+                    Assert.True(editor.Press(key 'c'), "c had nothing to do")
+                    Assert.Equal("abc", spell editor.State.Formula, "the cursor moved when it was laid out")
+                    Assert.True(editor.Undo(), "there was nothing to undo")
+                    Assert.Equal("", spell editor.State.Formula, "after undoing")
+            )
+        ]
+    )
+
+let tests = TestFolder("EditorState", [ editing; laying; history ])

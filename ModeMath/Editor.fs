@@ -1,5 +1,6 @@
 ﻿namespace ModeMath
 
+open System.Collections.Generic
 open System.Collections.Immutable
 
 /// A bracket a key types, which is a shape whose opening and closing forms are keys of their own.
@@ -249,3 +250,75 @@ type EditorState(layout: Layout, cursor: PlacedCurs) =
         | MathKey.Open key -> ValueSome(t.InsertBracket(BracketKeys.shape key))
         | MathKey.Close key -> ValueSome(t.CloseBracket(BracketKeys.shape key))
         | MathKey.Bar -> ValueSome t.InsertBar
+
+/// A formula being edited, which keeps the state it stands at now and the states it stood at before.
+[<Sealed>]
+type Editor(state: EditorState) =
+    let past = Stack<MACurs>()
+    let future = Stack<MACurs>()
+    let mutable state = state
+    /// Whether the last key typed a character, which is what carries a run of them into one undo.
+    let mutable typing = false
+
+    let at(layout: Layout, curs: MACurs) = EditorState(layout, layout.Of curs)
+
+    /// The state given, with the one it replaces put by to undo to unless a run carries on.
+    let edited(next: EditorState, carriesOn: bool) =
+        if not (carriesOn && typing) then past.Push state.Cursor.ToMACurs
+        future.Clear()
+        state <- next
+        typing <- carriesOn
+
+    /// The cursor moved rather than the formula edited, which no undo goes back to.
+    let moved(next: EditorState) =
+        state <- next
+        typing <- false
+
+    new(layout: Layout, formula: MA) = Editor(EditorState(layout, formula))
+
+    /// The formula with its cursor as they stand, which a Painter draws.
+    member _.State = state
+
+    /// What it is laid out at. Setting it lays the formula out again where the cursor stands.
+    member _.Layout
+        with get () = state.Layout
+        and set (value: Layout) = state <- at(value, state.Cursor.ToMACurs)
+
+    /// False where the key had nothing to do here, so that a caller can pass it on.
+    member _.Press(key: MathKey) =
+        match state.Press key with
+        | ValueSome pressed ->
+            match key with
+            | MathKey.Move _ -> moved pressed
+            | MathKey.Character _ -> edited(pressed, true)
+            | _ -> edited(pressed, false)
+            true
+        | ValueNone -> false
+
+    /// The cursor put at a point, from the formula's origin with y upwards.
+    member _.Click(x: float32<px>, y: float32<px>) = moved(state.Click(x, y))
+
+    member _.Insert(addition: MA) = edited(state.Insert addition, false)
+
+    /// The formula as it stands. Setting it stands the cursor at the end of what is put in.
+    member _.Formula
+        with get () = state.Formula
+        and set (formula: MA) = edited(EditorState.AtEnd(state.Layout, formula), false)
+
+    /// False where nothing has been edited yet.
+    member _.Undo() =
+        if past.Count = 0 then false
+        else
+            future.Push state.Cursor.ToMACurs
+            state <- at(state.Layout, past.Pop())
+            typing <- false
+            true
+
+    /// False where nothing has been undone, which anything edited since undoing has emptied.
+    member _.Redo() =
+        if future.Count = 0 then false
+        else
+            past.Push state.Cursor.ToMACurs
+            state <- at(state.Layout, future.Pop())
+            typing <- false
+            true
