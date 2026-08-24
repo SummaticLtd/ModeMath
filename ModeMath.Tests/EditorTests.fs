@@ -363,6 +363,16 @@ let private history =
                     Assert.Equal("", spell editor.State.Formula, "after undoing the letters")
             )
             Test.Sync(
+                "aFormulaOpenedForEditingIsTypedOnAtItsEnd",
+                fun () ->
+                    let editor = Editor(layout, MA.String "ab")
+                    Assert.True(editor.Press(key 'c'), "c had nothing to do")
+                    Assert.Equal("abc", spell editor.Formula, "after typing at an opened formula")
+                    editor.Formula <- MA.String "de"
+                    Assert.True(editor.Press(key 'f'), "f had nothing to do")
+                    Assert.Equal("def", spell editor.Formula, "after typing at a formula put in")
+            )
+            Test.Sync(
                 "anEditorWithNothingBehindItUndoesNothing",
                 fun () ->
                     let editor = Editor(layout, MA.Empty)

@@ -274,7 +274,8 @@ type Editor(state: EditorState) =
         state <- next
         typing <- false
 
-    new(layout: Layout, formula: MA) = Editor(EditorState(layout, formula))
+    /// A formula opened for editing, which the cursor stands after as putting one in does.
+    new(layout: Layout, formula: MA) = Editor(EditorState.AtEnd(layout, formula))
 
     /// The formula with its cursor as they stand, which a Painter draws.
     member _.State = state
