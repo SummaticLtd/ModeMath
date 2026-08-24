@@ -76,6 +76,29 @@ type internal MACurs =
     static member Between(before: MA, after: MA) =
         MACurs.MakeRow(before.Elements, CursorOrEmpty, after.Elements)
 
+    /// Whether the cursor stands in a slot with nothing else in it, which is a hole to type in.
+    member t.InAHole =
+        match t with
+        | CursorOrEmpty -> true
+        // A row of nothing at all is the cursor itself, so one standing here has atoms beside it.
+        | Row(_, CursorOrEmpty, _) -> false
+        | Row(_, inner, _) -> inner.InAHole
+        | ScriptMainSuper(main, _, _) | ScriptMainSub(main, _) -> main.InAHole
+        | ScriptSuper(_, super, _) -> super.InAHole
+        | ScriptSub(_, _, sub) -> sub.InAHole
+        | FracNum(n, _) -> n.InAHole
+        | FracDen(_, d) -> d.InAHole
+        | Bracketed(_, inner, _) -> inner.InAHole
+        | RootNDegree(n, _) -> n.InAHole
+        | RootNMain(_, x) -> x.InAHole
+        | Sqrt x -> x.InAHole
+
+    /// The cursor in the first slot of a formula with nothing in it, as the formula is read.
+    static member AtFirstHole(ma: MA) =
+        match MACurs.Positions ma |> Seq.tryFind (fun (position: MACurs) -> position.InAHole) with
+        | Some found -> ValueSome found
+        | None -> ValueNone
+
     /// Every cursor position in a formula, from its left-hand end rightwards.
     static member Positions(ma: MA) =
         seq {

@@ -41,7 +41,7 @@ A formula with a cursor in it is placed by its `Bounds` rather than by what it d
 
 `EditorState` is the value underneath: every key answers with a new state rather than changing this one, so a caller that would rather keep its own history holds whichever states it likes.
 
-An opening bracket is drawn faint until its closing one is typed, a run of letters spelling a name becomes what it names — a function, the radical `sqrt` opens, or the mark `degree` gives — and `MathKey.Function` puts a function in from a keypad, brackets opened for what it is called on. A formula can be built from `MA` directly instead.
+An opening bracket is drawn faint until its closing one is typed, a run of letters spelling a name becomes what it names — a function, the radical `sqrt` opens, or the mark `degree` gives — and a keypad's keys put in what typing cannot: `MathKey.Function` calls a function, and `Squared`, `LogBase` and `Derivative` give what they are named for, each one key and one thing to undo. `Put` takes any other shape built from `MA` and stands the cursor in the first slot of it left empty.
 
 ## LaTeX
 

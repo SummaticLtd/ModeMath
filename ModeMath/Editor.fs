@@ -24,6 +24,12 @@ type MathKey =
     | Character of char
     /// A function with a pair of round brackets after it, which the cursor stands in.
     | Function of MathFunction
+    /// The square a keypad offers, put on what stands before the cursor.
+    | Squared
+    /// A logarithm with a base to type in, and brackets after it for what it is taken of.
+    | LogBase
+    /// The d over d a derivative is written with, the cursor after the d underneath.
+    | Derivative
     | Move of Direction
     /// The start of the whole formula, whatever the cursor stands inside.
     | Home
@@ -166,6 +172,14 @@ type EditorState(layout: Layout, cursor: PlacedCurs) =
     /// A formula put in at the cursor, which the cursor then stands after.
     member _.Insert(addition: MA) = over((settled()).AddMACurs(MACurs.AtEnd addition))
 
+    /// A shape put in at the cursor, which then stands in the first slot of it with nothing in it.
+    /// Where it has no such slot the cursor stands after it, as Insert leaves it.
+    member _.Put(shape: MA) =
+        // Flattened first, so that a slot standing empty is one wherever the shape was built nested.
+        let flat = shape.Flatten
+        let inner = MACurs.AtFirstHole flat |> ValueOption.defaultValue (MACurs.AtEnd flat)
+        over((settled()).AddMACurs inner)
+
     /// A fraction over the term before the cursor, which then stands in the denominator. Where no
     /// term stands there the fraction is empty and the cursor goes in the numerator instead.
     member private _.InsertFraction =
@@ -254,6 +268,15 @@ type EditorState(layout: Layout, cursor: PlacedCurs) =
         | MathKey.Character character -> t.Type character
         | MathKey.Function f ->
             ValueSome(over(opening((settled()).AddMACurs(MACurs.AtEnd(MA.Function f)), Bracket.Normal)))
+        | MathKey.Squared ->
+            // Standing after the square rather than in it, since a keypad's key is the whole of it.
+            t.InsertSuperscript.Type '2'
+            |> ValueOption.map (fun squared -> squared.Move Direction.Right |> ValueOption.defaultValue squared)
+        | MathKey.LogBase ->
+            let brackets = MA.Bracketed(Brackets.Matching Bracket.Normal, MA.Empty, BracketCompletion.Completed)
+            let taken = MA.ScriptSub(MA.Function MathFunction.Log, MA.Empty)
+            ValueSome(t.Put(MA.Row(ImmutableArray.Create(taken, brackets))))
+        | MathKey.Derivative -> (t.Put(MA.Frac(MA.Char 'd', MA.Empty))).Type 'd'
         | MathKey.Move direction -> t.Move direction
         | MathKey.Home -> t.At(MACurs.AtStart t.Formula)
         | MathKey.End -> t.At(MACurs.AtEnd t.Formula)
@@ -317,6 +340,9 @@ type Editor(state: EditorState) =
     member _.Click(x: float32<px>, y: float32<px>) = moved(state.Click(x, y))
 
     member _.Insert(addition: MA) = edited(state.Insert addition, false)
+
+    /// A shape put in with the cursor standing in the first slot of it with nothing in it.
+    member _.Put(shape: MA) = edited(state.Put shape, false)
 
     /// The formula as it stands. Setting it opens one afresh, the cursor at its end and no undo behind it.
     member _.Formula
