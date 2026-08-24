@@ -106,7 +106,7 @@ type Editor(layout: Layout, cursor: PlacedCurs) =
     /// Where the cursor is, in pixels from the formula's origin.
     member _.Caret = cursor.Caret
 
-    /// What the formula and the cursor cover together, which is taller than the formula alone.
+    /// What the formula and the cursor cover together, which does not change as the cursor moves.
     member _.Bounds = cursor.Bounds
 
     /// The cursor, which a Painter draws and a click is measured against.

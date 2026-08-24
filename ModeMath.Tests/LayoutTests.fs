@@ -998,7 +998,6 @@ let private cursors =
             Test.Sync(
                 "whatACursoredFormulaCoversHoldsBothTheFormulaAndTheCursor",
                 fun () ->
-                    // A caret stands taller than a letter, so a caller sizing to the formula clips it.
                     for formula in cursored |> List.map flat do
                         let placed = edited formula
                         for curs in positions formula do
@@ -1040,13 +1039,28 @@ let private cursors =
                     nearly(placeholder.Height, caret.Thickness, "the cursor did not fill the box")
             )
             Test.Sync(
-                "theCursorInAnEmptyFormulaIsTheBarItIsAmongAtoms",
+                "whatACursoredFormulaCoversStandsStillAsTheCursorMoves",
                 fun () ->
-                    // An empty formula shows no box, so a cursor filling one would be nothing at all.
+                    // A caller drawing from the bounds would otherwise shift the formula as it typed.
+                    for formula in cursored |> List.map flat do
+                        let bounds = [ for curs in positions formula do yield (layout.Of curs).Bounds ]
+                        let first = List.head bounds
+                        for b in bounds do
+                            nearly(first.X, b.X, $"left in {formula}")
+                            nearly(first.Y, b.Y, $"bottom in {formula}")
+                            nearly(first.Width, b.Width, $"width in {formula}")
+                            nearly(first.Thickness, b.Thickness, $"height in {formula}")
+            )
+            Test.Sync(
+                "theCursorInAnEmptyFormulaStandsAtItsFullHeight",
+                fun () ->
+                    // An empty formula covers nothing, so a bar fitted to it would be nothing at all.
                     let alone = (layout.Of(MACurs.AtStart MA.Empty)).Caret
                     let among = (layout.Of(MACurs.AtEnd(MA.String "ab"))).Caret
                     nearly(among.Width, alone.Width, "width")
-                    nearly(among.Thickness, alone.Thickness, "height")
+                    Assert.True(
+                        alone.Thickness > among.Thickness,
+                        $"a bar alone was {alone.Thickness}, among atoms {among.Thickness}")
             )
             Test.Sync(
                 "aCursorIsSmallerWhereTheAtomsAroundItAre",
