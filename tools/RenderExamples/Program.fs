@@ -27,7 +27,6 @@ let private render(display: Placed, painter: Painter, path: string) =
     width, height
 
 let private renderCursor(editor: Editor, painter: Painter, path: string) =
-    // The cursor stands taller than the formula, so the bitmap is sized to hold both.
     let bounds = editor.Bounds
     let width = wholePixels(bounds.Width + 2f * padding)
     let height = wholePixels(bounds.Thickness + 2f * padding)

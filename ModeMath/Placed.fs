@@ -129,6 +129,20 @@ and [<RequireQualifiedAccess>] Part =
     /// A child drawn in a colour of its own, which the one around it goes back to afterwards.
     | Painted of colour: Color * child: Placed
 
+type Placed with
+    /// How far either side of its origin the pen reaches, which a negative space carries outside it.
+    member internal t.Reach: struct(float32<px> * float32<px>) =
+        let mutable low = min 0f<px> t.Width
+        let mutable high = max 0f<px> t.Width
+        for part in t.Parts do
+            match part with
+            | Part.Child child | Part.Painted(_, child) ->
+                let struct(childLow, childHigh) = child.Reach
+                low <- min low (child.X + childLow)
+                high <- max high (child.X + childHigh)
+            | Part.Glyph _ | Part.Rule _ -> ()
+        struct(low, high)
+
 type PlacedMA with
     /// Everything this atom draws, in the order it is drawn. Built once, and kept by the Placed that
     /// holds it, so painting reads Placed.Parts rather than building them again.
@@ -283,10 +297,14 @@ type PlacedMACurs =
 
 /// The atom a cursor stands in, laid out, with the way down to the cursor inside it.
 and [<Struct>] PlacedCurs(placed: Placed, curs: PlacedMACurs) =
+    /// The thickness of the bar a cursor is drawn as.
+    static member private Thickness(emSize: float32<px>) =
+        MathConstants.FractionRuleThickness * emSize / MathConstants.UnitsPerEm
+
     /// The bar a cursor is drawn as where the pen stood, as tall as the box an empty slot shows.
     static member internal Bar(pen: float32<px>, emSize: float32<px>) =
         let scale = emSize / MathConstants.UnitsPerEm
-        let thickness = MathConstants.FractionRuleThickness * scale
+        let thickness = PlacedCurs.Thickness emSize
         PlacedRule(
             thickness,
             (Slot.box.Top - Slot.box.Bottom) * scale,
@@ -310,22 +328,30 @@ and [<Struct>] PlacedCurs(placed: Placed, curs: PlacedMACurs) =
     /// The atom itself, which is laid out the same whatever the cursor in it is doing.
     member _.Placed = placed
     member _.Curs = curs
-    /// What the formula and the cursor in it cover together, which is more than the formula alone
-    /// since a caret stands as tall as the box an empty slot shows.
+    /// The formula and the cursor in it together, with room for the bar wherever the pen reaches.
     member t.Bounds: PlacedRule =
         let caret = t.Caret
-        let left = min 0f<px> caret.X
+        let struct(low, high) = placed.Reach
+        let room = PlacedCurs.Thickness placed.EmSize / 2f
         let bottom = min -placed.Descent caret.Y
         PlacedRule(
-            Measure.max32(placed.Width, (caret.X + caret.Width)) - left,
-            Measure.max32(placed.Ascent, (caret.Y + caret.Thickness)) - bottom,
-            left,
+            high - low + room * 2f,
+            (max placed.Ascent (caret.Y + caret.Thickness)) - bottom,
+            low - room,
             bottom)
 
-    /// Where the cursor is, in pixels from this atom's origin.
+    /// Where the cursor is, in pixels from this atom's origin, fitted to what the formula covers.
     member t.Caret: PlacedRule =
+        let caret = t.Unfitted
+        let bottom = max caret.Y (-placed.Descent)
+        let top = min (caret.Y + caret.Thickness) placed.Ascent
+        // A formula covering nothing gives the bar nothing to fit to, and leaves it as it stands.
+        if top > bottom then PlacedRule(caret.Width, top - bottom, caret.X, bottom) else caret
+
+    /// Where the cursor is as the slot it stands in sizes it, before it is fitted to the formula.
+    member private t.Unfitted: PlacedRule =
         let below(child: PlacedCurs) =
-            let caret = child.Caret
+            let caret = child.Unfitted
             PlacedRule(caret.Width, caret.Thickness, child.Placed.X + caret.X, child.Placed.Y + caret.Y)
         match curs with
         | PlacedMACurs.Fills caret | PlacedMACurs.Between(_, caret, _) -> caret

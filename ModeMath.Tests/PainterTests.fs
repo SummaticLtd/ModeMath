@@ -72,7 +72,7 @@ let private painting =
                     let formula = (MA.String "abc").Flatten
                     let placed, withCursor = drawnWithCursor(MACurs.AtEnd formula)
                     let _, without = drawn formula
-                    let column = int (Measure.removeFloat32Unit<px>(margin + placed.Caret.X))
+                    let column = int (Measure.removeFloat32Unit<px>(margin - placed.Bounds.X + placed.Caret.X))
                     let inked(pixels: SKColor[,]) =
                         seq { 0 .. Array2D.length2 pixels - 1 }
                         |> Seq.filter (fun y -> black pixels.[column, y])
