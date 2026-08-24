@@ -11,7 +11,7 @@
 
   <PropertyGroup>
     <PackageId>ModeMath</PackageId>
-    <Version>0.6.0</Version>
+    <Version>0.7.0</Version>
     <Authors>Summatic Ltd</Authors>
     <Description>Mathematical formula display and editing for .NET, rendered with SkiaSharp. Reads and writes math-mode LaTeX, lays a formula out from the OpenType MATH table, and edits one with a cursor in it.</Description>
     <PackageTags>fsharp;math;latex;typesetting;skiasharp;opentype</PackageTags>
@@ -48,7 +48,7 @@
   <ItemGroup>
     <PackageReference Include="FSharp.Core" Version="10.1.300" />
     <PackageReference Include="SkiaSharp" Version="3.119.4" />
-    <PackageReference Include="Summatic.FSUtils" Version="0.2.0" />
+    <PackageReference Include="Summatic.FSUtils" Version="0.3.0" />
   </ItemGroup>
 
   <ItemGroup>

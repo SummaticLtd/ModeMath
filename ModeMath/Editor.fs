@@ -306,6 +306,13 @@ type Editor(state: EditorState) =
         with get () = state.Formula
         and set (formula: MA) = edited(EditorState.AtEnd(state.Layout, formula), false)
 
+    /// A formula opened afresh, with nothing behind it to undo to, as a new one to edit rather than an edit.
+    member _.Open(formula: MA) =
+        past.Clear()
+        future.Clear()
+        state <- EditorState.AtEnd(state.Layout, formula)
+        typing <- false
+
     /// False where nothing has been edited yet.
     member _.Undo() =
         if past.Count = 0 then false

@@ -373,6 +373,17 @@ let private history =
                     Assert.Equal("def", spell editor.Formula, "after typing at a formula put in")
             )
             Test.Sync(
+                "aFormulaOpenedAfreshHasNothingBehindIt",
+                fun () ->
+                    let editor = held "ab"
+                    editor.Open(MA.String "cd")
+                    Assert.True(not (editor.Undo()), "the formula it was opened over came back")
+                    Assert.True(editor.Press(key 'e'), "e had nothing to do")
+                    Assert.Equal("cde", spell editor.Formula, "after typing at a formula opened afresh")
+                    Assert.True(editor.Undo(), "what was typed after opening could not be undone")
+                    Assert.Equal("cd", spell editor.Formula, "after undoing")
+            )
+            Test.Sync(
                 "anEditorWithNothingBehindItUndoesNothing",
                 fun () ->
                     let editor = Editor(layout, MA.Empty)
