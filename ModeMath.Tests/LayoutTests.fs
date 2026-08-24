@@ -1054,15 +1054,16 @@ let private cursors =
                             nearly(first.Thickness, b.Thickness, $"height in {formula}")
             )
             Test.Sync(
-                "theCursorInAnEmptyFormulaStandsAtItsFullHeight",
+                "theCursorStandsTheSameHoweverMuchHasBeenTypedAtIt",
                 fun () ->
-                    // An empty formula covers nothing, so a bar fitted to it would be nothing at all.
+                    // A bar that took its height from the atoms would jump as the first was typed.
+                    let bar(ma: MA) = (layout.Of(MACurs.AtEnd ma)).Caret
                     let alone = (layout.Of(MACurs.AtStart MA.Empty)).Caret
-                    let among = (layout.Of(MACurs.AtEnd(MA.String "ab"))).Caret
-                    nearly(among.Width, alone.Width, "width")
-                    Assert.True(
-                        alone.Thickness > among.Thickness,
-                        $"a bar alone was {alone.Thickness}, among atoms {among.Thickness}")
+                    for typed in [ MA.String "a"; MA.String "ab"; MA.String "ag" ] do
+                        let among = bar (typed.Flatten)
+                        nearly(alone.Width, among.Width, $"width at {typed}")
+                        nearly(alone.Thickness, among.Thickness, $"height at {typed}")
+                        nearly(alone.Y, among.Y, $"foot at {typed}")
             )
             Test.Sync(
                 "aCursorIsSmallerWhereTheAtomsAroundItAre",
