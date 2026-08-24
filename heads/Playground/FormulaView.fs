@@ -48,7 +48,7 @@ type FormulaView() as t =
     let painter = Painter.Embedded()
     let margin = 24f<px>
     let size = 48f<px>
-    let mutable editor = Editor(Layout size, MA.Empty)
+    let editor = Editor(Layout size, MA.Empty)
 
     let redraw() =
         t.InvalidateVisual()
@@ -57,25 +57,23 @@ type FormulaView() as t =
         t.Focusable <- true
         t.Cursor <- new Cursor(StandardCursorType.Ibeam)
 
-    /// What the formula stands at, which loading LaTeX or a font size replaces.
-    member _.Editor
-        with get () = editor
-        and set (value: Editor) =
-            editor <- value
+    /// The formula being edited, which reading LaTeX or clearing replaces.
+    member _.Formula
+        with get () = editor.Formula
+        and set (value: MA) =
+            editor.Formula <- value
             redraw()
 
     /// The em the formula is drawn at.
     member _.FontSize = size
 
-    member _.Formula = editor.Formula
-
     override _.Render(context: DrawingContext) =
         let bounds = t.Bounds
         let draw(canvas: SKCanvas) =
             use paint = new SKPaint(Color = SKColors.Black, IsAntialias = true)
-            let top = editor.Bounds
+            let top = editor.State.Bounds
             painter.Draw(
-                editor.Cursor,
+                editor.State.Cursor,
                 canvas,
                 margin - top.X,
                 margin + top.Y + top.Thickness,
@@ -84,22 +82,21 @@ type FormulaView() as t =
 
     override _.OnPointerPressed(e: PointerPressedEventArgs) =
         let point = e.GetPosition(t)
-        let top = editor.Bounds
+        let top = editor.State.Bounds
         let x = float32 point.X * 1f<px> - margin + top.X
         let y = -(float32 point.Y * 1f<px> - margin - top.Y - top.Thickness)
-        editor <- editor.Click(x, y)
+        editor.Click(x, y)
         t.Focus() |> ignore
         redraw()
         e.Handled <- true
 
-    /// A key given to the formula, which keeps what it makes of it and says whether it was wanted.
-    member private _.Press(key: MathKey) =
-        match editor.Press key with
-        | ValueSome pressed ->
-            editor <- pressed
-            redraw()
-            true
-        | ValueNone -> false
+    /// A step the editor takes, drawn again where it did anything and said to be wanted where it did.
+    member private _.Stepped(step: unit -> bool) =
+        let stepped = step()
+        if stepped then redraw()
+        stepped
+
+    member t.Press(key: MathKey) = t.Stepped(fun () -> editor.Press key)
 
     override _.OnTextInput(e: TextInputEventArgs) =
         match e.Text with
@@ -109,6 +106,7 @@ type FormulaView() as t =
         | Null -> ()
 
     override _.OnKeyDown(e: KeyEventArgs) =
+        let control = e.KeyModifiers.HasFlag KeyModifiers.Control
         let key =
             match e.Key with
             | Key.Left -> ValueSome(MathKey.Move Direction.Left)
@@ -120,4 +118,8 @@ type FormulaView() as t =
             | _ -> ValueNone
         match key with
         | ValueSome key -> e.Handled <- t.Press key
-        | ValueNone -> ()
+        | ValueNone ->
+            match e.Key with
+            | Key.Z when control -> e.Handled <- t.Stepped editor.Undo
+            | Key.Y when control -> e.Handled <- t.Stepped editor.Redo
+            | _ -> ()

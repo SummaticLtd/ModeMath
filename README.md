@@ -1,4 +1,4 @@
-# ModeMath
+﻿# ModeMath
 
 [![NuGet](https://img.shields.io/nuget/v/ModeMath.svg)](https://www.nuget.org/packages/ModeMath)
 
@@ -23,18 +23,19 @@ painter.Draw(placed, canvas, 0f<px>, placed.Ascent, paint)
 
 ## Editing
 
-`Editor` holds a formula with a cursor in it. Every key reaches it through `Press`, which answers with a new editor rather than changing this one, so a caller keeps whichever it likes and undo costs nothing. `ValueNone` says the key had nothing to do here, leaving the caller free to pass it on.
+`Editor` holds a formula with a cursor in it, and the states it stood at before. `Press` answers whether the key was wanted, leaving a caller free to pass on the ones it turns down, and `Undo` and `Redo` step through the edits, a run of characters going in one go.
 
 ```fsharp
-let pressing(editor: Editor, key: MathKey) =
-    editor.Press key |> ValueOption.defaultValue editor
+let editor = Editor(Layout 24f<px>, MA.Empty)
 
-let typed =
-    [ MathKey.Character 'x'; MathKey.Superscript; MathKey.Character '2' ]
-    |> List.fold (fun editor key -> pressing(editor, key)) (Editor(Layout 24f<px>, MA.Empty))
+for key in [ MathKey.Character 'x'; MathKey.Superscript; MathKey.Character '2' ] do
+    editor.Press key |> ignore
 
-let clicked = typed.Click(x, y)
+editor.Click(x, y)
+painter.Draw(editor.State.Cursor, canvas, 0f<px>, editor.State.Placed.Ascent, paint)
 ```
+
+`EditorState` is the value underneath: every key answers with a new state rather than changing this one, so a caller that would rather keep its own history holds whichever states it likes.
 
 An opening bracket is drawn faint until its closing one is typed, a run of letters spelling a name becomes what it names — a function, the radical `sqrt` opens, or the mark `degree` gives — and a formula can be built from `MA` directly instead.
 

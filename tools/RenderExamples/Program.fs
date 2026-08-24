@@ -26,7 +26,7 @@ let private render(display: Placed, painter: Painter, path: string) =
     data.SaveTo file
     width, height
 
-let private renderCursor(editor: Editor, painter: Painter, path: string) =
+let private renderCursor(editor: EditorState, painter: Painter, path: string) =
     let bounds = editor.Bounds
     let width = wholePixels(bounds.Width + 2f * padding)
     let height = wholePixels(bounds.Thickness + 2f * padding)

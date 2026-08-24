@@ -5,7 +5,7 @@ open SimpleTests
 open ModeMath
 
 let private layout = Layout 20f<px>
-let private opened(ma: MA) = Editor(layout, ma)
+let private opened(ma: MA) = EditorState(layout, ma)
 let private arr(xs: MA list) = xs.ToImmutableArray()
 
 /// Which key a character in a case stands for. The arrows are < and >, backspace and delete the
@@ -28,7 +28,7 @@ let private key(character: char) =
     | '\u2326' -> MathKey.Delete
     | _ -> MathKey.Character character
 
-let private pressed(editor: Editor, character: char) =
+let private pressed(editor: EditorState, character: char) =
     // The cursor put back at the start, which is opening the formula afresh rather than a key.
     if character = '\u2196' then opened editor.Formula
     else
@@ -36,8 +36,8 @@ let private pressed(editor: Editor, character: char) =
         | ValueSome pressed -> pressed
         | ValueNone -> failwith $"{character} had nothing to do"
 
-let private typing(editor: Editor, c: char) = pressed(editor, c)
-let private typed(editor: Editor, s: string) = s |> Seq.fold (fun e c -> pressed(e, c)) editor
+let private typing(editor: EditorState, c: char) = pressed(editor, c)
+let private typed(editor: EditorState, s: string) = s |> Seq.fold (fun e c -> pressed(e, c)) editor
 
 /// The formula the keys leave behind, starting from nothing.
 let private pressing(keys: string) =
@@ -264,8 +264,8 @@ let private laying =
             Test.Sync(
                 "anEditorGivesBackTheLayoutItWasBuiltOver",
                 fun () ->
-                    let editor = Editor(Layout 30f<px>, MA.String "x")
-                    let again = Editor(editor.Layout, MA.String "x")
+                    let editor = EditorState(Layout 30f<px>, MA.String "x")
+                    let again = EditorState(editor.Layout, MA.String "x")
                     Assert.True(
                         abs (editor.Placed.Width - again.Placed.Width) < 0.01f<px>,
                         $"{editor.Placed.Width} against {again.Placed.Width}")
@@ -313,4 +313,97 @@ let private laying =
         ]
     )
 
-let tests = TestFolder("Editor", [ editing; laying ])
+/// An editor with the keys typed at it, which is the mutable one rather than a state.
+let private held(keys: string) =
+    let editor = Editor(layout, MA.Empty)
+    for character in keys do
+        Assert.True(editor.Press(key character), $"{character} had nothing to do")
+    editor
+
+let private history =
+    TestList(
+        "History",
+        [   Test.Sync(
+                "aRunOfCharactersIsUndoneInOneGo",
+                fun () ->
+                    let editor = held "abc"
+                    Assert.True(editor.Undo(), "there was nothing to undo")
+                    Assert.Equal("", spell editor.State.Formula, "after undoing")
+                    Assert.True(editor.Redo(), "there was nothing to redo")
+                    Assert.Equal("abc", spell editor.State.Formula, "after redoing")
+            )
+            Test.Sync(
+                "everyOtherKeyEndsTheRunItFollows",
+                fun () ->
+                    // The fraction stands between two runs of letters, and is an edit of its own.
+                    let editor = held "ab/c"
+                    let undoing(left: string) =
+                        Assert.True(editor.Undo(), $"there was nothing to undo before {left}")
+                        Assert.Equal(left, spell editor.State.Formula, "after undoing")
+                    undoing "frac{ab}{}"
+                    undoing "ab"
+                    undoing ""
+            )
+            Test.Sync(
+                "movingTheCursorIsNothingToUndo",
+                fun () ->
+                    let editor = held "ab<"
+                    Assert.True(editor.Undo(), "there was nothing to undo")
+                    Assert.Equal("", spell editor.State.Formula, "the letters did not come back at once")
+                    Assert.True(not (editor.Undo()), "the move was put by as an undo of its own")
+            )
+            Test.Sync(
+                "aMoveBreaksTheRunItStandsIn",
+                fun () ->
+                    let editor = held "ab<c"
+                    Assert.Equal("acb", spell editor.State.Formula, "before undoing")
+                    Assert.True(editor.Undo(), "there was nothing to undo")
+                    Assert.Equal("ab", spell editor.State.Formula, "the c was undone with the letters before it")
+                    Assert.True(editor.Undo(), "the letters before the move were not put by")
+                    Assert.Equal("", spell editor.State.Formula, "after undoing the letters")
+            )
+            Test.Sync(
+                "aFormulaOpenedForEditingIsTypedOnAtItsEnd",
+                fun () ->
+                    let editor = Editor(layout, MA.String "ab")
+                    Assert.True(editor.Press(key 'c'), "c had nothing to do")
+                    Assert.Equal("abc", spell editor.Formula, "after typing at an opened formula")
+                    editor.Formula <- MA.String "de"
+                    Assert.True(editor.Press(key 'f'), "f had nothing to do")
+                    Assert.Equal("def", spell editor.Formula, "after typing at a formula put in")
+            )
+            Test.Sync(
+                "anEditorWithNothingBehindItUndoesNothing",
+                fun () ->
+                    let editor = Editor(layout, MA.Empty)
+                    Assert.True(not (editor.Undo()), "an untouched editor undid something")
+                    Assert.True(not (editor.Redo()), "an untouched editor redid something")
+                    Assert.True(not (editor.Press(MathKey.Move Direction.Left)), "a key was answered")
+            )
+            Test.Sync(
+                "editingAfterUndoingLeavesNothingToRedo",
+                fun () ->
+                    let editor = held "a"
+                    editor.Undo() |> ignore
+                    Assert.True(editor.Press(key 'b'), "b had nothing to do")
+                    Assert.True(not (editor.Redo()), "the a came back after b was typed")
+                    Assert.Equal("b", spell editor.State.Formula, "after typing over what was undone")
+            )
+            Test.Sync(
+                "layingOutAgainKeepsTheCursorAndWhatIsBehindIt",
+                fun () ->
+                    let editor = held "ab"
+                    let narrow = editor.State.Bounds.Width
+                    editor.Layout <- Layout 40f<px>
+                    Assert.True(
+                        editor.State.Bounds.Width > narrow,
+                        $"{editor.State.Bounds.Width} was no wider than {narrow}")
+                    Assert.True(editor.Press(key 'c'), "c had nothing to do")
+                    Assert.Equal("abc", spell editor.State.Formula, "the cursor moved when it was laid out")
+                    Assert.True(editor.Undo(), "there was nothing to undo")
+                    Assert.Equal("", spell editor.State.Formula, "after undoing")
+            )
+        ]
+    )
+
+let tests = TestFolder("EditorState", [ editing; laying; history ])

@@ -1,17 +1,15 @@
-# Roadmap
+﻿# Roadmap
 
 Editing and display work. `examples/` shows what renders today.
 
 ## 1. Editing
 
-`Editor` covers typing, clicking, moving, backspace and delete, and putting in a fraction, root,
-bracket or script. What is left:
+`Editor` covers typing, clicking, moving, backspace and delete, undo and redo, and putting in a fraction, root, bracket or script. What is left:
 
 | Addition | Why |
 |---|---|
 | Selection | Tracked separately: #3 |
 | Up and down by where the atoms are | `Move` is structural, so leaving a denominator ignores the point it left from |
-| Undo | The editor is a value, so a caller can keep the old ones. Nothing here does it for them |
 
 ## 2. LaTeX
 
@@ -21,7 +19,7 @@ and read again as the same formula.
 
 It reads and draws 99.2% of the 17,220 distinct formulas in the SummaticApp content library.
 Every formula it reads, it draws: a character the font cannot draw is refused where it stands, so
-that laying a formula out cannot fail. `Editor.Type` turns such a key down the same way, and
+that laying a formula out cannot fail. `EditorState.Type` turns such a key down the same way, and
 `MA.Undrawable` answers for a formula built in code. What the reader turns down:
 
 | Turned down | Formulas | Why |

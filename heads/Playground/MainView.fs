@@ -22,7 +22,7 @@ type MainView() as t =
         match Latex.Read written with
         | Ok ma ->
             complaint.Text <- ""
-            formula.Editor <- Editor.AtEnd(Layout formula.FontSize, ma)
+            formula.Formula <- ma
         | Error error -> complaint.Text <- string error
 
     let button(caption: string, act: unit -> unit) =
@@ -32,12 +32,9 @@ type MainView() as t =
             formula.Focus() |> ignore)
         button
 
-    let inserted(build: Editor -> Editor) =
-        fun () -> formula.Editor <- build formula.Editor
-
     /// A button is a key like any other, so it goes in the way a keyboard does.
     let pressed(key: MathKey) =
-        inserted(fun editor -> editor.Press key |> ValueOption.defaultValue editor)
+        fun () -> formula.Press key |> ignore
 
     let keys =
         let panel = StackPanel(Orientation = Orientation.Horizontal, Margin = Thickness 8.0)
@@ -49,7 +46,7 @@ type MainView() as t =
         add("xᵧ", pressed MathKey.Subscript)
         add("( )", pressed (MathKey.Open BracketKey.Round))
         add("| |", pressed MathKey.Bar)
-        add("clear", inserted(fun _ -> Editor(Layout formula.FontSize, MA.Empty)))
+        add("clear", fun () -> formula.Formula <- MA.Empty)
         panel
 
     let entry =
