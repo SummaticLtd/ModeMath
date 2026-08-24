@@ -404,8 +404,10 @@ let private history =
                 "aFormulaOpenedAfreshHasNothingBehindIt",
                 fun () ->
                     let editor = held "ab"
-                    editor.Open(MA.String "cd")
+                    editor.Undo() |> ignore
+                    editor.Formula <- MA.String "cd"
                     Assert.True(not (editor.Undo()), "the formula it was opened over came back")
+                    Assert.True(not (editor.Redo()), "what was undone before it opened came back")
                     Assert.True(editor.Press(key 'e'), "e had nothing to do")
                     Assert.Equal("cde", spell editor.Formula, "after typing at a formula opened afresh")
                     Assert.True(editor.Undo(), "what was typed after opening could not be undone")

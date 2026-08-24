@@ -102,9 +102,10 @@ let private painting =
                         curs, canvas, margin - bounds.X, margin + bounds.Y + bounds.Thickness, paint, cursor)
                     let pixels = Array2D.init bitmap.Width bitmap.Height (fun x y -> bitmap.GetPixel(x, y))
                     Assert.True(lastColumn(red, pixels) >= 0, "the cursor was not drawn in the paint it was given")
+                    Assert.True(lastColumn(black, pixels) >= 0, "the formula went into the cursor's paint too")
                     Assert.True(
                         lastColumn(black, pixels) < lastColumn(red, pixels),
-                        "the formula was drawn in the cursor's paint as well")
+                        "the formula reached past the cursor at the end of it")
             )
             Test.Sync(
                 "aFormulaWithoutACursorDrawsNoneOfIt",

@@ -312,17 +312,14 @@ type Editor(state: EditorState) =
 
     member _.Insert(addition: MA) = edited(state.Insert addition, false)
 
-    /// The formula as it stands. Setting it stands the cursor at the end of what is put in.
+    /// The formula as it stands. Setting it opens one afresh, the cursor at its end and no undo behind it.
     member _.Formula
         with get () = state.Formula
-        and set (formula: MA) = edited(EditorState.AtEnd(state.Layout, formula), false)
-
-    /// A formula opened afresh, with nothing behind it to undo to, as a new one to edit rather than an edit.
-    member _.Open(formula: MA) =
-        past.Clear()
-        future.Clear()
-        state <- EditorState.AtEnd(state.Layout, formula)
-        typing <- false
+        and set (formula: MA) =
+            past.Clear()
+            future.Clear()
+            state <- EditorState.AtEnd(state.Layout, formula)
+            typing <- false
 
     /// False where nothing has been edited yet.
     member _.Undo() =
