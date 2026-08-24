@@ -95,6 +95,8 @@ let private editing =
                     "typingBuildsTheFormulaTyped", ("abc", "abc")
                     "typingAFunctionNameMakesTheFunction", ("sin", "fn{sin}")
                     "aLongerNameIsTakenOverAShorterOneItStartsWith", ("sinh", "fn{sinh}")
+                    "andEveryOtherNameTypingKnows", ("exp", "fn{exp}")
+                    "underTheSpellingACalculatorGivesIt", ("asin", "fn{arcsin}")
                     "andOverOneAlreadyRecognised", ("sech", "fn{sech}")
                     "typingSqrtLeavesTheCursorInsideTheRadical", ("sqrtx", "sqrt{x}")
                     "typingDegreeGivesTheMark", ("90degree", "90°")

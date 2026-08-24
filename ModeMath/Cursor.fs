@@ -15,41 +15,29 @@ type internal Spelled =
 module internal SpelledNames =
     /// The functions typing a name gives, kept short so a product of variables does not become one.
     let private functions =
-        [
-            "sin", MathFunction.Sin
-            "cos", MathFunction.Cos
-            "tan", MathFunction.Tan
-            "asin", MathFunction.Asin
-            "acos", MathFunction.Acos
-            "atan", MathFunction.Atan
-            "arcsin", MathFunction.Asin
-            "arccos", MathFunction.Acos
-            "arctan", MathFunction.Atan
-            "sinh", MathFunction.Sinh
-            "cosh", MathFunction.Cosh
-            "tanh", MathFunction.Tanh
-            "sech", MathFunction.Sech
-            "csch", MathFunction.Csch
-            "coth", MathFunction.Coth
-            "exp", MathFunction.Exp
-            "log", MathFunction.Log
-            "ln", MathFunction.Ln
-            "sec", MathFunction.Sec
-            "csc", MathFunction.Csc
-            "cot", MathFunction.Cot
-            "erf", MathFunction.Erf
-            "min", MathFunction.Min
-            "max", MathFunction.Max
-        ]
+        ImmutableArray.Create(
+            MathFunction.Sin, MathFunction.Cos, MathFunction.Tan,
+            MathFunction.Asin, MathFunction.Acos, MathFunction.Atan,
+            MathFunction.Sinh, MathFunction.Cosh, MathFunction.Tanh,
+            MathFunction.Sech, MathFunction.Csch, MathFunction.Coth,
+            MathFunction.Exp, MathFunction.Log, MathFunction.Ln,
+            MathFunction.Sec, MathFunction.Csc, MathFunction.Cot,
+            MathFunction.Erf, MathFunction.Min, MathFunction.Max)
 
     /// What typing a name out spells, longest spelling first so that arcsin is not taken for sin.
     let table =
-        [|
-            for name, f in functions do struct(name, Spelled.Atom(MA.Function f))
-            struct("degree", Spelled.Atom(MA.Char '°'))
-            struct("sqrt", Spelled.Sqrt)
-        |]
-        |> ImmutableArray.CreateRange
+        let spellings = ImmutableArray.CreateBuilder<struct(string * Spelled)>()
+        let add(spelling: string, what: Spelled) = spellings.Add(struct(spelling, what))
+        let fn(spelling: string, f: MathFunction) = add(spelling, Spelled.Atom(MA.Function f))
+        for f in functions do
+            fn(MathFunctions.name f, f)
+        // What a calculator calls the inverse trigonometric functions, which are written arcsin.
+        fn("asin", MathFunction.Asin)
+        fn("acos", MathFunction.Acos)
+        fn("atan", MathFunction.Atan)
+        add("degree", Spelled.Atom(MA.Char '°'))
+        add("sqrt", Spelled.Sqrt)
+        spellings.ToImmutable()
         |> ImmArray.sortByDescending (fun struct(spelling, _) -> spelling.Length)
 
 /// Math formula Input with a cursor
@@ -753,7 +741,6 @@ type internal MACurs =
         let spelled(letters: string) =
             SpelledNames.table |> ImmArray.tryPick (fun struct(spelling, what) ->
                 if spelling = letters then ValueSome what else ValueNone)
-        /// The atoms with the spelling taken off the end of them, and what it spelled put in its place.
         let replacing(count: int, what: Spelled) =
             let kept = elements |> ImmArray.truncate count
             match what with
