@@ -877,5 +877,14 @@ type Layout(fontSize: float32<px>) =
         let flat = curs.Flatten
         let ma = flat.ToMA
         // An empty formula is no slot but the whole of it, and stands as the cursor alone.
-        PlacedCurs.Of(flat, t.Of(ma, Style(size, false, not ma.IsEmpty)))
+        let placed = t.Of(ma, Style(size, false, not ma.IsEmpty))
+        let scale = placed.EmSize / MathConstants.UnitsPerEm
+        // What is edited stands on a line, so that a caller placing it by its ascent holds the cursor.
+        let extent =
+            Extent(
+                placed.Width,
+                Measure.max32(placed.Ascent, Slot.box.Top * scale),
+                Measure.max32(placed.Descent, -Slot.box.Bottom * scale),
+                placed.ItalicCorrection)
+        PlacedCurs.Of(flat, Placed(placed.Pma, placed.Parts, extent, placed.EmSize, placed.X, placed.Y))
 

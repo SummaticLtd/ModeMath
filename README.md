@@ -32,8 +32,12 @@ for key in [ MathKey.Character 'x'; MathKey.Superscript; MathKey.Character '2' ]
     editor.Press key |> ignore
 
 editor.Click(x, y)
-painter.Draw(editor.State.Cursor, canvas, 0f<px>, editor.State.Placed.Ascent, paint)
+
+let bounds = editor.State.Bounds
+painter.Draw(editor.State.Cursor, canvas, -bounds.X, bounds.Y + bounds.Thickness, paint)
 ```
+
+A formula with a cursor in it is placed by its `Bounds` rather than by what it draws, since the cursor stands where no atom does: at either end of the line, and above a numerator or below a denominator. They hold both, and hold still as the cursor moves through the formula.
 
 `EditorState` is the value underneath: every key answers with a new state rather than changing this one, so a caller that would rather keep its own history holds whichever states it likes.
 
