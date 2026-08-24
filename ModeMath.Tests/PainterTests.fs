@@ -107,6 +107,25 @@ let private painting =
                     Assert.True(placed.Caret.Width > 0f<px>, "the cursor had no width to draw")
             )
             Test.Sync(
+                "aBracketStillWaitingForItsPairIsDrawnFaintRatherThanNotAtAll",
+                fun () ->
+                    let bracketed(completion: BracketCompletion) =
+                        MA.Bracketed(Brackets.Matching Bracket.Normal, c 'x', completion)
+                    let marked(pixel: SKColor) = int pixel.Red < 250
+                    let _, whole = drawn(bracketed BracketCompletion.Completed)
+                    let _, waiting = drawn(bracketed BracketCompletion.Left)
+                    Assert.True(
+                        lastColumn(black, waiting) < lastColumn(black, whole),
+                        "the bracket still waiting was drawn as solidly as the one that had its pair")
+                    Assert.True(
+                        lastColumn(black, waiting) >= 0,
+                        "the faint bracket took the rest of the formula with it")
+                    Assert.Equal(
+                        lastColumn(marked, whole),
+                        lastColumn(marked, waiting),
+                        "the bracket still waiting reached a different column")
+            )
+            Test.Sync(
                 "aColourStopsAtTheEndOfTheAtomItWasGivenTo",
                 fun () ->
                     let placed, pixels = drawn(row [ MA.Coloured(Color.Red, c 'b'); c 'c' ])
