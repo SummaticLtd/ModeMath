@@ -170,6 +170,7 @@ module internal Latexing =
             "circ", '∘'; "triangle", '△'; "square", '□'; "pounds", '£'
             "bullet", '•'; "circlearrowright", '↻'
             "uparrow", '↑'; "downarrow", '↓'; "longrightarrow", '⟶'; "longleftarrow", '⟵'
+            "nearrow", '↗'; "searrow", '↘'
         ]
 
     /// Every function under the name it is called by, with the spellings also written for a few.
