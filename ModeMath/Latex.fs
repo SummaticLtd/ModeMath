@@ -13,6 +13,14 @@ type LatexError(message: string, position: int) =
     member _.Position = position
     override _.ToString() = $"{message}, at character {position.ToString()}"
 
+/// What a plain bracket, standing without \left and \right, is read as.
+[<Struct; RequireQualifiedAccess>]
+type BracketReading =
+    /// A character of its own, drawn at the one size, as LaTeX has it.
+    | Marked
+    /// A pair with whatever closes it, growing around what stands between, as entering one makes.
+    | Paired
+
 /// The colours \color and \textcolor name, which a caller may give its own.
 [<Sealed>]
 type Palette(colours: ImmutableDictionary<string, Color>) =
@@ -284,6 +292,28 @@ module internal Latexing =
         | Token.Char '/' -> ValueSome Bracket.Slash
         | _ -> ValueNone
 
+    /// The pair a plain bracket opens. A bar opens none, as neither of its sides tells the other apart.
+    let opening(token: Token) =
+        match token with
+        | Token.Char '(' -> ValueSome Bracket.Normal
+        | Token.Char '[' -> ValueSome Bracket.Square
+        | Token.Command("{" | "lbrace") -> ValueSome Bracket.Curly
+        | Token.Command "langle" -> ValueSome Bracket.Angle
+        | Token.Command "lfloor" -> ValueSome Bracket.Floor
+        | Token.Command "lceil" -> ValueSome Bracket.Ceiling
+        | _ -> ValueNone
+
+    /// The pair a plain bracket closes.
+    let closing(token: Token) =
+        match token with
+        | Token.Char ')' -> ValueSome Bracket.Normal
+        | Token.Char ']' -> ValueSome Bracket.Square
+        | Token.Command("}" | "rbrace") -> ValueSome Bracket.Curly
+        | Token.Command "rangle" -> ValueSome Bracket.Angle
+        | Token.Command "rfloor" -> ValueSome Bracket.Floor
+        | Token.Command "rceil" -> ValueSome Bracket.Ceiling
+        | _ -> ValueNone
+
     /// The brackets a matrix environment is set in. ValueNone where it is set in none.
     let matrixBrackets(name: string) =
         match name with
@@ -301,8 +331,12 @@ module internal Latexing =
         | 'r' -> ValueSome Alignment.Right
         | _ -> ValueNone
 
-    type Reader(tokens: ImmutableArray<struct(Token * int)>, source: string, palette: Palette) =
+    type Reader
+        (tokens: ImmutableArray<struct(Token * int)>, source: string, palette: Palette, brackets: BracketReading) =
         let mutable at = 0
+
+        /// How many plain pairs stand open around what is being read, whose closing bracket ends it.
+        let mutable pairs = 0
 
         let here() =
             if at < tokens.Length then
@@ -326,7 +360,63 @@ module internal Latexing =
             | ValueNone
             | ValueSome(Token.Close | Token.Cell | Token.Break)
             | ValueSome(Token.Command("right" | "end")) -> true
-            | _ -> false
+            | ValueSome token -> pairs > 0 && (closing token).IsSome
+
+        /// Reads what stands in a construct of its own, which a plain pair around it cannot close.
+        member private _.Nested(read: unit -> 'a) =
+            let outer = pairs
+            pairs <- 0
+            let x = read()
+            pairs <- outer
+            x
+
+        /// Whether the plain bracket standing next is closed before whatever it stands in ends.
+        member private _.Closes =
+            let mutable i = at + 1
+            let mutable depth = 0
+            let mutable inside = 0
+            let mutable closes = false
+            let mutable ended = false
+            while not (closes || ended) && i < tokens.Length do
+                let struct(token, _) = tokens.[i]
+                i <- i + 1
+                match token with
+                | Token.Open | Token.Command "begin" -> depth <- depth + 1
+                | Token.Close | Token.Command "end" -> if depth = 0 then ended <- true else depth <- depth - 1
+                // A marked pair takes the delimiter after it, which opens and closes nothing of its own.
+                | Token.Command "left" ->
+                    depth <- depth + 1
+                    i <- i + 1
+                | Token.Command "right" ->
+                    if depth = 0 then ended <- true
+                    else
+                        depth <- depth - 1
+                        i <- i + 1
+                | Token.Cell | Token.Break when depth = 0 -> ended <- true
+                | _ when depth = 0 ->
+                    if (closing token).IsSome then
+                        if inside = 0 then closes <- true else inside <- inside - 1
+                    elif (opening token).IsSome then inside <- inside + 1
+                | _ -> ()
+            closes
+
+        /// The pair the next token opens, where the mode reads plain brackets and one closes it.
+        member private t.Opens =
+            let next = if brackets = BracketReading.Paired then peek() else ValueNone
+            match next |> ValueOption.bind opening with
+            | ValueSome left when t.Closes -> ValueSome left
+            | _ -> ValueNone
+
+        member private t.Pair(left: Bracket, position: int) =
+            advance()
+            pairs <- pairs + 1
+            let inner = t.Formula()
+            pairs <- pairs - 1
+            match peek() |> ValueOption.bind closing with
+            | ValueSome right ->
+                advance()
+                MA.Bracketed(Brackets(left, right), inner, BracketCompletion.Completed)
+            | ValueNone -> fail("a bracket is never closed", position)
 
         /// The atoms up to the end of the string or the token that closes what they stand in.
         member t.Formula() = t.Formula false
@@ -357,19 +447,22 @@ module internal Latexing =
 
         member private t.Base() : MA =
             let position = here()
-            match peek() with
-            | ValueSome Token.Open -> t.Group()
-            | ValueSome(Token.Char c) ->
-                advance()
-                MA.Char c
-            | ValueSome(Token.Command name) ->
-                advance()
-                t.Named(name, position)
-            | ValueSome(Token.Super | Token.Sub) -> fail("a script where an atom was expected", position)
-            | ValueSome Token.Close -> fail("a closing brace with no opening one", position)
-            | ValueSome Token.Cell -> fail("an & outside a table", position)
-            | ValueSome Token.Break -> fail("a row break outside a table", position)
-            | ValueNone -> fail("the formula ends where an atom was expected", position)
+            match t.Opens with
+            | ValueSome left -> t.Pair(left, position)
+            | ValueNone ->
+                match peek() with
+                | ValueSome Token.Open -> t.Group()
+                | ValueSome(Token.Char c) ->
+                    advance()
+                    MA.Char c
+                | ValueSome(Token.Command name) ->
+                    advance()
+                    t.Named(name, position)
+                | ValueSome(Token.Super | Token.Sub) -> fail("a script where an atom was expected", position)
+                | ValueSome Token.Close -> fail("a closing brace with no opening one", position)
+                | ValueSome Token.Cell -> fail("an & outside a table", position)
+                | ValueSome Token.Break -> fail("a row break outside a table", position)
+                | ValueNone -> fail("the formula ends where an atom was expected", position)
 
         /// The scripts standing after an atom, which a large operator takes as its limits instead.
         member private t.Scripted(bass: MA) =
@@ -405,7 +498,7 @@ module internal Latexing =
         member private t.Group() =
             let position = here()
             advance()
-            let inner = t.Formula()
+            let inner = t.Nested(fun () -> t.Formula())
             match peek() with
             | ValueSome Token.Close ->
                 advance()
@@ -530,7 +623,7 @@ module internal Latexing =
 
         member private t.Bracketed(position: int) =
             let left = t.Delimiter position
-            let inner = t.Formula()
+            let inner = t.Nested(fun () -> t.Formula())
             match peek() with
             | ValueSome(Token.Command "right") ->
                 advance()
@@ -578,7 +671,7 @@ module internal Latexing =
             let mutable row = ResizeArray<MA>()
             let mutable ended = false
             while not ended do
-                row.Add(t.Formula())
+                row.Add(t.Nested(fun () -> t.Formula()))
                 match peek() with
                 | ValueSome Token.Cell -> advance()
                 | ValueSome Token.Break ->
@@ -771,10 +864,11 @@ module internal Latexing =
 [<AbstractClass; Sealed>]
 type Latex =
     /// The formula a string spells, or why not. \color names its colours from the palette given.
-    static member Read(latex: string, ?palette: Palette) : Result<MA, LatexError> =
+    static member Read(latex: string, ?palette: Palette, ?brackets: BracketReading) : Result<MA, LatexError> =
         try
             let palette = defaultArg palette Palette.Default
-            let reader = Latexing.Reader(Latexing.lex latex, latex, palette)
+            let brackets = defaultArg brackets BracketReading.Marked
+            let reader = Latexing.Reader(Latexing.lex latex, latex, palette, brackets)
             let formula = reader.Formula().Flatten
             match reader.Unread with
             | ValueNone -> Ok formula
