@@ -47,6 +47,12 @@ An opening bracket is drawn faint until its closing one is typed, a run of lette
 
 `Latex.Read` takes a math-mode string and `Latex.Write` gives one back, every argument in braces. What is not understood is refused with the position it stands at, rather than guessed at, and a character the font cannot draw is refused there too, so a formula that was read always lays out. One built from `MA` in code can hold a character the font has no glyph for, and `MA.Undrawable` is the characters it would fail on.
 
+`BracketReading.Paired` reads a plain `(` as the pair it opens rather than a character of its own, so it grows around what it holds and is edited as one, as a bracket typed in is. A bracket nothing closes stays the character it is, and a bar is left alone, as neither of its sides tells the other apart.
+
+```fsharp
+let formula = Latex.Read(@"(\frac{1}{2})", brackets = BracketReading.Paired)
+```
+
 `\color` and `\textcolor` name their colours from a `Palette`, which a caller may replace to give a name a colour of its own.
 
 ```fsharp

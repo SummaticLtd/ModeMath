@@ -492,4 +492,61 @@ let private colouring =
         ]
     )
 
-let tests = TestFolder("Latex", [ reading; writing; colouring ])
+let private pairing =
+    let paired(latex: string) =
+        match Latex.Read(latex, brackets = BracketReading.Paired) with
+        | Ok ma -> ma
+        | Error error -> failwith $"{latex}: {error}"
+    let reads(name: string, cases: (string * MA) list) =
+        Test.CasesSync(
+            name,
+            cases |> List.map (fun (latex, expected) -> latex, (latex, expected)),
+            fun (latex, expected) -> Assert.Equal(expected, paired latex, latex))
+    TestList(
+        "Reading plain brackets as pairs",
+        [   reads(
+                "aPlainBracketPairsWithWhateverClosesIt",
+                [
+                    "(x)", MA.RoundBracket(c 'x')
+                    "()", MA.RoundBracket MA.Empty
+                    "((a))", MA.RoundBracket(MA.RoundBracket(c 'a'))
+                    "[0,1)",
+                    MA.Bracketed(
+                        Brackets(Bracket.Square, Bracket.Normal),
+                        row [ c '0'; c ','; c '1' ],
+                        BracketCompletion.Completed)
+                    "\\{x\\}", MA.Paired(Bracket.Curly, c 'x')
+                    "\\lfloor x\\rfloor", MA.Paired(Bracket.Floor, c 'x')
+                    "\\langle x\\rangle", MA.Paired(Bracket.Angle, c 'x')
+                    // A bar is left alone, as neither of its sides tells the other apart.
+                    "|x|", row [ c '|'; c 'x'; c '|' ]
+                    "\\left(x\\right)", MA.RoundBracket(c 'x')
+                ]
+            )
+            reads(
+                "aPairIsTheAtomWhatFollowsItStandsOn",
+                [
+                    "(x)^2", MA.ScriptSuper(MA.RoundBracket(c 'x'), c '2', ValueNone)
+                    "\\frac{(a)}{b}", MA.Frac(MA.RoundBracket(c 'a'), c 'b')
+                    "\\sqrt(a)", MA.Sqrt(MA.RoundBracket(c 'a'))
+                ]
+            )
+            reads(
+                "aBracketWithNothingToCloseItStandsForItself",
+                [
+                    "(x", row [ c '('; c 'x' ]
+                    "x)", row [ c 'x'; c ')' ]
+                    "((a)", row [ c '('; MA.RoundBracket(c 'a') ]
+                    // Neither bracket closes the other, standing as they do in constructs of their own.
+                    "\\frac{(a}{b)}", MA.Frac(row [ c '('; c 'a' ], row [ c 'b'; c ')' ])
+                    "\\left[(x\\right]", MA.Paired(Bracket.Square, row [ c '('; c 'x' ])
+                ]
+            )
+            Test.Sync(
+                "aStringIsReadWithMarkedPairsAloneUnlessTheModeIsAsked",
+                fun () -> Assert.Equal(row [ c '('; c 'x'; c ')' ], read "(x)", "a plain pair bracketed a formula")
+            )
+        ]
+    )
+
+let tests = TestFolder("Latex", [ reading; writing; colouring; pairing ])
