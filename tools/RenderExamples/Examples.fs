@@ -309,6 +309,8 @@ let implemented = [
             text "Solve "
             cases [ [ row [ c 'y'; c '='; sup(c 'x', c '2'); c '-'; c 'x'; c '+'; c '3' ] ] ]
         ]
+    // What \mathrm{m\,s^{-1}} reads to, which is how SI writes a compound unit.
+    "CompoundUnit", row [ text "m"; space Space.Thin; sup(text "s", row [ c '-'; c '1' ]) ]
     "Underbrace", spanned(Spanning.Underbrace, s "abcd")
     "UnderbraceSubscript", sub(spanned(Spanning.Underbrace, s "abcdefghklmnopqrst"), s "eee")
     "AccentOverF", acc(Accent.Hat, c 'f')

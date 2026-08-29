@@ -47,8 +47,8 @@ those named above take scripts beside them instead, which is what `\max` and `\m
 
 Relations, binary operators and arrows are done, each carrying the TeX atom class that spaces it.
 `MA.Char` covers the symbols a formula names, `MA.BoldVar` covers `\mathbf`, `MA.Blackboard` reaches
-all 26 capitals with `ℂ ℍ ℕ ℙ ℚ ℝ ℤ` drawn from the same face, and `MA.Text` covers `\mathrm` over a
-word as well as `\text`.
+all 26 capitals with `ℂ ℍ ℕ ℙ ℚ ℝ ℤ` drawn from the same face, and `MA.Text` covers `\text` as
+well as the letters `\mathrm` sets upright, whose argument stays mathematics.
 
 Uses are counts in the SummaticApp content library, which asks for no `\mathcal`, `\mathfrak`,
 `\mathtt` or `\mathsf` at all.
