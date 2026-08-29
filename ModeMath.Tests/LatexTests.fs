@@ -210,6 +210,24 @@ let private reading =
                 ]
             )
             same(
+                "mathrmSetsAFormulaUprightRatherThanReadingItAsText",
+                [
+                    "\\mathrm{x^2}", MA.ScriptSuper(MA.Text "x", c '2', ValueNone)
+                    "\\mathrm{a\\,b}", row [ MA.Text "a"; MA.Space Space.Thin; MA.Text "b" ]
+                    // The SI way to write a compound unit, which is what \mathrm is mostly asked for.
+                    "\\mathrm{m\\,s^{-1}}",
+                        row [
+                            MA.Text "m"
+                            MA.Space Space.Thin
+                            MA.ScriptSuper(MA.Text "s", row [ c '-'; c '1' ], ValueNone)
+                        ]
+                    "\\mathrm{\\frac{a}{b}}", MA.Frac(MA.Text "a", MA.Text "b")
+                    // Figures stand upright already, so only the letters beside them are set again.
+                    "\\mathrm{2θ}", row [ c '2'; MA.Text "θ" ]
+                    "\\mathrm x", MA.Text "x"
+                ]
+            )
+            same(
                 "aTableIsReadFromItsCellsAndItsRowBreaks",
                 [
                     "\\begin{pmatrix}a&b\\\\c&d\\end{pmatrix}",
@@ -306,6 +324,7 @@ let private reading =
                     "\\sqrt[3]{x}"
                     "\\begin{matrix}a&b\\\\c&d\\end{matrix}"
                     "\\mathrm{μg}"
+                    "\\mathrm{m\\,s^{-1}}"
                     "\\alpha\\uparrow\\circ\\triangle"
                 ],
                 fun latex -> Assert.Equal(ImmutableArray<char>.Empty, (read latex).Undrawable, latex)

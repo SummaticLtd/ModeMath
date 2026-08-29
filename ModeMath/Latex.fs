@@ -240,13 +240,22 @@ module internal Latexing =
         ]
         |> ImmutableDictionary.CreateRange
 
+    /// Words standing side by side made one, so an alphabet sets \mathrm{sech} as a word not four letters.
+    let private joined(elements: ImmutableArray<MA>) =
+        let runs = ImmutableArray.CreateBuilder<MA>()
+        for element in elements do
+            match element, (if runs.Count = 0 then MA.Empty else runs.[runs.Count - 1]) with
+            | MA.Text word, MA.Text before -> runs.[runs.Count - 1] <- MA.Text(before + word)
+            | _ -> runs.Add element
+        runs.ToImmutable()
+
     /// A formula with its letters set in another alphabet, and whatever that alphabet lacks left alone.
     let rec private set(build: char -> MA voption, ma: MA) =
         let inner(x: MA) = set(build, x)
         let optional = ValueOption.map inner
         match ma with
         | MA.Char c -> build c |> ValueOption.defaultValue ma
-        | MA.Row elements -> MA.Row(elements |> ImmArray.map inner)
+        | MA.Row elements -> MA.Row(joined(elements |> ImmArray.map inner))
         | MA.ScriptSuper(main, super, sub) -> MA.ScriptSuper(inner main, inner super, optional sub)
         | MA.ScriptSub(main, sub) -> MA.ScriptSub(inner main, inner sub)
         | MA.Frac(n, d) -> MA.Frac(inner n, inner d)
@@ -262,6 +271,13 @@ module internal Latexing =
         | MA.Coloured(colour, x) -> MA.Coloured(colour, inner x)
         | MA.Table(cells, alignments) -> MA.Table(cells |> ImmA2D.map inner, alignments)
         | MA.BoldVar _ | MA.Blackboard _ | MA.UprightD | MA.Function _ | MA.Text _ | MA.Space _ -> ma
+
+    /// A formula set upright, as \mathrm does, leaving alone the figures and signs that stand upright anyway.
+    let upright(ma: MA, position: int) =
+        let letter(c: char) =
+            if (Glyphs.upright c).IsNone then fail($"{c.ToString()} is no character this sets upright", position)
+            if (Letters.upright c).IsSome then ValueSome(MA.Text(string c)) else ValueNone
+        set(letter, ma)
 
     let bold(ma: MA) =
         set((fun c -> if spells c then ValueSome(MA.BoldVar c) else ValueNone), ma)
@@ -472,9 +488,11 @@ module internal Latexing =
             | "begin" -> t.Environment(position)
             | "end" -> fail("an environment ends where none began", position)
             | "text" | "textrm" -> t.Written(t.Words position, position)
+            // \mathrm sets mathematics upright, so scripts, gaps and commands all read inside it.
             | "mathrm" ->
-                let words = t.Words position
-                if words = "d" then MA.UprightD else t.Written(words, position)
+                match t.Argument() with
+                | MA.Char 'd' -> MA.UprightD
+                | argument -> upright(argument, position)
             | "mathbf" | "boldsymbol" | "bf" -> bold(t.Argument())
             | "mathbb" -> blackboard(t.Argument())
             | "color" | "textcolor" ->
