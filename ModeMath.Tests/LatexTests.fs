@@ -216,11 +216,11 @@ let private reading =
                     "\\mathrm{a\\,b}", row [ MA.Text "a"; MA.Space Space.Thin; MA.Text "b" ]
                     // The SI way to write a compound unit, which is what \mathrm is mostly asked for.
                     "\\mathrm{m\\,s^{-1}}",
-                    row [
-                        MA.Text "m"
-                        MA.Space Space.Thin
-                        MA.ScriptSuper(MA.Text "s", row [ c '-'; c '1' ], ValueNone)
-                    ]
+                        row [
+                            MA.Text "m"
+                            MA.Space Space.Thin
+                            MA.ScriptSuper(MA.Text "s", row [ c '-'; c '1' ], ValueNone)
+                        ]
                     "\\mathrm{\\frac{a}{b}}", MA.Frac(MA.Text "a", MA.Text "b")
                     // Figures stand upright already, so only the letters beside them are set again.
                     "\\mathrm{2θ}", row [ c '2'; MA.Text "θ" ]
