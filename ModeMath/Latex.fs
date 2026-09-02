@@ -67,11 +67,12 @@ module internal Latexing =
     /// Where Unicode's italic alphabets begin, against the letters a formula sets in italic anyway.
     let private italicised = [ 0x1D434, 'A', 26; 0x1D44E, 'a', 26; 0x1D6E2, 'Α', 25; 0x1D6FC, 'α', 25 ]
 
-    /// The shapes Unicode keeps out of those alphabets, and the rule a spreadsheet draws a bar with.
-    let private apart = [ 0x210E, 'h'; 0x1D6F3, 'Θ'; 0x2502, '|' ]
+    /// The shapes Unicode keeps out of those alphabets, the rule a spreadsheet draws a bar with,
+    /// and the apostrophe a derivative is written with.
+    let private apart = [ 0x210E, 'h'; 0x1D6F3, 'Θ'; 0x2502, '|'; 0x27, '′' ]
 
-    /// The letter a character stands for, where it is not one a formula holds as it is.
-    let private standsFor(codepoint: int) =
+    /// The character a character stands for, where it is not one a formula holds as it is.
+    let standsFor(codepoint: int) =
         match apart |> List.tryFind (fun (shape, _) -> shape = codepoint) with
         | Some(_, letter) -> ValueSome letter
         | None ->
