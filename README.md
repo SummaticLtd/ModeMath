@@ -19,6 +19,10 @@ use painter = Painter.Embedded()
 painter.Draw(placed, canvas, 0f<px>, placed.Ascent, paint)
 ```
 
+`Painter.Embedded()` draws glyphs in greyscale.
+`Painter.Embedded SKFontEdging.SubpixelAntialias` draws them for an RGB-striped display, which shows only where the `SKSurface` was built with an `SKPixelGeometry` and reaches the screen unscaled.
+Asked for it anywhere else, Skia draws a softer mask holding no subpixel information, so the default is the better of the two.
+
 `examples/` shows what renders, a picture of each formula against its name and size. The formulas themselves are in `tools/RenderExamples/Examples.fs`.
 
 ## Editing
