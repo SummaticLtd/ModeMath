@@ -7,7 +7,7 @@ open SkiaSharp
 open FSUtils
 
 /// Draws a Placed onto an SKCanvas, whose y grows downwards where a Placed's grows upwards. One draw at a time.
-type Painter(math: SKTypeface, blackboard: SKTypeface) =
+type Painter(math: SKTypeface, blackboard: SKTypeface, edging: SKFontEdging) =
     let fonts = Dictionary<struct(Face * float32<px>), SKFont>()
 
     /// SkiaSharp takes the numbers themselves, so the measure comes off here and nowhere else.
@@ -26,16 +26,22 @@ type Painter(math: SKTypeface, blackboard: SKTypeface) =
             let created = new SKFont(typeface face, number size)
             created.Hinting <- SKFontHinting.None
             created.Subpixel <- true
-            created.Edging <- SKFontEdging.SubpixelAntialias
+            created.Edging <- edging
             fonts.[key] <- created
             created
 
+    /// Greyscale edging, which is what a surface that does not declare its subpixel geometry can show.
+    new(math: SKTypeface, blackboard: SKTypeface) = new Painter(math, blackboard, SKFontEdging.Antialias)
+
     /// A painter over the files the metrics were generated from.
-    static member Embedded() =
+    static member Embedded() = Painter.Embedded SKFontEdging.Antialias
+
+    /// The same, at a given edging. SubpixelAntialias needs an SKSurface built with an SKPixelGeometry.
+    static member Embedded(edging: SKFontEdging) =
         let opened(face: Face) =
             use stream = MathFont.OpenFontFile face
             SKTypeface.FromStream stream
-        new Painter(opened Face.Math, opened Face.Blackboard)
+        new Painter(opened Face.Math, opened Face.Blackboard, edging)
 
     /// Draws what is only offered at a third of the given paint's opacity.
     member t.Draw(placed: Placed, canvas: SKCanvas, x: float32<px>, baseline: float32<px>, paint: SKPaint) =
