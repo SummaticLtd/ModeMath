@@ -102,6 +102,7 @@ let private editing =
                     "andOverOneAlreadyRecognised", ("sech", "fn{sech}")
                     "typingSqrtLeavesTheCursorInsideTheRadical", ("sqrtx", "sqrt{x}")
                     "typingDegreeGivesTheMark", ("90degree", "90°")
+                    "typingAnApostropheGivesThePrime", ("f'", "f′")
                     "aSquareRootLeavesTheCursorInsideIt", ("\u221Ax", "sqrt{x}")
                     "aRootLeavesTheCursorInItsDegree", ("\u221B3", "root{3}{}")
                     "andTheRadicandComesAfterIt", ("\u221B3>x", "root{3}{x}")

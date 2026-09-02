@@ -160,6 +160,7 @@ type EditorState(layout: Layout, cursor: PlacedCurs) =
     /// A character typed at the cursor, which completes a function name where one is spelled out.
     /// ValueNone where the font cannot draw it, so that a caller can pass the key on.
     member private _.Type(character: char) =
+        let character = Latexing.standsFor(int character) |> ValueOption.defaultValue character
         if (Glyphs.variable character).IsNone then ValueNone
         else over((settled()).AddAlphanumeric character) |> ValueSome
 

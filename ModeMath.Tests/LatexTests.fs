@@ -86,6 +86,9 @@ let private reading =
                     "\\text{a​b}", MA.Text "ab"
                     // A spreadsheet writes the bar of a conditional probability as a drawing rule.
                     "P(A│B)", read "P(A|B)"
+                    // An apostrophe is the prime a derivative is written with, which slants.
+                    "f'(x)", read "f\\prime(x)"
+                    "f''", row [ c 'f'; c '′'; c '′' ]
                     // Only the 26 letters spell a command, so \cosθ is a function and a letter.
                     "\\cosθ", row [ MA.Function MathFunction.Cos; c 'θ' ]
                 ]
