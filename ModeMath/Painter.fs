@@ -26,7 +26,8 @@ type Painter(math: SKTypeface, blackboard: SKTypeface) =
             let created = new SKFont(typeface face, number size)
             created.Hinting <- SKFontHinting.None
             created.Subpixel <- true
-            created.Edging <- SKFontEdging.SubpixelAntialias
+            // LCD edging blurs where the surface has no subpixel geometry, which is everywhere we draw.
+            created.Edging <- SKFontEdging.Antialias
             fonts.[key] <- created
             created
 
