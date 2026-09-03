@@ -270,7 +270,8 @@ module internal Latexing =
         | MA.Overline x -> MA.Overline(inner x)
         | MA.Underline x -> MA.Underline(inner x)
         | MA.Coloured(colour, x) -> MA.Coloured(colour, inner x)
-        | MA.Table(cells, alignments) -> MA.Table(cells |> ImmA2D.map inner, alignments)
+        | MA.Table(cells, alignments, separated) ->
+            MA.Table(cells |> ImmA2D.map inner, alignments, separated)
         | MA.BoldVar _ | MA.Blackboard _ | MA.UprightD | MA.Function _ | MA.Text _ | MA.Space _ -> ma
 
     /// A formula set upright, as \mathrm does, leaving alone the figures and signs that stand upright anyway.
@@ -569,12 +570,18 @@ module internal Latexing =
             let name = t.Words position
             match name with
             | "cases" -> MA.Cases(t.Cells(name, position))
+            // An eqnarray is a grid, which is why LaTeX sets a relation in one so much wider than
+            // it sets one on a line. An align is the same derivation as an alignment.
             | "eqnarray" | "eqnarray*" ->
                 MA.Table(
                     t.Cells(name, position),
-                    ImmutableArray.Create(Alignment.Right, Alignment.Centre, Alignment.Left))
+                    ImmutableArray.Create(Alignment.Right, Alignment.Centre, Alignment.Left),
+                    true)
             | "align" | "align*" ->
-                MA.Table(t.Cells(name, position), ImmutableArray.Create(Alignment.Right, Alignment.Left))
+                MA.Table(
+                    t.Cells(name, position),
+                    ImmutableArray.Create(Alignment.Right, Alignment.Left),
+                    false)
             | "array" ->
                 let alignments =
                     t.Words position
@@ -582,7 +589,7 @@ module internal Latexing =
                         match alignment spelling with
                         | ValueSome alignment -> alignment
                         | ValueNone -> fail($"{spelling} is no column alignment", position))
-                MA.Table(t.Cells(name, position), alignments.ToImmutableArray())
+                MA.Table(t.Cells(name, position), alignments.ToImmutableArray(), true)
             | _ ->
                 match matrixBrackets name with
                 | ValueSome brackets ->
@@ -753,13 +760,23 @@ module internal Latexing =
                     put(string c)
                 put "}"
             | MA.Space space -> command(spelt(spaces, space))
-            | MA.Table(cells, alignments) ->
-                let name = if alignments.IsEmpty then "matrix" else "array"
+            | MA.Table(cells, alignments, separated) ->
+                // LaTeX has no unseparated grid but the align a right and a left column spell, so
+                // any other is written as the separated array it will be read back as.
+                let aligned =
+                    not separated
+                    && alignments.Length = 2
+                    && alignments.[0] = Alignment.Right
+                    && alignments.[1] = Alignment.Left
+                let name =
+                    if alignments.IsEmpty then "matrix"
+                    elif aligned then "align"
+                    else "array"
                 command "begin"
                 put "{"
                 put name
                 put "}"
-                if not alignments.IsEmpty then
+                if not alignments.IsEmpty && not aligned then
                     put "{"
                     for alignment in alignments do put(alignmentSpelling alignment)
                     put "}"

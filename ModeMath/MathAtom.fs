@@ -215,7 +215,9 @@ type MA =
     /// A fraction with no rule between its parts, which brackets turn into a binomial coefficient.
     | Stack of top: MA * bottom: MA
     /// A grid of cells, whose columns take the alignments in turn, repeating. None centres them all.
-    | Table of cells: ImmA2D<MA> * alignments: ImmutableArray<Alignment>
+    /// Separated where the columns are entries in their own right and are held apart as such,
+    /// against an alignment, which spaces a boundary as the row would be spaced on one line.
+    | Table of cells: ImmA2D<MA> * alignments: ImmutableArray<Alignment> * separated: bool
     | Spanned of mark: Spanning * x: MA
     /// A formula in a colour. TODO: Color is 24 bytes and a pointer for four bytes of RGBA.
     | Coloured of colour: Color * x: MA
@@ -237,13 +239,13 @@ type MA =
     static member Binom(top: MA, bottom: MA) = MA.RoundBracket(Stack(top, bottom))
 
     /// A grid with every column centred, as a matrix is set.
-    static member Matrix(cells: ImmA2D<MA>) = Table(cells, ImmutableArray<Alignment>.Empty)
+    static member Matrix(cells: ImmA2D<MA>) = Table(cells, ImmutableArray<Alignment>.Empty, true)
 
     /// A left-aligned grid behind an opening brace, as a definition by cases is set.
     static member Cases(cells: ImmA2D<MA>) =
         Bracketed(
             Brackets(Bracket.Curly, Bracket.None),
-            Table(cells, ImmutableArray.Create Alignment.Left),
+            Table(cells, ImmutableArray.Create Alignment.Left, true),
             BracketCompletion.Completed)
 
     /// Where the cells of a column sit, columns past the end of the alignments taking them again.
@@ -277,7 +279,7 @@ type MA =
             | BigOp(_, lower, upper) ->
                 lower |> ValueOption.iter walk
                 upper |> ValueOption.iter walk
-            | Table(cells, _) ->
+            | Table(cells, _, _) ->
                 for r in 0 .. cells.Rows - 1 do
                     for c in 0 .. cells.Cols - 1 do
                         walk cells.[r, c]
@@ -331,7 +333,8 @@ type MA =
         | Overline x -> Overline x.Flatten
         | Underline x -> Underline x.Flatten
         | Stack(top, bottom) -> Stack(top.Flatten, bottom.Flatten)
-        | Table(cells, alignments) -> Table(cells |> ImmA2D.map (fun cell -> cell.Flatten), alignments)
+        | Table(cells, alignments, separated) ->
+            Table(cells |> ImmA2D.map (fun cell -> cell.Flatten), alignments, separated)
 
 
     override t.ToString() =
@@ -359,11 +362,15 @@ type MA =
         | Overline x -> props("Overline", [ x ])
         | Underline x -> props("Underline", [ x ])
         | Stack(top, bottom) -> props("Stack", [ top; bottom ])
-        | Table(cells, alignments) ->
+        | Table(cells, alignments, separated) ->
             let row(r: int) = box (props("Row", seq { for c in 0 .. cells.Cols - 1 -> box cells.[r, c] }))
             props(
                 "Table",
-                Seq.append (seq { for r in 0 .. cells.Rows - 1 -> row r }) (alignments |> Seq.map box))
+                seq {
+                    yield! seq { for r in 0 .. cells.Rows - 1 -> row r }
+                    yield! (alignments |> Seq.map box)
+                    yield box separated
+                })
 
 type Direction =
     | Up = 0

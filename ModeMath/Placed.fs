@@ -87,7 +87,7 @@ type PlacedMA =
     | Overline of rule: PlacedRule * x: Placed
     | Underline of x: Placed * rule: PlacedRule
     | Stack of top: Placed * bottom: Placed
-    | Table of cells: ImmA2D<Placed> * alignments: ImmutableArray<Alignment>
+    | Table of cells: ImmA2D<Placed> * alignments: ImmutableArray<Alignment> * separated: bool
     | Coloured of colour: Color * x: Placed
     | Text of string * letters: PlacedGlyphs
     /// A gap, which draws nothing at all.
@@ -219,7 +219,7 @@ type PlacedMA with
         | Stack(top, bottom) ->
             child top
             child bottom
-        | Table(cells, _) -> for cell in cells.Elements do child cell
+        | Table(cells, _, _) -> for cell in cells.Elements do child cell
         | Coloured(colour, x) -> b.Add(Part.Painted(colour, x))
         | Text(_, letters) -> marks(letters, Ink.Solid)
         | Space _ -> ()
@@ -264,8 +264,8 @@ type PlacedMA with
         | Overline(_, x) -> MA.Overline x.Pma.ToMA
         | Underline(x, _) -> MA.Underline x.Pma.ToMA
         | Stack(top, bottom) -> MA.Stack(top.Pma.ToMA, bottom.Pma.ToMA)
-        | Table(cells, alignments) ->
-            MA.Table(cells |> ImmA2D.map (fun cell -> cell.Pma.ToMA), alignments)
+        | Table(cells, alignments, separated) ->
+            MA.Table(cells |> ImmA2D.map (fun cell -> cell.Pma.ToMA), alignments, separated)
         | Coloured(colour, x) -> MA.Coloured(colour, x.Pma.ToMA)
         | Text(text, _) -> MA.Text text
         | Space space -> MA.Space space

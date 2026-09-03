@@ -138,7 +138,8 @@ module internal Conventions =
         | Spanning.Underbrace -> true
         | Spanning.Overbrace | Spanning.Overrightarrow -> false
 
-    /// Eighteenths of an em between a table's columns, which is what TeX sets a matrix with.
+    /// Eighteenths of an em a separated grid holds its columns at least apart, which is what TeX
+    /// sets a matrix with.
     let tableColumnGap = 18
 
     /// Eighteenths of an em a space is wide, which is how TeX measures its spacing commands.
@@ -182,6 +183,26 @@ module internal Conventions =
         | MA.Accented _ | MA.Spanned _ | MA.Overline _ | MA.Underline _ | MA.Text _ ->
             both AtomClass.Ordinary
         | MA.Space _ -> ValueNone
+
+    /// The classes a cell presents across a table's boundaries, which are those of the atoms at its
+    /// ends rather than the Ordinary a row stands as to its neighbours.
+    let rec edgeClasses(ma: MA): struct(AtomClass * AtomClass) voption =
+        match ma with
+        | MA.Row elements ->
+            let mutable first = ValueNone
+            let mutable last = ValueNone
+            for element in elements do
+                match edgeClasses element with
+                | ValueSome(struct(left, right)) ->
+                    if first.IsNone then first <- ValueSome left
+                    last <- ValueSome right
+                | ValueNone -> ()
+            match first, last with
+            | ValueSome first, ValueSome last -> ValueSome(struct(first, last))
+            | _ -> ValueNone
+        | MA.Coloured(_, x) -> edgeClasses x
+        | MA.ScriptSuper(main, _, _) | MA.ScriptSub(main, _) -> edgeClasses main
+        | _ -> atomClasses ma
 
 module private Spacing =
     /// Eighteenths of an em by left then right class, negated where only display and text styles space.
@@ -781,8 +802,9 @@ type Layout(fontSize: float32<px>) =
                 below.At((width - below.Width) / 2f, -down))
         atomOf(pma, width, 0f<px>, style)
 
-    /// A grid centred on the axis, its rows a line's leading apart and its columns an em apart.
-    member private t.Table(cells: ImmA2D<MA>, alignments: ImmutableArray<Alignment>, style: Style) =
+    /// A grid centred on the axis, its rows a line's leading apart and its columns spaced by `gap`.
+    member private t.Table
+        (cells: ImmA2D<MA>, alignments: ImmutableArray<Alignment>, separated: bool, style: Style) =
         let s = scale style
         let placed = cells |> ImmA2D.map (fun cell -> t.Of(cell, style.Displayed))
         /// How far the tallest, deepest or widest cell of a row reaches.
@@ -795,13 +817,25 @@ type Layout(fontSize: float32<px>) =
         for row in 0 .. placed.Rows - 1 do
             for col in 0 .. placed.Cols - 1 do
                 widths.[col] <- max widths.[col] placed.[row, col].Width
-        let gap = eighteenths(Conventions.tableColumnGap, style)
+        let least = if separated then eighteenths(Conventions.tableColumnGap, style) else 0f<px>
+        /// The most any row would space its two cells by written out on a line, but never less
+        /// than a separated grid holds its columns apart.
+        let gap(col: int) =
+            let mutable widest = least
+            for row in 0 .. placed.Rows - 1 do
+                let before = Conventions.edgeClasses cells.[row, col]
+                let after = Conventions.edgeClasses cells.[row, col + 1]
+                match before, after with
+                | ValueSome(struct(_, left)), ValueSome(struct(right, _)) ->
+                    widest <- max widest (spacing(left, right, style))
+                | _ -> ()
+            widest
         let lefts = Array.zeroCreate<float32<px>> placed.Cols
-        let mutable right = 0f<px>
+        let mutable width = 0f<px>
         for col in 0 .. placed.Cols - 1 do
-            lefts.[col] <- right
-            right <- right + widths.[col] + gap
-        let width = max 0f<px> (right - gap)
+            if col > 0 then width <- width + gap(col - 1)
+            lefts.[col] <- width
+            width <- width + widths.[col]
         let leading = MathConstants.MathLeading * s
         let baselines = Array.zeroCreate<float32<px>> placed.Rows
         let mutable y = 0f<px>
@@ -822,7 +856,7 @@ type Layout(fontSize: float32<px>) =
                     | Alignment.Left -> 0f<px>
                     | Alignment.Right -> widths.[col] - cell.Width
                 cell.At(lefts.[col] + offset, baselines.[row] + rise))
-        atomOf(PlacedMA.Table(laid, alignments), width, 0f<px>, style)
+        atomOf(PlacedMA.Table(laid, alignments, separated), width, 0f<px>, style)
 
     member private t.Of(ma: MA, style: Style): Placed =
         match ma with
@@ -855,7 +889,7 @@ type Layout(fontSize: float32<px>) =
         | MA.Overline x -> t.Overline(x, style)
         | MA.Underline x -> t.Underline(x, style)
         | MA.Stack(top, bottom) -> t.Stack(top, bottom, style)
-        | MA.Table(cells, alignments) -> t.Table(cells, alignments, style)
+        | MA.Table(cells, alignments, separated) -> t.Table(cells, alignments, separated, style)
         | MA.Text text ->
             let letters = upright(text, style)
             atomOf(PlacedMA.Text(text, letters), letters.Width, 0f<px>, style)

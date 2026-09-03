@@ -15,7 +15,11 @@ let private row(elements: MA list) = MA.Row(elements.ToImmutableArray())
 let private c(character: char) = MA.Char character
 
 let private grid(cells: MA list list, alignments: Alignment list) =
-    MA.Table(ImmA2D.fromJagged cells, alignments.ToImmutableArray())
+    MA.Table(ImmA2D.fromJagged cells, alignments.ToImmutableArray(), true)
+
+/// The same cells as an alignment, whose boundaries space as a line does.
+let private aligned(cells: MA list list, alignments: Alignment list) =
+    MA.Table(ImmA2D.fromJagged cells, alignments.ToImmutableArray(), false)
 
 /// The units of the font at the size the tests lay out.
 let private units = 20f<px> / MathConstants.UnitsPerEm
@@ -512,7 +516,7 @@ let private accented(placed: Placed) =
 
 let private cellsOf(placed: Placed) =
     match placed.Pma with
-    | PlacedMA.Table(cells, _) -> cells
+    | PlacedMA.Table(cells, _, _) -> cells
     | other -> failwith $"not a table: {other}"
 
 let private marks =
@@ -817,6 +821,26 @@ let private tables =
                     let table = laid(grid([ [ c 'x'; c 'y' ]; [ wide; c 'z' ] ], []))
                     let expected = (laid wide).Width + 20f<px> + max (laid(c 'y')).Width (laid(c 'z')).Width
                     nearly(expected, table.Width, "the columns are not set by their widest cells")
+            )
+            Test.Sync(
+                "anAlignmentSpacesItsBoundaryAsTheRowWouldBeSpacedOnALine",
+                fun () ->
+                    let table = laid(aligned([ [ c 'x'; row [ c '='; c 'y' ] ] ], []))
+                    nearly(
+                        (laid(row [ c 'x'; c '='; c 'y' ])).Width,
+                        table.Width,
+                        "an alignment does not set its relation as a line does")
+            )
+            Test.Sync(
+                "aSeparatedGridHoldsItsColumnsApartWhereAnAlignmentGivesThemRelationSpacing",
+                fun () ->
+                    let cells = [ [ c 'x'; c '='; c 'y' ] ]
+                    let quad = 20f<px>
+                    let relation = quad * 5f / 18f
+                    nearly(
+                        (laid(aligned(cells, []))).Width + 2f * (quad - relation),
+                        (laid(grid(cells, []))).Width,
+                        "a grid and an alignment do not differ by their two boundaries")
             )
             Test.CasesSync(
                 "alignmentDecidesWhereANarrowCellSitsInItsColumn",
