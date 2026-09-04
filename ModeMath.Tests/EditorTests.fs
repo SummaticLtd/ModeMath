@@ -252,6 +252,8 @@ let private editing =
                         ValueNone,
                         editor.Press(MathKey.Character '\u2603'),
                         "a key with no glyph was taken in")
+                    // A tilde is the tie LaTeX reads it as, so it is no character to type either.
+                    Assert.Equal(ValueNone, editor.Press(MathKey.Character '~'), "a tilde was taken in")
                     Assert.Equal("abc", after "abc", "an ordinary key was not")
             )
             Test.Sync(

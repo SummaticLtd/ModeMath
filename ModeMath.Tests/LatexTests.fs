@@ -83,6 +83,13 @@ let private reading =
                     "\\longrightarrow", c '⟶'
                     "\\pounds", c '£'
                     "\\diameter", c '⌀'
+                    "a\\ll b\\gg c", row [ c 'a'; c '≪'; c 'b'; c '≫'; c 'c' ]
+                    "\\dagger\\ddagger", row [ c '†'; c '‡' ]
+                    "\\dag\\ddag", read "\\dagger\\ddagger"
+                    // A second name for a shape is the same shape, whichever of them a formula writes.
+                    "\\varnothing", c '∅'
+                    "\\smallsetminus", c '∖'
+                    "a\\colon b", row [ c 'a'; c ':'; c 'b' ]
                     // A word processor writes its variables in the italic alphabet Unicode holds.
                     "𝑠𝑜𝑐", MA.String "soc"
                     "𝐴𝜋", row [ c 'A'; c 'π' ]
@@ -103,10 +110,13 @@ let private reading =
                 ]
             )
             same(
-                "chooseStandsBetweenWhatItSetsOverAndUnder",
+                "anInfixCommandStandsBetweenWhatItSetsOverAndUnder",
                 [
-                    // The one infix command, which takes what is on either side of it rather than after.
+                    // An infix command takes what is on either side of it rather than after.
                     "{8 \\choose 6}", MA.Binom(c '8', c '6')
+                    "a \\over b", MA.Frac(c 'a', c 'b')
+                    "{a+1 \\over 2}c", row [ MA.Frac(row [ c 'a'; c '+'; c '1' ], c '2'); c 'c' ]
+                    "a \\atop b", MA.Stack(c 'a', c 'b')
                     "n \\choose k", MA.Binom(c 'n', c 'k')
                     "{n+1 \\choose 2}", MA.Binom(row [ c 'n'; c '+'; c '1' ], c '2')
                     // What stands outside the braces is no part of it.
@@ -194,6 +204,8 @@ let private reading =
                     // \operatorname names a function the same way a command of its own does.
                     "\\operatorname{Im}", MA.Function MathFunction.Imaginary
                     "\\operatorname{arcosh}x", row [ MA.Function MathFunction.Arcosh; c 'x' ]
+                    // A name outside the set is the upright words it spells, which is what it draws as.
+                    "\\operatorname{Aut}(V)", row [ MA.Text "Aut"; c '('; c 'V'; c ')' ]
                     // ISO 80000-2 names the inverse hyperbolics for the area they take, not an arc.
                     "\\arccosh", MA.Function MathFunction.Arcosh
                     "\\arcsinh", MA.Function MathFunction.Arsinh
@@ -222,6 +234,10 @@ let private reading =
                     "(x)", row [ c '('; c 'x'; c ')' ]
                     "\\lfloor x\\rfloor", row [ c '⌊'; c 'x'; c '⌋' ]
                     "\\lceil x\\rceil", row [ c '⌈'; c 'x'; c '⌉' ]
+                    "\\lbrace x\\rbrace", row [ c '{'; c 'x'; c '}' ]
+                    "\\lbrack x\\rbrack", row [ c '['; c 'x'; c ']' ]
+                    "\\lvert x\\rvert", row [ c '|'; c 'x'; c '|' ]
+                    "a\\vert b", row [ c 'a'; c '|'; c 'b' ]
                     // Only \left and \right read a delimiter, so a slash elsewhere divides on the line.
                     "a/b", row [ c 'a'; c '/'; c 'b' ]
                 ]
@@ -230,6 +246,7 @@ let private reading =
                 "wordsInBracesKeepTheirSpacesAndTheirCase",
                 [
                     "\\text{if } x", row [ MA.Text "if "; c 'x' ]
+                    "\\mbox{if}", MA.Text "if"
                     "\\mathrm{d}x", row [ MA.UprightD; c 'x' ]
                     "\\mathrm{sech}", MA.Text "sech"
                     "\\mathbf{v}", MA.BoldVar 'v'
@@ -278,6 +295,13 @@ let private reading =
                     MA.Table(
                         grid [ [ c 'a'; c 'b' ] ],
                         ImmutableArray.Create(Alignment.Left, Alignment.Right))
+                    // The environments that align on one mark, which is the grid \begin{align} sets.
+                    "\\begin{aligned}a&=b\\end{aligned}", read "\\begin{align}a&=b\\end{align}"
+                    "\\begin{split}a&=b\\end{split}", read "\\begin{align}a&=b\\end{align}"
+                    // Those that align on none, whose rows are one centred column.
+                    "\\begin{gather}a\\\\b\\end{gather}", MA.Matrix(grid [ [ c 'a' ]; [ c 'b' ] ])
+                    "\\begin{gathered}a\\end{gathered}", MA.Matrix(grid [ [ c 'a' ] ])
+                    "\\begin{gather*}a\\end{gather*}", MA.Matrix(grid [ [ c 'a' ] ])
                 ]
             )
             same(
@@ -285,10 +309,31 @@ let private reading =
                 [
                     "a\\,b", row [ c 'a'; MA.Space Space.Thin; c 'b' ]
                     "a\\qquad b", row [ c 'a'; MA.Space Space.QQuad; c 'b' ]
+                    "a\\thinspace b", read "a\\,b"
+                    "a\\negthinspace b", read "a\\!b"
+                    "a\\medspace b", read "a\\:b"
+                    "a\\thickspace b", read "a\\;b"
+                    // A tie is a space that holds a line against a break, which a formula never takes.
+                    "a~b", read "a\\ b"
+                    // So a tilde of its own stands under a backslash, as every character LaTeX keeps does.
+                    "a\\~b", row [ c 'a'; c '~'; c 'b' ]
+                    // A tie is a space among words too, where the backslash tells one from a tilde.
+                    "\\text{a~b}", MA.Text "a b"
+                    "\\text{a\\~b}", MA.Text "a~b"
                     // A colour is what it paints, so a name reads as the hex for it reads.
                     "\\color{red}{x}", read "\\color{#FF0000}{x}"
                     "\\color{RED}{x}", read "\\color{#FF0000}{x}"
                     "\\textcolor{#0000FF}{x}", MA.Coloured(Color.FromArgb(255, 0, 0, 255), c 'x')
+                ]
+            )
+            same(
+                "aModulusStandsForTheGapsAndWordsItIsDefinedAs",
+                [
+                    "a\\bmod b", read "a\\;\\text{mod}\\;b"
+                    "a\\pmod{n}", read "a\\quad(\\text{mod}\\,\\,n)"
+                    "a\\mod{n}", read "a\\quad\\text{mod}\\,\\,n"
+                    // Only \pmod takes an argument, so a script after the others goes where it is written.
+                    "a\\mod n^2", read "a\\quad\\text{mod}\\,\\,n^2"
                 ]
             )
             rejected(
@@ -296,6 +341,9 @@ let private reading =
                 [
                     "\\foo"
                     "\\alphax"
+                    // A style switch changes how a formula is set, so ignoring one would set it wrongly.
+                    "\\displaystyle\\frac{1}{2}"
+                    "\\textstyle x"
                     "{a"
                     "a}"
                     "\\right)"
@@ -308,8 +356,8 @@ let private reading =
                     "x^_2"
                     "\\begin{matrix}a\\end{cases}"
                     "\\begin{smallmatrix}a\\end{smallmatrix}"
-                    // A function is named from a closed set, so a name outside it is not guessed at.
-                    "\\operatorname{Var}"
+                    // A name the reader would have to invent a shape for, which \operatorname never asks.
+                    "\\operatorname{Var\u0416}"
                     // TeX calls two of these in one group ambiguous, and so does this.
                     "a \\choose b \\choose c"
                     "\\color{fuchsias}{x}"
@@ -372,7 +420,8 @@ let private reading =
                 namedSymbols @ (Latexing.negated |> List.map (fun (_, struck) -> string struck, struck)),
                 fun character ->
                     let written = Latex.Write(c character)
-                    if character <> '\\' then Assert.Equal(string character, written)
+                    // Barring the backslash and the characters LaTeX keeps, which stand under one.
+                    if not("\\{}" |> Seq.contains character) then Assert.Equal(string character, written)
                     Assert.Equal(c character, read written, written)
             )
             Test.CasesSync(
@@ -445,7 +494,7 @@ let private writing =
                 "aCharacterLatexKeepsForItselfIsWrittenUnderABackslash",
                 fun () ->
                     // A caret is one of them: it is drawn and typed like any other character.
-                    Assert.Equal(@"\{\&\$\_\%\#\^\}", Latex.Write(MA.String "{&$_%#^}"))
+                    Assert.Equal(@"\{\&\$\_\%\#\^\~\}", Latex.Write(MA.String "{&$_%#^~}"))
                     Assert.Equal(@"\text{\$5}", Latex.Write(MA.Text "$5"), "in text as well")
             )
             Test.Sync(
