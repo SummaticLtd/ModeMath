@@ -252,6 +252,12 @@ let private reading =
                         grid [ [ c 'x'; row [ c '='; c 'y' ] ] ],
                         ImmutableArray.Create(Alignment.Right, Alignment.Left),
                         false)
+                    // aligned is the nestable spelling, and the one written back out.
+                    "\\begin{aligned}x&=y\\end{aligned}",
+                    MA.Table(
+                        grid [ [ c 'x'; row [ c '='; c 'y' ] ] ],
+                        ImmutableArray.Create(Alignment.Right, Alignment.Left),
+                        false)
                     "\\begin{array}{lr}a&b\\end{array}",
                     MA.Table(
                         grid [ [ c 'a'; c 'b' ] ],

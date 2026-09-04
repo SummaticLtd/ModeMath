@@ -313,6 +313,9 @@ module internal Latexing =
         | "vmatrix" -> ValueSome(ValueSome Bracket.Line)
         | _ -> ValueNone
 
+    /// The columns an alignment is set in, which are the ones an aligned environment spells.
+    let alignColumns = ImmutableArray.Create(Alignment.Right, Alignment.Left)
+
     let alignment(spelling: char) =
         match spelling with
         | 'l' -> ValueSome Alignment.Left
@@ -570,18 +573,12 @@ module internal Latexing =
             let name = t.Words position
             match name with
             | "cases" -> MA.Cases(t.Cells(name, position))
-            // An eqnarray is a grid, which is why LaTeX sets a relation in one so much wider than
-            // it sets one on a line. An align is the same derivation as an alignment.
             | "eqnarray" | "eqnarray*" ->
                 MA.Table(
                     t.Cells(name, position),
                     ImmutableArray.Create(Alignment.Right, Alignment.Centre, Alignment.Left),
                     true)
-            | "align" | "align*" ->
-                MA.Table(
-                    t.Cells(name, position),
-                    ImmutableArray.Create(Alignment.Right, Alignment.Left),
-                    false)
+            | "align" | "align*" | "aligned" -> MA.Table(t.Cells(name, position), alignColumns, false)
             | "array" ->
                 let alignments =
                     t.Words position
@@ -761,22 +758,18 @@ module internal Latexing =
                 put "}"
             | MA.Space space -> command(spelt(spaces, space))
             | MA.Table(cells, alignments, separated) ->
-                // LaTeX has no unseparated grid but the align a right and a left column spell, so
-                // any other is written as the separated array it will be read back as.
-                let aligned =
-                    not separated
-                    && alignments.Length = 2
-                    && alignments.[0] = Alignment.Right
-                    && alignments.[1] = Alignment.Left
+                // Only aligned spells an unseparated grid; any other reads back as a separated array.
+                // It is aligned rather than align because what is written is always math mode.
                 let name =
                     if alignments.IsEmpty then "matrix"
-                    elif aligned then "align"
+                    elif not separated && alignments.AsSpan().SequenceEqual(alignColumns.AsSpan()) then
+                        "aligned"
                     else "array"
                 command "begin"
                 put "{"
                 put name
                 put "}"
-                if not alignments.IsEmpty && not aligned then
+                if name = "array" then
                     put "{"
                     for alignment in alignments do put(alignmentSpelling alignment)
                     put "}"

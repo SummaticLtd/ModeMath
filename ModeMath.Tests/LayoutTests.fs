@@ -825,7 +825,8 @@ let private tables =
             Test.Sync(
                 "anAlignmentSpacesItsBoundaryAsTheRowWouldBeSpacedOnALine",
                 fun () ->
-                    let table = laid(aligned([ [ c 'x'; row [ c '='; c 'y' ] ] ], []))
+                    let alignments = [ Alignment.Right; Alignment.Left ]
+                    let table = laid(aligned([ [ c 'x'; row [ c '='; c 'y' ] ] ], alignments))
                     nearly(
                         (laid(row [ c 'x'; c '='; c 'y' ])).Width,
                         table.Width,
@@ -835,12 +836,26 @@ let private tables =
                 "aSeparatedGridHoldsItsColumnsApartWhereAnAlignmentGivesThemRelationSpacing",
                 fun () ->
                     let cells = [ [ c 'x'; c '='; c 'y' ] ]
+                    let alignments = [ Alignment.Right; Alignment.Left; Alignment.Right ]
                     let quad = 20f<px>
-                    let relation = quad * 5f / 18f
+                    let relation = (laid(MA.Space Space.Thick)).Width
                     nearly(
-                        (laid(aligned(cells, []))).Width + 2f * (quad - relation),
-                        (laid(grid(cells, []))).Width,
-                        "a grid and an alignment do not differ by their two boundaries")
+                        (laid(aligned(cells, alignments))).Width + (quad - relation),
+                        (laid(grid(cells, alignments))).Width,
+                        "a grid and an alignment do not differ by their one seam")
+            )
+            Test.Sync(
+                "anAlignmentHoldsOnePairApartFromTheNext",
+                fun () ->
+                    // a &= b & a &= b: the seams are tight, the boundary between the pairs is not.
+                    let cells = [ [ c 'a'; row [ c '='; c 'b' ]; c 'a'; row [ c '='; c 'b' ] ] ]
+                    let alignments = [ Alignment.Right; Alignment.Left ]
+                    let pair = laid(aligned([ [ c 'a'; row [ c '='; c 'b' ] ] ], alignments))
+                    let both = laid(aligned(cells, alignments))
+                    nearly(
+                        2f * pair.Width + 20f<px>,
+                        both.Width,
+                        "an alignment does not hold one pair a quad from the next")
             )
             Test.CasesSync(
                 "alignmentDecidesWhereANarrowCellSitsInItsColumn",

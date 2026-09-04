@@ -215,8 +215,8 @@ type MA =
     /// A fraction with no rule between its parts, which brackets turn into a binomial coefficient.
     | Stack of top: MA * bottom: MA
     /// A grid of cells, whose columns take the alignments in turn, repeating. None centres them all.
-    /// Separated where the columns are entries in their own right and are held apart as such,
-    /// against an alignment, which spaces a boundary as the row would be spaced on one line.
+    /// Separated columns are held apart; otherwise a right-then-left pair is one equation, whose
+    /// seam is spaced as the row would be on a line.
     | Table of cells: ImmA2D<MA> * alignments: ImmutableArray<Alignment> * separated: bool
     | Spanned of mark: Spanning * x: MA
     /// A formula in a colour. TODO: Color is 24 bytes and a pointer for four bytes of RGBA.
@@ -367,7 +367,7 @@ type MA =
             props(
                 "Table",
                 seq {
-                    yield! seq { for r in 0 .. cells.Rows - 1 -> row r }
+                    for r in 0 .. cells.Rows - 1 -> row r
                     yield! (alignments |> Seq.map box)
                     yield box separated
                 })

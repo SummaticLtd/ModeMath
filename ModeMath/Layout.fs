@@ -138,8 +138,7 @@ module internal Conventions =
         | Spanning.Underbrace -> true
         | Spanning.Overbrace | Spanning.Overrightarrow -> false
 
-    /// Eighteenths of an em a separated grid holds its columns at least apart, which is what TeX
-    /// sets a matrix with.
+    /// Eighteenths of an em a separated grid holds its columns apart, as TeX sets a matrix.
     let tableColumnGap = 18
 
     /// Eighteenths of an em a space is wide, which is how TeX measures its spacing commands.
@@ -184,26 +183,6 @@ module internal Conventions =
             both AtomClass.Ordinary
         | MA.Space _ -> ValueNone
 
-    /// The classes a cell presents across a table's boundaries, which are those of the atoms at its
-    /// ends rather than the Ordinary a row stands as to its neighbours.
-    let rec edgeClasses(ma: MA): struct(AtomClass * AtomClass) voption =
-        match ma with
-        | MA.Row elements ->
-            let mutable first = ValueNone
-            let mutable last = ValueNone
-            for element in elements do
-                match edgeClasses element with
-                | ValueSome(struct(left, right)) ->
-                    if first.IsNone then first <- ValueSome left
-                    last <- ValueSome right
-                | ValueNone -> ()
-            match first, last with
-            | ValueSome first, ValueSome last -> ValueSome(struct(first, last))
-            | _ -> ValueNone
-        | MA.Coloured(_, x) -> edgeClasses x
-        | MA.ScriptSuper(main, _, _) | MA.ScriptSub(main, _) -> edgeClasses main
-        | _ -> atomClasses ma
-
 module private Spacing =
     /// Eighteenths of an em by left then right class, negated where only display and text styles space.
     let table =
@@ -231,6 +210,48 @@ module private Spacing =
     /// A binary operator with nothing to bind on its right is ordinary too, as in a trailing minus sign.
     let leavesNothingToBind(next: AtomClass) =
         next = AtomClass.Relation || next = AtomClass.Close || next = AtomClass.Punctuation
+
+    /// The classes a row's elements present to one another, each binary with nothing to bind on the
+    /// side it faces demoted to ordinary. ValueNone where the element is a gap rather than an atom.
+    let rowClasses(elements: ImmutableArray<MA>) =
+        let classes = Array.init elements.Length (fun i -> Conventions.atomClasses elements.[i])
+        // A space is a gap rather than an atom, so an operator binds straight through it.
+        let bound = [| for i in 0 .. elements.Length - 1 do if classes.[i].IsSome then yield i |]
+        let facingLeft(i: int) = let struct(left, _) = classes.[i].Value in left
+        let facingRight(i: int) = let struct(_, right) = classes.[i].Value in right
+        let ordinary = ValueSome(struct(AtomClass.Ordinary, AtomClass.Ordinary))
+        // A binary atom with nothing to bind is ordinary, so each gap demotes whichever side it strands.
+        for n in 0 .. bound.Length - 1 do
+            let i = bound.[n]
+            let previous = if n = 0 then ValueNone else ValueSome(facingRight bound.[n - 1])
+            if facingLeft i = AtomClass.Binary && isUnaryPosition previous then classes.[i] <- ordinary
+            elif
+                n > 0
+                && facingRight bound.[n - 1] = AtomClass.Binary
+                && leavesNothingToBind(facingLeft i)
+            then
+                classes.[bound.[n - 1]] <- ordinary
+        // No atom follows the last, so a binary ending the row is stranded too.
+        if bound.Length > 0 && facingRight bound.[bound.Length - 1] = AtomClass.Binary then
+            classes.[bound.[bound.Length - 1]] <- ordinary
+        classes
+
+    /// The classes at a cell's ends, which are the ones it was laid out with rather than the
+    /// Ordinary a row stands as.
+    let rec edgeClasses(ma: MA): struct(AtomClass * AtomClass) voption =
+        match ma with
+        | MA.Row elements ->
+            let classes = rowClasses elements
+            match
+                classes |> Array.tryFind (fun c -> c.IsSome),
+                classes |> Array.tryFindBack (fun c -> c.IsSome)
+            with
+            | Some(ValueSome(struct(first, _))), Some(ValueSome(struct(_, last))) ->
+                ValueSome(struct(first, last))
+            | _ -> ValueNone
+        | MA.Coloured(_, x) -> edgeClasses x
+        | MA.ScriptSuper(main, _, _) | MA.ScriptSub(main, _) -> edgeClasses main
+        | _ -> Conventions.atomClasses ma
 
 
 /// Lays out an MA at a base font size, which is pixels to the em.
@@ -408,27 +429,9 @@ type Layout(fontSize: float32<px>) =
             if style.Editing then single(Slot.box, style, PlacedMA.Placeholder)
             else atomOf(PlacedMA.Row ImmutableArray<Placed>.Empty, 0f<px>, 0f<px>, style)
         else
-            let classes = Array.init elements.Length (fun i -> Conventions.atomClasses elements.[i])
-            // A space is a gap rather than an atom, so an operator binds straight through it.
-            let bound = [| for i in 0 .. elements.Length - 1 do if classes.[i].IsSome then yield i |]
+            let classes = Spacing.rowClasses elements
             let facingLeft(i: int) = let struct(left, _) = classes.[i].Value in left
             let facingRight(i: int) = let struct(_, right) = classes.[i].Value in right
-            let ordinary = ValueSome(struct(AtomClass.Ordinary, AtomClass.Ordinary))
-            // A binary atom with nothing to bind is ordinary, so each gap demotes whichever side it strands.
-            for n in 0 .. bound.Length - 1 do
-                let i = bound.[n]
-                let previous = if n = 0 then ValueNone else ValueSome(facingRight bound.[n - 1])
-                if facingLeft i = AtomClass.Binary && Spacing.isUnaryPosition previous then
-                    classes.[i] <- ordinary
-                elif
-                    n > 0
-                    && facingRight bound.[n - 1] = AtomClass.Binary
-                    && Spacing.leavesNothingToBind(facingLeft i)
-                then
-                    classes.[bound.[n - 1]] <- ordinary
-            // No atom follows the last, so a binary ending the row is stranded too.
-            if bound.Length > 0 && facingRight bound.[bound.Length - 1] = AtomClass.Binary then
-                classes.[bound.[bound.Length - 1]] <- ordinary
             let children = ImmutableArray.CreateBuilder<Placed>()
             let mutable x = 0f<px>
             let mutable reach = 0f<px>
@@ -803,6 +806,7 @@ type Layout(fontSize: float32<px>) =
         atomOf(pma, width, 0f<px>, style)
 
     /// A grid centred on the axis, its rows a line's leading apart and its columns spaced by `gap`.
+    /// Only an alignment's own seams are tight: everything else stands a quad apart.
     member private t.Table
         (cells: ImmA2D<MA>, alignments: ImmutableArray<Alignment>, separated: bool, style: Style) =
         let s = scale style
@@ -817,19 +821,28 @@ type Layout(fontSize: float32<px>) =
         for row in 0 .. placed.Rows - 1 do
             for col in 0 .. placed.Cols - 1 do
                 widths.[col] <- max widths.[col] placed.[row, col].Width
-        let least = if separated then eighteenths(Conventions.tableColumnGap, style) else 0f<px>
-        /// The most any row would space its two cells by written out on a line, but never less
-        /// than a separated grid holds its columns apart.
+        let quad = eighteenths(Conventions.tableColumnGap, style)
+        /// A boundary within a right-then-left pair is one equation's own seam. Every other holds
+        /// entries apart: the columns of a grid, or the pairs an alignment sets side by side.
+        let seam(col: int) =
+            not separated
+            && MA.AlignmentOf(alignments, col) = Alignment.Right
+            && MA.AlignmentOf(alignments, col + 1) = Alignment.Left
+        let edges =
+            if Seq.exists seam (seq { 0 .. placed.Cols - 2 })
+            then cells |> ImmA2D.map Spacing.edgeClasses
+            else ImmA2D.empty
+        /// The widest any row would space this boundary by on a line, or a quad where it is no seam.
         let gap(col: int) =
-            let mutable widest = least
-            for row in 0 .. placed.Rows - 1 do
-                let before = Conventions.edgeClasses cells.[row, col]
-                let after = Conventions.edgeClasses cells.[row, col + 1]
-                match before, after with
-                | ValueSome(struct(_, left)), ValueSome(struct(right, _)) ->
-                    widest <- max widest (spacing(left, right, style))
-                | _ -> ()
-            widest
+            if not (seam col) then quad
+            else
+                let mutable widest = 0f<px>
+                for row in 0 .. placed.Rows - 1 do
+                    match edges.[row, col], edges.[row, col + 1] with
+                    | ValueSome(struct(_, left)), ValueSome(struct(right, _)) ->
+                        widest <- max widest (spacing(left, right, style))
+                    | _ -> ()
+                widest
         let lefts = Array.zeroCreate<float32<px>> placed.Cols
         let mutable width = 0f<px>
         for col in 0 .. placed.Cols - 1 do
