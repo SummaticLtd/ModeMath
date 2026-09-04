@@ -39,7 +39,7 @@ let private binom(top: MA, bottom: MA) = MA.Binom(top, bottom)
 let private matrix(cells: MA list list) = MA.Matrix(ImmA2D.fromJagged cells)
 let private cases(cells: MA list list) = MA.Cases(ImmA2D.fromJagged cells)
 let private grid(cells: MA list list, alignments: Alignment list) =
-    MA.Table(ImmA2D.fromJagged cells, alignments.ToImmutableArray())
+    MA.Table(ImmA2D.fromJagged cells, alignments.ToImmutableArray(), true)
 /// The right-hand side of an evaluated integral: an open left side and a bar carrying the limits.
 let private evaluatedAt(x: MA, lower: MA, upper: MA) =
     supsub(pair(Bracket.None, Bracket.Line, x), upper, lower)

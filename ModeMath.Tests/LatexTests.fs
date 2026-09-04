@@ -241,14 +241,28 @@ let private reading =
                     "\\begin{matrix}a&b\\\\c\\end{matrix}",
                     MA.Matrix(grid [ [ c 'a'; c 'b' ]; [ c 'c'; MA.Empty ] ])
                     "\\begin{cases}x&y\\end{cases}", MA.Cases(grid [ [ c 'x'; c 'y' ] ])
+                    // An eqnarray is a grid; an align is the same derivation as an alignment.
                     "\\begin{eqnarray}x&=&y\\end{eqnarray}",
                     MA.Table(
                         grid [ [ c 'x'; c '='; c 'y' ] ],
-                        ImmutableArray.Create(Alignment.Right, Alignment.Centre, Alignment.Left))
+                        ImmutableArray.Create(Alignment.Right, Alignment.Centre, Alignment.Left),
+                        true)
+                    "\\begin{align}x&=y\\end{align}",
+                    MA.Table(
+                        grid [ [ c 'x'; row [ c '='; c 'y' ] ] ],
+                        ImmutableArray.Create(Alignment.Right, Alignment.Left),
+                        false)
+                    // aligned is the nestable spelling, and the one written back out.
+                    "\\begin{aligned}x&=y\\end{aligned}",
+                    MA.Table(
+                        grid [ [ c 'x'; row [ c '='; c 'y' ] ] ],
+                        ImmutableArray.Create(Alignment.Right, Alignment.Left),
+                        false)
                     "\\begin{array}{lr}a&b\\end{array}",
                     MA.Table(
                         grid [ [ c 'a'; c 'b' ] ],
-                        ImmutableArray.Create(Alignment.Left, Alignment.Right))
+                        ImmutableArray.Create(Alignment.Left, Alignment.Right),
+                        true)
                 ]
             )
             same(
@@ -439,7 +453,8 @@ let private writing =
                     MA.Binom(c 'n', c 'k')
                     MA.Matrix cells
                     MA.Cases cells
-                    MA.Table(cells, ImmutableArray.Create(Alignment.Right, Alignment.Centre))
+                    MA.Table(cells, ImmutableArray.Create(Alignment.Right, Alignment.Centre), true)
+                    MA.Table(cells, ImmutableArray.Create(Alignment.Right, Alignment.Left), false)
                     MA.Spanned(Spanning.Overbrace, MA.String "ab")
                     MA.Coloured(Color.FromArgb(255, 255, 0, 0), c 'x')
                     MA.Coloured(Color.FromArgb(255, 1, 2, 3), c 'x')

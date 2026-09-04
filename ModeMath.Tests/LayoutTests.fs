@@ -15,7 +15,11 @@ let private row(elements: MA list) = MA.Row(elements.ToImmutableArray())
 let private c(character: char) = MA.Char character
 
 let private grid(cells: MA list list, alignments: Alignment list) =
-    MA.Table(ImmA2D.fromJagged cells, alignments.ToImmutableArray())
+    MA.Table(ImmA2D.fromJagged cells, alignments.ToImmutableArray(), true)
+
+/// The same cells as an alignment, whose boundaries space as a line does.
+let private aligned(cells: MA list list, alignments: Alignment list) =
+    MA.Table(ImmA2D.fromJagged cells, alignments.ToImmutableArray(), false)
 
 /// The units of the font at the size the tests lay out.
 let private units = 20f<px> / MathConstants.UnitsPerEm
@@ -512,7 +516,7 @@ let private accented(placed: Placed) =
 
 let private cellsOf(placed: Placed) =
     match placed.Pma with
-    | PlacedMA.Table(cells, _) -> cells
+    | PlacedMA.Table(cells, _, _) -> cells
     | other -> failwith $"not a table: {other}"
 
 let private marks =
@@ -817,6 +821,41 @@ let private tables =
                     let table = laid(grid([ [ c 'x'; c 'y' ]; [ wide; c 'z' ] ], []))
                     let expected = (laid wide).Width + 20f<px> + max (laid(c 'y')).Width (laid(c 'z')).Width
                     nearly(expected, table.Width, "the columns are not set by their widest cells")
+            )
+            Test.Sync(
+                "anAlignmentSpacesItsBoundaryAsTheRowWouldBeSpacedOnALine",
+                fun () ->
+                    let alignments = [ Alignment.Right; Alignment.Left ]
+                    let table = laid(aligned([ [ c 'x'; row [ c '='; c 'y' ] ] ], alignments))
+                    nearly(
+                        (laid(row [ c 'x'; c '='; c 'y' ])).Width,
+                        table.Width,
+                        "an alignment does not set its relation as a line does")
+            )
+            Test.Sync(
+                "aSeparatedGridHoldsItsColumnsApartWhereAnAlignmentGivesThemRelationSpacing",
+                fun () ->
+                    let cells = [ [ c 'x'; c '='; c 'y' ] ]
+                    let alignments = [ Alignment.Right; Alignment.Left; Alignment.Right ]
+                    let quad = 20f<px>
+                    let relation = (laid(MA.Space Space.Thick)).Width
+                    nearly(
+                        (laid(aligned(cells, alignments))).Width + (quad - relation),
+                        (laid(grid(cells, alignments))).Width,
+                        "a grid and an alignment do not differ by their one seam")
+            )
+            Test.Sync(
+                "anAlignmentHoldsOnePairApartFromTheNext",
+                fun () ->
+                    // a &= b & a &= b: the seams are tight, the boundary between the pairs is not.
+                    let cells = [ [ c 'a'; row [ c '='; c 'b' ]; c 'a'; row [ c '='; c 'b' ] ] ]
+                    let alignments = [ Alignment.Right; Alignment.Left ]
+                    let pair = laid(aligned([ [ c 'a'; row [ c '='; c 'b' ] ] ], alignments))
+                    let both = laid(aligned(cells, alignments))
+                    nearly(
+                        2f * pair.Width + 20f<px>,
+                        both.Width,
+                        "an alignment does not hold one pair a quad from the next")
             )
             Test.CasesSync(
                 "alignmentDecidesWhereANarrowCellSitsInItsColumn",
