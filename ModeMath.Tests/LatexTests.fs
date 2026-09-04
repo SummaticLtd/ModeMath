@@ -316,6 +316,9 @@ let private reading =
                     "a~b", read "a\\ b"
                     // So a tilde of its own stands under a backslash, as every character LaTeX keeps does.
                     "a\\~b", row [ c 'a'; c '~'; c 'b' ]
+                    // A tie is a space among words too, where the backslash tells one from a tilde.
+                    "\\text{a~b}", MA.Text "a b"
+                    "\\text{a\\~b}", MA.Text "a~b"
                     // A colour is what it paints, so a name reads as the hex for it reads.
                     "\\color{red}{x}", read "\\color{#FF0000}{x}"
                     "\\color{RED}{x}", read "\\color{#FF0000}{x}"
@@ -325,9 +328,11 @@ let private reading =
             same(
                 "aModulusStandsForTheGapsAndWordsItIsDefinedAs",
                 [
-                    "a\\bmod b", read "a\\:\\text{mod}\\:b"
-                    "a\\pmod{n}", read "a\\quad(\\text{mod}\\;n)"
-                    "a\\mod{n}", read "a\\quad\\text{mod}\\;n"
+                    "a\\bmod b", read "a\\;\\text{mod}\\;b"
+                    "a\\pmod{n}", read "a\\quad(\\text{mod}\\,\\,n)"
+                    "a\\mod{n}", read "a\\quad\\text{mod}\\,\\,n"
+                    // Only \pmod takes an argument, so a script after the others goes where it is written.
+                    "a\\mod n^2", read "a\\quad\\text{mod}\\,\\,n^2"
                 ]
             )
             rejected(

@@ -479,8 +479,10 @@ module internal Latexing =
                 let plain = Text.StringBuilder()
                 let mutable i = 0
                 while i < word.Length do
-                    if word.[i] = '\\' && i + 1 < word.Length && kept.Contains word.[i + 1] then i <- i + 1
-                    plain.Append word.[i] |> ignore
+                    let escaped = word.[i] = '\\' && i + 1 < word.Length && kept.Contains word.[i + 1]
+                    if escaped then i <- i + 1
+                    // A tie is a space among words as it is among mathematics.
+                    plain.Append(if word.[i] = '~' && not escaped then ' ' else word.[i]) |> ignore
                     i <- i + 1
                 plain.ToString()
             | _ -> fail("a word in braces was expected", position)
@@ -515,17 +517,17 @@ module internal Latexing =
             | "begin" -> t.Environment(position)
             | "end" -> fail("an environment ends where none began", position)
             | "text" | "textrm" | "mbox" -> t.Written(t.Words position, position)
-            // The modulus commands, each standing for the gaps and words LaTeX defines it as.
-            | "bmod" -> MA.Row3(MA.Space Space.Medium, MA.Text "mod", MA.Space Space.Medium)
+            // The modulus commands, as LaTeX defines them: only \pmod brackets what follows.
+            | "bmod" -> MA.Row3(MA.Space Space.Thick, MA.Text "mod", MA.Space Space.Thick)
             | "pmod" ->
                 MA.Row(
                     ImmutableArray.Create(
-                        MA.Space Space.Quad, MA.Char '(', MA.Text "mod", MA.Space Space.Thick,
-                        t.Argument(), MA.Char ')'))
+                        MA.Space Space.Quad, MA.Char '(', MA.Text "mod", MA.Space Space.Thin,
+                        MA.Space Space.Thin, t.Argument(), MA.Char ')'))
             | "mod" ->
                 MA.Row(
                     ImmutableArray.Create(
-                        MA.Space Space.Quad, MA.Text "mod", MA.Space Space.Thick, t.Argument()))
+                        MA.Space Space.Quad, MA.Text "mod", MA.Space Space.Thin, MA.Space Space.Thin))
             // \mathrm sets mathematics upright, so scripts, gaps and commands all read inside it.
             | "mathrm" ->
                 match t.Argument() with
