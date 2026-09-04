@@ -14,12 +14,12 @@ Editing and display work. `examples/` shows what renders today.
 ## 2. LaTeX
 
 `Latex.Read` reads a math-mode string into an `MA` and `Latex.Write` writes one back out, every argument in braces and characters as themselves.
-Every one of the 17,085 formulas the content library reads is written back out and read again as the same formula.
+Every one of the 17,085 formulas it reads is written back out and read again as the same formula.
 
-It reads and draws 99.2% of the 17,220 distinct formulas in the SummaticApp content library.
-Every formula it reads, it draws: a character the font cannot draw is refused where it stands, so
-that laying a formula out cannot fail. `EditorState.Type` turns such a key down the same way, and
-`MA.Undrawable` answers for a formula built in code. What the reader turns down:
+It reads and draws 99.2% of the 17,220 distinct formulas it is tested against.
+Every formula it reads, it draws: a character the font cannot draw is refused where it stands, so that laying a formula out cannot fail.
+`EditorState.Type` turns such a key down the same way, and `MA.Undrawable` answers for a formula built in code.
+What the reader turns down:
 
 | Turned down | Formulas | Why |
 |---|---|---|
@@ -49,8 +49,7 @@ Relations, binary operators and arrows are done, each carrying the TeX atom clas
 all 26 capitals with `ℂ ℍ ℕ ℙ ℚ ℝ ℤ` drawn from the same face, and `MA.Text` covers `\text` as
 well as the letters `\mathrm` sets upright, whose argument stays mathematics.
 
-Uses are counts in the SummaticApp content library, which asks for no `\mathcal`, `\mathfrak`,
-`\mathtt` or `\mathsf` at all.
+Uses are counts over the formulas tested against, which ask for no `\mathcal`, `\mathfrak`, `\mathtt` or `\mathsf` at all.
 
 ## TODO: an efficient colour
 

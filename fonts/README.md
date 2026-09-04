@@ -62,4 +62,4 @@ drawn from the blackboard face too, so a formula holding either spelling looks t
 ## TODO: settle the repertoire
 
 `Named.repertoire` lists the characters a formula may hold beyond the alphabets and digits: 147 of them, 33 being ASCII punctuation.
-Which of the rest the SummaticApp content library actually uses has not been checked.
+Which of the rest are actually used has not been checked.
