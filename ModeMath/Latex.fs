@@ -160,7 +160,11 @@ module internal Latexing =
             "setminus", '∖'; "oplus", '⊕'; "otimes", '⊗'
             "leq", '≤'; "le", '≤'; "geq", '≥'; "ge", '≥'; "neq", '≠'; "ne", '≠'
             "approx", '≈'; "equiv", '≡'; "sim", '∼'; "cong", '≅'; "propto", '∝'
-            "in", '∈'; "notin", '∉'; "subset", '⊂'; "subseteq", '⊆'
+            "in", '∈'; "notin", '∉'; "ni", '∋'; "subset", '⊂'; "subseteq", '⊆'
+            "nmid", '∤'; "nparallel", '∦'; "nless", '≮'; "ngtr", '≯'; "nleq", '≰'; "ngeq", '≱'
+            "nsim", '≁'; "ncong", '≇'; "nsubseteq", '⊈'; "nsupseteq", '⊉'; "nexists", '∄'
+            "nrightarrow", '↛'; "nleftarrow", '↚'; "nleftrightarrow", '↮'
+            "nRightarrow", '⇏'; "nLeftarrow", '⇍'; "nLeftrightarrow", '⇎'
             "to", '→'; "rightarrow", '→'; "Rightarrow", '⇒'; "Leftrightarrow", '⇔'; "iff", '⟺'
             "neg", '¬'; "lnot", '¬'; "langle", '⟨'; "rangle", '⟩'
             "lfloor", '⌊'; "rfloor", '⌋'; "lceil", '⌈'; "rceil", '⌉'; "diameter", '⌀'
@@ -172,6 +176,16 @@ module internal Latexing =
             "bullet", '•'; "circlearrowright", '↻'
             "uparrow", '↑'; "downarrow", '↓'; "longrightarrow", '⟶'; "longleftarrow", '⟵'
             "nearrow", '↗'; "searrow", '↘'
+        ]
+
+    /// Each character \not strikes through, and the character the font draws struck.
+    let negated =
+        [
+            '=', '≠'; '≡', '≢'; '<', '≮'; '>', '≯'; '≤', '≰'; '≥', '≱'
+            '≈', '≉'; '∼', '≁'; '≅', '≇'
+            '∈', '∉'; '∋', '∌'; '⊂', '⊄'; '⊃', '⊅'; '⊆', '⊈'; '⊇', '⊉'
+            '∣', '∤'; '∥', '∦'; '∃', '∄'
+            '→', '↛'; '←', '↚'; '↔', '↮'; '⇒', '⇏'; '⇐', '⇍'; '⇔', '⇎'
         ]
 
     /// Every function under the name it is called by, with the spellings also written for a few.
@@ -500,6 +514,14 @@ module internal Latexing =
                 let colour = t.Colour position
                 MA.Coloured(colour, t.Argument())
             | "{" | "}" | "%" | "#" | "&" | "_" | "$" | "^" -> MA.Char name.[0]
+            | "not" ->
+                let struck =
+                    match t.Argument() with
+                    | MA.Char c -> negated |> List.tryPick (fun (plain, struck) -> if plain = c then Some struck else None)
+                    | _ -> None
+                match struck with
+                | Some struck -> MA.Char struck
+                | None -> fail("\\not stands before what has no struck form", position)
             | _ ->
                 match commands |> ImmutableDictionary.tryFind name with
                 | ValueNone -> fail($"{name} is no command this reads", position)
@@ -622,9 +644,6 @@ module internal Latexing =
     let private spelt(table: (string * 'a) list, value: 'a) =
         table |> List.pick (fun (name, x) -> if x = value then Some name else None)
 
-    /// Every character a command stands for, greek first, so each is written the one way.
-    let private namedChars = greek @ marks
-
     let private delimiterSpelling(bracket: Bracket, opening: bool) =
         match bracket, opening with
         | Bracket.Normal, true -> "("
@@ -650,19 +669,19 @@ module internal Latexing =
         | Alignment.Right -> "r"
         | Alignment.Centre | _ -> "c"
 
-    /// A formula as the LaTeX that reads back as it, every argument in braces.
+    /// A formula as the LaTeX that reads back as it, every argument in braces and characters as themselves.
     let write(ma: MA) =
         let text = Text.StringBuilder()
         /// A control word runs on into a letter after it, so a space is put between them.
         let mutable word = false
         let put(s: string) =
-            if word && s.Length > 0 && Char.IsAsciiLetter s.[0] then text.Append ' ' |> ignore
+            if word && s.Length > 0 && spells s.[0] then text.Append ' ' |> ignore
             text.Append s |> ignore
             word <- false
         let command(name: string) =
             put "\\"
             put name
-            word <- name.Length > 0 && Char.IsAsciiLetter name.[name.Length - 1]
+            word <- name.Length > 0 && spells name.[name.Length - 1]
         /// A delimiter named by a control word is written as one, so a letter after it does not run on.
         let delimiter(bracket: Bracket, opening: bool) =
             let spelling = delimiterSpelling(bracket, opening)
@@ -670,12 +689,10 @@ module internal Latexing =
         let rec formula(ma: MA) =
             match ma with
             | MA.Row elements -> for element in elements do formula element
-            | MA.Char c ->
-                match namedChars |> List.tryPick (fun (name, x) -> if x = c then Some name else None) with
-                | Some name -> command name
-                // What LaTeX keeps for itself stands for itself only under a backslash.
-                | None when kept.Contains c -> command(string c)
-                | None -> put(string c)
+            // What LaTeX keeps for itself stands for itself only under a backslash.
+            | MA.Char c when kept.Contains c -> command(string c)
+            | MA.Char '\\' -> command(spelt(marks, '\\'))
+            | MA.Char c -> put(string c)
             | MA.BoldVar c ->
                 command "mathbf"
                 braced(MA.Char c)

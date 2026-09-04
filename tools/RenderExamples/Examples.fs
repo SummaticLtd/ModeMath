@@ -428,6 +428,7 @@ let implemented = [
     "ModeMathCubeRoot", root(c '3', row [ c 'x'; c '+'; c '1' ])
     "ModeMathDerivative", frac(row [ MA.UprightD; c 'y' ], row [ MA.UprightD; c 'x' ])
     "ModeMathPrime", row [ c 'f'; c '′'; paren(c 'x') ]
+    "ModeMathStruck", row [ c '2'; c '∤'; c '7'; c ','; space Space.Medium; c 'p'; c '⇏'; c 'q' ]
     "ModeMathTentativeBracket", MA.Bracketed(Brackets.Matching Bracket.Normal, s "x+1", BracketCompletion.Left)
     "ModeMathEmptySlots", frac(MA.Empty, MA.Empty)
 ]

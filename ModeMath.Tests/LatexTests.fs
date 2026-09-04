@@ -44,6 +44,15 @@ let private writes(name: string, pairs: (MA * string) list) =
         pairs |> List.map (fun (formula, expected) -> string formula, (formula, expected)),
         fun (formula, expected) -> Assert.Equal(expected, Latex.Write formula, string formula))
 
+/// Every character a command stands for, under the command's name.
+let private namedSymbols =
+    [
+        for command in Latexing.commands do
+            match command.Value with
+            | Latexing.Standing.Symbol character -> yield command.Key, character
+            | _ -> ()
+    ]
+
 let private reading =
     TestList(
         "Reading LaTeX",
@@ -113,6 +122,26 @@ let private reading =
                     "\\overbar{Y}", MA.Overline(c 'Y')
                     "\\bf{F}", MA.BoldVar 'F'
                     "\\bullet", c '•'
+                ]
+            )
+            same(
+                "notStrikesThroughTheRelationAfterIt",
+                [
+                    "a \\not= b", row [ c 'a'; c '≠'; c 'b' ]
+                    "\\not\\equiv", c '≢'
+                    "\\not\\in", c '∉'
+                    "\\not\\ni", c '∌'
+                    "\\not\\subseteq", c '⊈'
+                    "\\not\\mid", c '∤'
+                    "\\not<", c '≮'
+                    "\\not\\Rightarrow", c '⇏'
+                    "\\not\\exists", c '∄'
+                    "\\not{=}", c '≠'
+                    "≢", c '≢'
+                    // The amssymb names stand for the same characters.
+                    "\\nmid", c '∤'
+                    "\\nsubseteq", c '⊈'
+                    "\\nLeftrightarrow", c '⇎'
                 ]
             )
             same(
@@ -293,6 +322,11 @@ let private reading =
                     // Six digits or eight, so the three CSS allows are not stretched into six.
                     "\\color{#FFF}{x}"
                     "\\"
+                    // Only what the font has a struck form of can stand after \not.
+                    "\\not"
+                    "\\not+"
+                    "\\not\\alpha"
+                    "\\not{ab}"
                 ]
             )
             rejected(
@@ -329,21 +363,32 @@ let private reading =
                     "\\mathrm{μg}"
                     "\\mathrm{m\\,s^{-1}}"
                     "\\alpha\\uparrow\\circ\\triangle"
+                    "\\not\\equiv\\not\\subseteq\\not\\Rightarrow"
                 ],
                 fun latex -> Assert.Equal(ImmutableArray<char>.Empty, (read latex).Undrawable, latex)
+            )
+            Test.CasesSync(
+                "everyNamedOrStruckCharacterIsWrittenAsItselfAndReadsBack",
+                namedSymbols @ (Latexing.negated |> List.map (fun (_, struck) -> string struck, struck)),
+                fun character ->
+                    let written = Latex.Write(c character)
+                    if character <> '\\' then Assert.Equal(string character, written)
+                    Assert.Equal(c character, read written, written)
+            )
+            Test.CasesSync(
+                "everyStruckCharacterDrawsAndIsClassedAsThePlainOne",
+                Latexing.negated |> List.map (fun (plain, struck) -> string struck, (plain, struck)),
+                fun (plain, struck) ->
+                    layout.Of(MA.Char struck) |> ignore
+                    Assert.Equal(Conventions.relations.Contains plain, Conventions.relations.Contains struck)
             )
             Test.Sync(
                 "everyNamedSymbolHasAGlyphToDrawIt",
                 fun () ->
                     let missing = System.Text.StringBuilder()
-                    for command in Latexing.commands do
-                        match command.Value with
-                        | Latexing.Standing.Symbol character ->
-                            try layout.Of(MA.Char character) |> ignore
-                            with _ -> missing.Append(command.Key).Append(' ') |> ignore
-                        | Latexing.Standing.Function _ | Latexing.Standing.BigOp _
-                        | Latexing.Standing.Space _ | Latexing.Standing.Accent _
-                        | Latexing.Standing.Spanning _ -> ()
+                    for name, character in namedSymbols do
+                        try layout.Of(MA.Char character) |> ignore
+                        with _ -> missing.Append(name).Append(' ') |> ignore
                     Assert.Equal("", missing.ToString(), "named with no glyph to draw them")
             )
         ]
@@ -381,12 +426,19 @@ let private writing =
             writes(
                 "aControlWordIsKeptFromRunningIntoWhatFollowsIt",
                 [
-                    row [ c 'α'; c 'x' ], @"\alpha x"
                     row [ MA.Function MathFunction.Sin; c 'x' ], @"\sin x"
                     // Letters of a formula are no control word, so nothing stands between them.
                     MA.String "abc", "abc"
-                    // A backslash ends the word before it, so no space is needed either.
-                    row [ c 'α'; c 'β' ], @"\alpha\beta"
+                    // A Greek letter spells no control word, so nothing is needed before it either.
+                    row [ MA.Function MathFunction.Sin; c 'α' ], @"\sinα"
+                ]
+            )
+            writes(
+                "aCharacterIsWrittenAsItselfRatherThanByAName",
+                [
+                    row [ c 'a'; c '≢'; c 'b' ], "a≢b"
+                    // The one whose self is the escape, and which a letter must not run on from.
+                    row [ c '\\'; c 'x' ], @"\backslash x"
                 ]
             )
             Test.Sync(

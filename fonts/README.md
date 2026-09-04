@@ -32,7 +32,7 @@ regenerating.
 ## Scope
 
 Latin Modern Math is 733,736 bytes: 89% CFF outlines, 3% the `MATH` table, and 2% each of `hmtx`,
-`cmap` and `GSUB`. Trimmed it is 78,608, of which 92% is CFF. The blackboard face is 8,716 bytes,
+`cmap` and `GSUB`. Trimmed it is 83,428, of which 92% is CFF. The blackboard face is 8,716 bytes,
 carries no `MATH` table, and is embedded whole.
 
 4802 glyphs, of which 2045 are reachable through `cmap` and a further 716 only as stretched variants
@@ -40,7 +40,7 @@ or assembly parts of a delimiter. The remaining 2041 are reachable only through 
 mainly `ssty`, which chooses optically heavier shapes at superscript size. ModeMath ignores `GSUB`, so
 it sets scripts in the ordinary shapes.
 
-The 568 glyphs the generated data names are the only ones the trim keeps, and `MATH`, `GSUB`, `GPOS`
+The 590 glyphs the generated data names are the only ones the trim keeps, and `MATH`, `GSUB`, `GPOS`
 and `GDEF` go with the rest: the painter draws by glyph id and every measurement is generated, so
 nothing reads a table at run time. Drawing a character the data does not name means generating again.
 
@@ -61,5 +61,5 @@ drawn from the blackboard face too, so a formula holding either spelling looks t
 
 ## TODO: settle the repertoire
 
-`Named.repertoire` lists the characters a formula may hold beyond the alphabets and digits: 123 of them, 33 being ASCII punctuation.
-Which of the rest the SummaticApp content library actually uses has not been checked.
+`Named.repertoire` lists the characters a formula may hold beyond the alphabets and digits: 147 of them, 33 being ASCII punctuation.
+Which of the rest are actually used has not been checked.
