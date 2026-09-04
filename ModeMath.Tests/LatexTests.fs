@@ -116,6 +116,26 @@ let private reading =
                 ]
             )
             same(
+                "notStrikesThroughTheRelationAfterIt",
+                [
+                    "a \\not= b", row [ c 'a'; c '≠'; c 'b' ]
+                    "\\not\\equiv", c '≢'
+                    "\\not\\in", c '∉'
+                    "\\not\\ni", c '∌'
+                    "\\not\\subseteq", c '⊈'
+                    "\\not\\mid", c '∤'
+                    "\\not<", c '≮'
+                    "\\not\\Rightarrow", c '⇏'
+                    "\\not\\exists", c '∄'
+                    "\\not{=}", c '≠'
+                    "≢", c '≢'
+                    // The amssymb names stand for the same characters.
+                    "\\nmid", c '∤'
+                    "\\nsubseteq", c '⊈'
+                    "\\nLeftrightarrow", c '⇎'
+                ]
+            )
+            same(
                 "aScriptGoesOnTheAtomBeforeIt",
                 [
                     "x^2", MA.ScriptSuper(c 'x', c '2', ValueNone)
@@ -293,6 +313,11 @@ let private reading =
                     // Six digits or eight, so the three CSS allows are not stretched into six.
                     "\\color{#FFF}{x}"
                     "\\"
+                    // Only what the font has a struck form of can stand after \not.
+                    "\\not"
+                    "\\not+"
+                    "\\not\\alpha"
+                    "\\not{ab}"
                 ]
             )
             rejected(
@@ -329,8 +354,16 @@ let private reading =
                     "\\mathrm{μg}"
                     "\\mathrm{m\\,s^{-1}}"
                     "\\alpha\\uparrow\\circ\\triangle"
+                    "\\not\\equiv\\not\\subseteq\\not\\Rightarrow"
                 ],
                 fun latex -> Assert.Equal(ImmutableArray<char>.Empty, (read latex).Undrawable, latex)
+            )
+            Test.CasesSync(
+                "everyStruckCharacterDrawsAndIsClassedAsThePlainOne",
+                Latexing.negated |> List.map (fun (plain, struck) -> string struck, (plain, struck)),
+                fun (plain, struck) ->
+                    layout.Of(MA.Char struck) |> ignore
+                    Assert.Equal(Conventions.relations.Contains plain, Conventions.relations.Contains struck)
             )
             Test.Sync(
                 "everyNamedSymbolHasAGlyphToDrawIt",
@@ -387,6 +420,15 @@ let private writing =
                     MA.String "abc", "abc"
                     // A backslash ends the word before it, so no space is needed either.
                     row [ c 'α'; c 'β' ], @"\alpha\beta"
+                ]
+            )
+            writes(
+                "aStruckCharacterIsWrittenByItsNameOrElseAsNotBeforeThePlainOne",
+                [
+                    row [ c 'a'; c '≢'; c 'b' ], @"a\not\equiv b"
+                    c '∌', @"\not\ni"
+                    c '≠', @"\neq"
+                    c '≮', @"\nless"
                 ]
             )
             Test.Sync(

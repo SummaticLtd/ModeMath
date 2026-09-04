@@ -160,7 +160,11 @@ module internal Latexing =
             "setminus", '∖'; "oplus", '⊕'; "otimes", '⊗'
             "leq", '≤'; "le", '≤'; "geq", '≥'; "ge", '≥'; "neq", '≠'; "ne", '≠'
             "approx", '≈'; "equiv", '≡'; "sim", '∼'; "cong", '≅'; "propto", '∝'
-            "in", '∈'; "notin", '∉'; "subset", '⊂'; "subseteq", '⊆'
+            "in", '∈'; "notin", '∉'; "ni", '∋'; "subset", '⊂'; "subseteq", '⊆'
+            "nmid", '∤'; "nparallel", '∦'; "nless", '≮'; "ngtr", '≯'; "nleq", '≰'; "ngeq", '≱'
+            "nsim", '≁'; "ncong", '≇'; "nsubseteq", '⊈'; "nsupseteq", '⊉'; "nexists", '∄'
+            "nrightarrow", '↛'; "nleftarrow", '↚'; "nleftrightarrow", '↮'
+            "nRightarrow", '⇏'; "nLeftarrow", '⇍'; "nLeftrightarrow", '⇎'
             "to", '→'; "rightarrow", '→'; "Rightarrow", '⇒'; "Leftrightarrow", '⇔'; "iff", '⟺'
             "neg", '¬'; "lnot", '¬'; "langle", '⟨'; "rangle", '⟩'
             "lfloor", '⌊'; "rfloor", '⌋'; "lceil", '⌈'; "rceil", '⌉'; "diameter", '⌀'
@@ -172,6 +176,16 @@ module internal Latexing =
             "bullet", '•'; "circlearrowright", '↻'
             "uparrow", '↑'; "downarrow", '↓'; "longrightarrow", '⟶'; "longleftarrow", '⟵'
             "nearrow", '↗'; "searrow", '↘'
+        ]
+
+    /// Each character \not strikes through, and the character the font draws struck.
+    let negated =
+        [
+            '=', '≠'; '≡', '≢'; '<', '≮'; '>', '≯'; '≤', '≰'; '≥', '≱'
+            '≈', '≉'; '∼', '≁'; '≅', '≇'
+            '∈', '∉'; '∋', '∌'; '⊂', '⊄'; '⊃', '⊅'; '⊆', '⊈'; '⊇', '⊉'
+            '∣', '∤'; '∥', '∦'; '∃', '∄'
+            '→', '↛'; '←', '↚'; '↔', '↮'; '⇒', '⇏'; '⇐', '⇍'; '⇔', '⇎'
         ]
 
     /// Every function under the name it is called by, with the spellings also written for a few.
@@ -500,6 +514,14 @@ module internal Latexing =
                 let colour = t.Colour position
                 MA.Coloured(colour, t.Argument())
             | "{" | "}" | "%" | "#" | "&" | "_" | "$" | "^" -> MA.Char name.[0]
+            | "not" ->
+                let struck =
+                    match t.Argument() with
+                    | MA.Char c -> negated |> List.tryPick (fun (plain, struck) -> if plain = c then Some struck else None)
+                    | _ -> None
+                match struck with
+                | Some struck -> MA.Char struck
+                | None -> fail("\\not stands before nothing it strikes through", position)
             | _ ->
                 match commands |> ImmutableDictionary.tryFind name with
                 | ValueNone -> fail($"{name} is no command this reads", position)
@@ -671,11 +693,16 @@ module internal Latexing =
             match ma with
             | MA.Row elements -> for element in elements do formula element
             | MA.Char c ->
-                match namedChars |> List.tryPick (fun (name, x) -> if x = c then Some name else None) with
-                | Some name -> command name
+                let name = namedChars |> List.tryPick (fun (name, x) -> if x = c then Some name else None)
+                let plain = negated |> List.tryPick (fun (plain, struck) -> if struck = c then Some plain else None)
+                match name, plain with
+                | Some name, _ -> command name
+                | None, Some plain ->
+                    command "not"
+                    formula(MA.Char plain)
                 // What LaTeX keeps for itself stands for itself only under a backslash.
-                | None when kept.Contains c -> command(string c)
-                | None -> put(string c)
+                | None, None when kept.Contains c -> command(string c)
+                | None, None -> put(string c)
             | MA.BoldVar c ->
                 command "mathbf"
                 braced(MA.Char c)
