@@ -68,7 +68,7 @@ type internal AccentMark =
 
 module internal Conventions =
     let relations = ImmutableHashSet.Create(
-        '=', '<', '>', '≤', '≥', '≠', '≈', '≡', '∈', '∉', '∋', '∌',
+        '=', '<', '>', '≤', '≥', '≠', '≈', '≡', '≪', '≫', '∈', '∉', '∋', '∌',
         '⊂', '⊆', '⊃', '⊇', '⊄', '⊈', '⊅', '⊉', '∴', '∵',
         '∼', '≅', '∝', '⊥', '∥', '∣', '≁', '≇', '∦', '∤',
         '≢', '≮', '≯', '≰', '≱', '≉',
@@ -78,7 +78,7 @@ module internal Conventions =
 
     let binaries = ImmutableHashSet.Create(
         '+', '-', '−', '±', '∓', '×', '÷', '⋅', '∗', '∘', '•',
-        '∩', '∪', '∧', '∨', '∖', '⊕', '⊗'
+        '∩', '∪', '∧', '∨', '∖', '⊕', '⊗', '†', '‡'
     )
 
     let opens = ImmutableHashSet.Create('(', '[', '{', '⟨', '⌊', '⌈')

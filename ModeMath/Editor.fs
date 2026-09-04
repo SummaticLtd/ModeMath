@@ -161,7 +161,8 @@ type EditorState(layout: Layout, cursor: PlacedCurs) =
     /// ValueNone where the font cannot draw it, so that a caller can pass the key on.
     member private _.Type(character: char) =
         let character = Latexing.standsFor(int character) |> ValueOption.defaultValue character
-        if (Glyphs.variable character).IsNone then ValueNone
+        // A tilde is the tie LaTeX reads it as, which is a gap rather than a character to type.
+        if character = '~' || (Glyphs.variable character).IsNone then ValueNone
         else over((settled()).AddAlphanumeric character) |> ValueSome
 
     /// A formula put in at the cursor, which the cursor then stands after.

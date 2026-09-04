@@ -38,9 +38,14 @@ needs a `MACurs` case.
 | Limits on the operators that take them | `\det`, `\sup`, `\inf`, `\max`, `\min`, `\Pr`, `\gcd`, `\liminf`, `\limsup` | 0 |
 | Accents below | `\underdot` | 0 |
 | The double bar | `\Vert`, and the outer pair of a `Vmatrix` | 0 |
+| Sized delimiters | `\big`, `\Big`, `\bigg`, `\Bigg`, `\bigl` and `\bigr`, `\middle` | 0 |
+| Stacking | `\overset`, `\underset`, `\stackrel` | 0 |
+| Invisible boxes | `\phantom`, `\hphantom`, `\vphantom`, `\hspace` | 0 |
+| Rules in a table | `\hline`, an `array` column separator, `\\[2pt]` | 0 |
+| Symbols the font is not cut for | `\prec`, `\odot`, `\Uparrow`, `\bigoplus`, `\hbar`, and some sixty more | 0 |
 
 `MathFunction` names every function LaTeX defines, which `\operatorname` resolves against as well.
-A name outside it is refused rather than guessed at, so a new one is a case here and nowhere else.
+A name outside it is set as the upright words it spells, so it draws right but spaces as ordinary.
 TeX sets the limits of the operators above them in display style, as `MA.BigOp` does for `\lim`;
 those named above take scripts beside them instead, which is what `\max` and `\min` did before.
 

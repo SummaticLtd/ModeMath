@@ -152,13 +152,14 @@ module internal Latexing =
 
     let private marks =
         [
-            "infty", '∞'; "partial", '∂'; "emptyset", '∅'
+            "infty", '∞'; "partial", '∂'; "emptyset", '∅'; "varnothing", '∅'
             "therefore", '∴'; "because", '∵'; "mid", '∣'; "prime", '′'
             "cdots", '⋯'; "ldots", '…'; "dots", '…'; "vdots", '⋮'; "ddots", '⋱'
             "times", '×'; "div", '÷'; "cdot", '⋅'; "pm", '±'; "mp", '∓'; "ast", '∗'
             "cap", '∩'; "cup", '∪'; "wedge", '∧'; "land", '∧'; "vee", '∨'; "lor", '∨'
-            "setminus", '∖'; "oplus", '⊕'; "otimes", '⊗'
+            "setminus", '∖'; "smallsetminus", '∖'; "oplus", '⊕'; "otimes", '⊗'
             "leq", '≤'; "le", '≤'; "geq", '≥'; "ge", '≥'; "neq", '≠'; "ne", '≠'
+            "ll", '≪'; "gg", '≫'
             "approx", '≈'; "equiv", '≡'; "sim", '∼'; "cong", '≅'; "propto", '∝'
             "in", '∈'; "notin", '∉'; "ni", '∋'; "subset", '⊂'; "subseteq", '⊆'
             "nmid", '∤'; "nparallel", '∦'; "nless", '≮'; "ngtr", '≯'; "nleq", '≰'; "ngeq", '≱'
@@ -171,7 +172,10 @@ module internal Latexing =
             "leftarrow", '←'; "gets", '←'; "Leftarrow", '⇐'; "leftrightarrow", '↔'; "mapsto", '↦'
             "Longleftrightarrow", '⟺'; "supset", '⊃'; "supseteq", '⊇'; "perp", '⊥'; "parallel", '∥'
             "angle", '∠'; "ell", 'ℓ'; "nabla", '∇'; "forall", '∀'; "exists", '∃'
-            "dagger", '†'; "degree", '°'; "backslash", '\\'
+            "dagger", '†'; "ddagger", '‡'; "ddag", '‡'; "degree", '°'; "backslash", '\\'; "colon", ':'
+            // The delimiters, which stand as ordinary characters where no \left or \right takes them.
+            "vert", '|'; "lvert", '|'; "rvert", '|'; "lbrace", '{'; "rbrace", '}'
+            "lbrack", '['; "rbrack", ']'
             "circ", '∘'; "triangle", '△'; "square", '□'; "pounds", '£'
             "bullet", '•'; "circlearrowright", '↻'
             "uparrow", '↑'; "downarrow", '↓'; "longrightarrow", '⟶'; "longleftarrow", '⟵'
@@ -225,6 +229,8 @@ module internal Latexing =
         [
             ",", Space.Thin; ":", Space.Medium; ";", Space.Thick; "!", Space.NegativeThin
             " ", Space.Medium; "enspace", Space.Medium
+            "thinspace", Space.Thin; "medspace", Space.Medium; "thickspace", Space.Thick
+            "negthinspace", Space.NegativeThin
             "quad", Space.Quad; "qquad", Space.QQuad
         ]
 
@@ -370,14 +376,15 @@ module internal Latexing =
             while chosen.IsNone && not t.Ends do
                 let position = here()
                 match peek() with
-                // The one infix command: what it stands between is what it sets over and under.
-                | ValueSome(Token.Command("choose" | "atop" as name)) ->
+                // The infix commands: what one stands between is what it sets over and under.
+                | ValueSome(Token.Command("choose" | "atop" | "over" as name)) ->
                     if chosenAlready then fail($"a second \\{name} in one group", position)
                     advance()
                     chosen <- ValueSome(struct(name, MA.OfElements(elements.ToImmutable())))
                 | _ -> elements.Add(t.Atom())
             match chosen with
             | ValueSome(struct("atop", top)) -> MA.Stack(top, t.Formula true)
+            | ValueSome(struct("over", top)) -> MA.Frac(top, t.Formula true)
             | ValueSome(struct(_, top)) -> MA.Binom(top, t.Formula true)
             | ValueNone -> MA.OfElements(elements.ToImmutable())
 
@@ -391,6 +398,10 @@ module internal Latexing =
             let position = here()
             match peek() with
             | ValueSome Token.Open -> t.Group()
+            // A tie is an interword space held against a line break, which a formula never takes.
+            | ValueSome(Token.Char '~') ->
+                advance()
+                MA.Space Space.Medium
             | ValueSome(Token.Char c) ->
                 advance()
                 MA.Char c
@@ -485,11 +496,12 @@ module internal Latexing =
 
         member private t.Named(name: string, position: int) : MA =
             match name with
+            // A name outside the closed set is the upright words it spells, as an operator is set.
             | "operatorname" ->
                 let name = t.Words position
                 match functions |> List.tryFind (fun (spelling, _) -> spelling = name) with
                 | Some(_, f) -> MA.Function f
-                | None -> fail($"{name} is no function this knows", position)
+                | None -> t.Written(name, position)
             | "frac" | "dfrac" | "tfrac" -> MA.Frac(t.Argument(), t.Argument())
             | "binom" -> MA.Binom(t.Argument(), t.Argument())
             | "sqrt" ->
@@ -502,7 +514,18 @@ module internal Latexing =
             | "right" -> fail("a right delimiter with no left one", position)
             | "begin" -> t.Environment(position)
             | "end" -> fail("an environment ends where none began", position)
-            | "text" | "textrm" -> t.Written(t.Words position, position)
+            | "text" | "textrm" | "mbox" -> t.Written(t.Words position, position)
+            // The modulus commands, each standing for the gaps and words LaTeX defines it as.
+            | "bmod" -> MA.Row3(MA.Space Space.Medium, MA.Text "mod", MA.Space Space.Medium)
+            | "pmod" ->
+                MA.Row(
+                    ImmutableArray.Create(
+                        MA.Space Space.Quad, MA.Char '(', MA.Text "mod", MA.Space Space.Thick,
+                        t.Argument(), MA.Char ')'))
+            | "mod" ->
+                MA.Row(
+                    ImmutableArray.Create(
+                        MA.Space Space.Quad, MA.Text "mod", MA.Space Space.Thick, t.Argument()))
             // \mathrm sets mathematics upright, so scripts, gaps and commands all read inside it.
             | "mathrm" ->
                 match t.Argument() with
@@ -595,8 +618,9 @@ module internal Latexing =
                 MA.Table(
                     t.Cells(name, position),
                     ImmutableArray.Create(Alignment.Right, Alignment.Centre, Alignment.Left))
-            | "align" | "align*" ->
+            | "align" | "align*" | "aligned" | "split" ->
                 MA.Table(t.Cells(name, position), ImmutableArray.Create(Alignment.Right, Alignment.Left))
+            | "gather" | "gather*" | "gathered" -> MA.Matrix(t.Cells(name, position))
             | "array" ->
                 let alignments =
                     t.Words position
