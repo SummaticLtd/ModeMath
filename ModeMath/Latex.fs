@@ -172,7 +172,8 @@ module internal Latexing =
             "leftarrow", '←'; "gets", '←'; "Leftarrow", '⇐'; "leftrightarrow", '↔'; "mapsto", '↦'
             "Longleftrightarrow", '⟺'; "supset", '⊃'; "supseteq", '⊇'; "perp", '⊥'; "parallel", '∥'
             "angle", '∠'; "ell", 'ℓ'; "nabla", '∇'; "forall", '∀'; "exists", '∃'
-            "dagger", '†'; "ddagger", '‡'; "ddag", '‡'; "degree", '°'; "backslash", '\\'; "colon", ':'
+            "dagger", '†'; "dag", '†'; "ddagger", '‡'; "ddag", '‡'
+            "degree", '°'; "backslash", '\\'; "colon", ':'
             // The delimiters, which stand as ordinary characters where no \left or \right takes them.
             "vert", '|'; "lvert", '|'; "rvert", '|'; "lbrace", '{'; "rbrace", '}'
             "lbrack", '['; "rbrack", ']'

@@ -85,6 +85,7 @@ let private reading =
                     "\\diameter", c '⌀'
                     "a\\ll b\\gg c", row [ c 'a'; c '≪'; c 'b'; c '≫'; c 'c' ]
                     "\\dagger\\ddagger", row [ c '†'; c '‡' ]
+                    "\\dag\\ddag", read "\\dagger\\ddagger"
                     // A second name for a shape is the same shape, whichever of them a formula writes.
                     "\\varnothing", c '∅'
                     "\\smallsetminus", c '∖'
