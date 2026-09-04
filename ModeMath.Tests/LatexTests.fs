@@ -314,6 +314,8 @@ let private reading =
                     "a\\thickspace b", read "a\\;b"
                     // A tie is a space that holds a line against a break, which a formula never takes.
                     "a~b", read "a\\ b"
+                    // So a tilde of its own stands under a backslash, as every character LaTeX keeps does.
+                    "a\\~b", row [ c 'a'; c '~'; c 'b' ]
                     // A colour is what it paints, so a name reads as the hex for it reads.
                     "\\color{red}{x}", read "\\color{#FF0000}{x}"
                     "\\color{RED}{x}", read "\\color{#FF0000}{x}"
@@ -486,7 +488,7 @@ let private writing =
                 "aCharacterLatexKeepsForItselfIsWrittenUnderABackslash",
                 fun () ->
                     // A caret is one of them: it is drawn and typed like any other character.
-                    Assert.Equal(@"\{\&\$\_\%\#\^\}", Latex.Write(MA.String "{&$_%#^}"))
+                    Assert.Equal(@"\{\&\$\_\%\#\^\~\}", Latex.Write(MA.String "{&$_%#^~}"))
                     Assert.Equal(@"\text{\$5}", Latex.Write(MA.Text "$5"), "in text as well")
             )
             Test.Sync(

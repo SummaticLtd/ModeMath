@@ -84,7 +84,7 @@ module internal Latexing =
             |> ValueOption.ofOption
 
     /// The characters LaTeX gives a meaning of its own, which a formula holding one escapes.
-    let private kept = Set.ofSeq "{}%#&_$^"
+    let private kept = Set.ofSeq "{}%#&_$^~"
 
     /// A mark that gives ink of its own, which a zero-width space does not.
     let private inked(c: char) = Char.GetUnicodeCategory c <> Globalization.UnicodeCategory.Format
@@ -536,7 +536,7 @@ module internal Latexing =
             | "color" | "textcolor" ->
                 let colour = t.Colour position
                 MA.Coloured(colour, t.Argument())
-            | "{" | "}" | "%" | "#" | "&" | "_" | "$" | "^" -> MA.Char name.[0]
+            | "{" | "}" | "%" | "#" | "&" | "_" | "$" | "^" | "~" -> MA.Char name.[0]
             | "not" ->
                 let struck =
                     match t.Argument() with
