@@ -359,6 +359,16 @@ let private reading =
                 fun latex -> Assert.Equal(ImmutableArray<char>.Empty, (read latex).Undrawable, latex)
             )
             Test.CasesSync(
+                "everyNamedCharacterWrittenAsItselfReadsBack",
+                [
+                    for command in Latexing.commands do
+                        match command.Value with
+                        | Latexing.Standing.Symbol character -> yield command.Key, character
+                        | _ -> ()
+                ],
+                fun character -> Assert.Equal(c character, read(Latex.Write(c character)))
+            )
+            Test.CasesSync(
                 "everyStruckCharacterDrawsAndIsClassedAsThePlainOne",
                 Latexing.negated |> List.map (fun (plain, struck) -> string struck, (plain, struck)),
                 fun (plain, struck) ->
@@ -414,21 +424,22 @@ let private writing =
             writes(
                 "aControlWordIsKeptFromRunningIntoWhatFollowsIt",
                 [
-                    row [ c 'α'; c 'x' ], @"\alpha x"
                     row [ MA.Function MathFunction.Sin; c 'x' ], @"\sin x"
                     // Letters of a formula are no control word, so nothing stands between them.
                     MA.String "abc", "abc"
-                    // A backslash ends the word before it, so no space is needed either.
-                    row [ c 'α'; c 'β' ], @"\alpha\beta"
+                    // A Greek letter spells no control word, so nothing is needed before it either.
+                    row [ MA.Function MathFunction.Sin; c 'α' ], @"\sinα"
                 ]
             )
             writes(
-                "aStruckCharacterIsWrittenByItsNameOrElseAsNotBeforeThePlainOne",
+                "aCharacterIsWrittenAsItselfRatherThanByAName",
                 [
-                    row [ c 'a'; c '≢'; c 'b' ], @"a\not\equiv b"
-                    c '∌', @"\not\ni"
-                    c '≠', @"\neq"
-                    c '≮', @"\nless"
+                    row [ c 'a'; c '≢'; c 'b' ], "a≢b"
+                    c '≠', "≠"
+                    c 'α', "α"
+                    c '∞', "∞"
+                    // The one whose self is the escape.
+                    c '\\', @"\backslash"
                 ]
             )
             Test.Sync(

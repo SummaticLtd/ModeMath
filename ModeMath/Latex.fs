@@ -644,9 +644,6 @@ module internal Latexing =
     let private spelt(table: (string * 'a) list, value: 'a) =
         table |> List.pick (fun (name, x) -> if x = value then Some name else None)
 
-    /// Every character a command stands for, greek first, so each is written the one way.
-    let private namedChars = greek @ marks
-
     let private delimiterSpelling(bracket: Bracket, opening: bool) =
         match bracket, opening with
         | Bracket.Normal, true -> "("
@@ -672,7 +669,7 @@ module internal Latexing =
         | Alignment.Right -> "r"
         | Alignment.Centre | _ -> "c"
 
-    /// A formula as the LaTeX that reads back as it, every argument in braces.
+    /// A formula as the LaTeX that reads back as it, every argument in braces and every character as itself.
     let write(ma: MA) =
         let text = Text.StringBuilder()
         /// A control word runs on into a letter after it, so a space is put between them.
@@ -692,17 +689,10 @@ module internal Latexing =
         let rec formula(ma: MA) =
             match ma with
             | MA.Row elements -> for element in elements do formula element
-            | MA.Char c ->
-                let name = namedChars |> List.tryPick (fun (name, x) -> if x = c then Some name else None)
-                let plain = negated |> List.tryPick (fun (plain, struck) -> if struck = c then Some plain else None)
-                match name, plain with
-                | Some name, _ -> command name
-                | None, Some plain ->
-                    command "not"
-                    formula(MA.Char plain)
-                // What LaTeX keeps for itself stands for itself only under a backslash.
-                | None, None when kept.Contains c -> command(string c)
-                | None, None -> put(string c)
+            // What LaTeX keeps for itself stands for itself only under a backslash.
+            | MA.Char c when kept.Contains c -> command(string c)
+            | MA.Char '\\' -> command "backslash"
+            | MA.Char c -> put(string c)
             | MA.BoldVar c ->
                 command "mathbf"
                 braced(MA.Char c)
