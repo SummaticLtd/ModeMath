@@ -521,7 +521,7 @@ module internal Latexing =
                     | _ -> None
                 match struck with
                 | Some struck -> MA.Char struck
-                | None -> fail("\\not stands before nothing it strikes through", position)
+                | None -> fail("\\not stands before what has no struck form", position)
             | _ ->
                 match commands |> ImmutableDictionary.tryFind name with
                 | ValueNone -> fail($"{name} is no command this reads", position)
