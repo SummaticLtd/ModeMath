@@ -49,7 +49,7 @@ An opening bracket is drawn faint until its closing one is typed, a run of lette
 
 ## LaTeX
 
-`Latex.Read` takes a math-mode string and `Latex.Write` gives one back, every argument in braces and every character as itself rather than by a command name. What is not understood is refused with the position it stands at, rather than guessed at, and a character the font cannot draw is refused there too, so a formula that was read always lays out. One built from `MA` in code can hold a character the font has no glyph for, and `MA.Undrawable` is the characters it would fail on.
+`Latex.Read` takes a math-mode string and `Latex.Write` gives one back, every argument in braces and characters as themselves. What is not understood is refused with the position it stands at, rather than guessed at, and a character the font cannot draw is refused there too, so a formula that was read always lays out. One built from `MA` in code can hold a character the font has no glyph for, and `MA.Undrawable` is the characters it would fail on.
 
 `\color` and `\textcolor` name their colours from a `Palette`, which a caller may replace to give a name a colour of its own.
 

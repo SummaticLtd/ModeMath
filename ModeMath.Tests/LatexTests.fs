@@ -44,6 +44,15 @@ let private writes(name: string, pairs: (MA * string) list) =
         pairs |> List.map (fun (formula, expected) -> string formula, (formula, expected)),
         fun (formula, expected) -> Assert.Equal(expected, Latex.Write formula, string formula))
 
+/// Every character a command stands for, under the command's name.
+let private namedSymbols =
+    [
+        for command in Latexing.commands do
+            match command.Value with
+            | Latexing.Standing.Symbol character -> yield command.Key, character
+            | _ -> ()
+    ]
+
 let private reading =
     TestList(
         "Reading LaTeX",
@@ -359,14 +368,12 @@ let private reading =
                 fun latex -> Assert.Equal(ImmutableArray<char>.Empty, (read latex).Undrawable, latex)
             )
             Test.CasesSync(
-                "everyNamedCharacterWrittenAsItselfReadsBack",
-                [
-                    for command in Latexing.commands do
-                        match command.Value with
-                        | Latexing.Standing.Symbol character -> yield command.Key, character
-                        | _ -> ()
-                ],
-                fun character -> Assert.Equal(c character, read(Latex.Write(c character)))
+                "everyNamedOrStruckCharacterIsWrittenAsItselfAndReadsBack",
+                namedSymbols @ (Latexing.negated |> List.map (fun (_, struck) -> string struck, struck)),
+                fun character ->
+                    let written = Latex.Write(c character)
+                    if character <> '\\' then Assert.Equal(string character, written)
+                    Assert.Equal(c character, read written, written)
             )
             Test.CasesSync(
                 "everyStruckCharacterDrawsAndIsClassedAsThePlainOne",
@@ -379,14 +386,9 @@ let private reading =
                 "everyNamedSymbolHasAGlyphToDrawIt",
                 fun () ->
                     let missing = System.Text.StringBuilder()
-                    for command in Latexing.commands do
-                        match command.Value with
-                        | Latexing.Standing.Symbol character ->
-                            try layout.Of(MA.Char character) |> ignore
-                            with _ -> missing.Append(command.Key).Append(' ') |> ignore
-                        | Latexing.Standing.Function _ | Latexing.Standing.BigOp _
-                        | Latexing.Standing.Space _ | Latexing.Standing.Accent _
-                        | Latexing.Standing.Spanning _ -> ()
+                    for name, character in namedSymbols do
+                        try layout.Of(MA.Char character) |> ignore
+                        with _ -> missing.Append(name).Append(' ') |> ignore
                     Assert.Equal("", missing.ToString(), "named with no glyph to draw them")
             )
         ]
@@ -435,11 +437,8 @@ let private writing =
                 "aCharacterIsWrittenAsItselfRatherThanByAName",
                 [
                     row [ c 'a'; c '≢'; c 'b' ], "a≢b"
-                    c '≠', "≠"
-                    c 'α', "α"
-                    c '∞', "∞"
-                    // The one whose self is the escape.
-                    c '\\', @"\backslash"
+                    // The one whose self is the escape, and which a letter must not run on from.
+                    row [ c '\\'; c 'x' ], @"\backslash x"
                 ]
             )
             Test.Sync(

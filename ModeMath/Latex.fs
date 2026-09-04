@@ -669,19 +669,19 @@ module internal Latexing =
         | Alignment.Right -> "r"
         | Alignment.Centre | _ -> "c"
 
-    /// A formula as the LaTeX that reads back as it, every argument in braces and every character as itself.
+    /// A formula as the LaTeX that reads back as it, every argument in braces and characters as themselves.
     let write(ma: MA) =
         let text = Text.StringBuilder()
         /// A control word runs on into a letter after it, so a space is put between them.
         let mutable word = false
         let put(s: string) =
-            if word && s.Length > 0 && Char.IsAsciiLetter s.[0] then text.Append ' ' |> ignore
+            if word && s.Length > 0 && spells s.[0] then text.Append ' ' |> ignore
             text.Append s |> ignore
             word <- false
         let command(name: string) =
             put "\\"
             put name
-            word <- name.Length > 0 && Char.IsAsciiLetter name.[name.Length - 1]
+            word <- name.Length > 0 && spells name.[name.Length - 1]
         /// A delimiter named by a control word is written as one, so a letter after it does not run on.
         let delimiter(bracket: Bracket, opening: bool) =
             let spelling = delimiterSpelling(bracket, opening)
@@ -691,7 +691,7 @@ module internal Latexing =
             | MA.Row elements -> for element in elements do formula element
             // What LaTeX keeps for itself stands for itself only under a backslash.
             | MA.Char c when kept.Contains c -> command(string c)
-            | MA.Char '\\' -> command "backslash"
+            | MA.Char '\\' -> command(spelt(marks, '\\'))
             | MA.Char c -> put(string c)
             | MA.BoldVar c ->
                 command "mathbf"

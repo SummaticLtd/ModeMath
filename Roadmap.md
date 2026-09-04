@@ -13,9 +13,8 @@ Editing and display work. `examples/` shows what renders today.
 
 ## 2. LaTeX
 
-`Latex.Read` reads a math-mode string into an `MA` and `Latex.Write` writes one back out, every
-argument in braces and every character as itself. Every one of the 17,085 formulas the content library reads is written back out
-and read again as the same formula.
+`Latex.Read` reads a math-mode string into an `MA` and `Latex.Write` writes one back out, every argument in braces and characters as themselves.
+Every one of the 17,085 formulas the content library reads is written back out and read again as the same formula.
 
 It reads and draws 99.2% of the 17,220 distinct formulas in the SummaticApp content library.
 Every formula it reads, it draws: a character the font cannot draw is refused where it stands, so
