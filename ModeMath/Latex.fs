@@ -11,7 +11,7 @@ open FSUtils
 type LatexError(message: string, position: int) =
     member _.Message = message
     member _.Position = position
-    override _.ToString() = $"{message}, at character {position.ToString()}"
+    override _.ToString() = $"{message}, at character {position}"
 
 /// The colours \color and \textcolor name, which a caller may give its own.
 [<Sealed>]
@@ -134,7 +134,7 @@ module internal Latexing =
                     | ValueSome letter -> take(Token.Char letter)
                     // What the font cannot draw is refused here, so laying a formula out cannot fail.
                     | ValueNone when (Glyphs.variable c).IsNone ->
-                        fail($"{c.ToString()} is no character this draws", start)
+                        fail($"{c} is no character this draws", start)
                     | ValueNone -> take(Token.Char c)
         tokens.ToImmutable()
 
@@ -297,7 +297,7 @@ module internal Latexing =
     /// A formula set upright, as \mathrm does, leaving alone the figures and signs that stand upright anyway.
     let upright(ma: MA, position: int) =
         let letter(c: char) =
-            if (Glyphs.upright c).IsNone then fail($"{c.ToString()} is no character this sets upright", position)
+            if (Glyphs.upright c).IsNone then fail($"{c} is no character this sets upright", position)
             if (Letters.upright c).IsSome then ValueSome(MA.Text(string c)) else ValueNone
         set(letter, ma)
 
@@ -492,7 +492,7 @@ module internal Latexing =
         member private _.Upright(word: string, position: int) =
             let word = word |> String.filter inked
             for c in word do
-                if (Glyphs.upright c).IsNone then fail($"{c.ToString()} is no character this sets upright", position)
+                if (Glyphs.upright c).IsNone then fail($"{c} is no character this sets upright", position)
             word
 
         member private t.Written(word: string, position: int) = MA.Text(t.Upright(word, position))

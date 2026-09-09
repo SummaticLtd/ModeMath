@@ -415,7 +415,7 @@ type PlacedCurs with
         let bar(count: int) = PlacedCurs.Bar(PlacedCurs.Pen(children, count), placed.EmSize)
         let first(count: int) = children.RemoveRange(count, children.Length - count)
         let rest(count: int) = children.RemoveRange(0, count)
-        let wrong(kind: string) = failwith $"a cursor in a {kind} was placed over {placed.Pma.ToMA.ToString()}"
+        let wrong(kind: string) = failwith $"a cursor in a {kind} was placed over {placed.Pma.ToMA}"
         let scripts() =
             match placed.Pma with
             | PlacedMA.ScriptSuper(main, super, sub) -> struct(main, ValueSome super, sub)

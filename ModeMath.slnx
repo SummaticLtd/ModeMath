@@ -3,6 +3,7 @@
   <Project Path="ModeMath/ModeMath.fsproj" />
   <Project Path="heads/Playground/Playground.fsproj" />
   <Project Path="heads/Playground.Desktop/Playground.Desktop.fsproj" />
+  <Project Path="tools/AotCheck/AotCheck.fsproj" />
   <Project Path="tools/MathTableGen/MathTableGen.fsproj" />
   <Project Path="tools/RenderExamples/RenderExamples.fsproj" />
 </Solution>

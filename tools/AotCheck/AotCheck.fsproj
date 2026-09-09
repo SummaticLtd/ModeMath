@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <PublishAot>true</PublishAot>
+    <!-- Otherwise every warning in an assembly collapses into one that names no member. -->
+    <TrimmerSingleWarn>false</TrimmerSingleWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\ModeMath\ModeMath.fsproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Analyse all of the library, not the fraction this entry point happens to reach. -->
+    <TrimmerRootAssembly Include="ModeMath" />
+  </ItemGroup>
+
+</Project>
